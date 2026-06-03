@@ -1,0 +1,20 @@
+{
+  "name": "xhalo-blog",
+  "version": "0.1.0-alpha.0",
+  "private": true,
+  "description": "Open-source Cloudflare-native Hexo blog framework scaffold.",
+  "scripts": {
+    "check": "node scripts/check-scaffold.mjs",
+    "build:admin": "npm --workspace apps/admin run build",
+    "build:basic": "npm --workspace examples/basic-blog run build"
+  },
+  "workspaces": [
+    "apps/*",
+    "workers/*",
+    "packages/*",
+    "examples/basic-blog"
+  ],
+  "engines": {
+    "node": ">=20"
+  }
+}

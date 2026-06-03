@@ -1,0 +1,12 @@
+{
+  "name": "@xhalo-blog/queue-worker",
+  "version": "0.1.0-alpha.0",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev src/index.js",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
