@@ -1,34 +1,42 @@
 {
   "site": {
-    "title": "xhalo-blog",
-    "subtitle": "Cloudflare-native Hexo blog template",
-    "description": "A clean open-source community edition blog scaffold.",
-    "author": "Your Name",
+    "title": "xHalo Blog",
+    "subtitle": "A deployable Hexo starter for Cloudflare Pages",
+    "description": "Example content and baseline config for the open-source community edition.",
+    "author": "xHalo Team",
     "url": "https://example.com",
-    "language": "en",
-    "timezone": "UTC"
+    "language": "zh-CN",
+    "timezone": "Asia/Shanghai"
   },
   "theme": {
     "name": "next",
     "scheme": "Gemini",
     "darkmode": true,
-    "sidebar": "left"
+    "sidebar": "left",
+    "menu": [
+      { "key": "home", "path": "/", "icon": "home" },
+      { "key": "about", "path": "/about/", "icon": "user" },
+      { "key": "tags", "path": "/tags/", "icon": "tags" },
+      { "key": "categories", "path": "/categories/", "icon": "th" },
+      { "key": "archives", "path": "/archives/", "icon": "archive" }
+    ]
   },
-  "menu": [
-    { "label": "Home", "url": "/", "icon": "fa fa-home" },
-    { "label": "About", "url": "/about/", "icon": "fa fa-user" }
-  ],
   "social": [],
   "comments": {
     "provider": "waline",
     "enabled": false,
-    "serverURL": ""
+    "serverUrl": ""
   },
   "analytics": {
-    "cloudflare": "",
-    "google": "",
-    "clarity": "",
-    "baidu": ""
+    "googleAnalyticsId": "",
+    "baiduAnalyticsId": "",
+    "growingioProjectId": "",
+    "cloudflareAnalyticsToken": "",
+    "clarityProjectId": ""
+  },
+  "features": {
+    "rewardEnabled": false,
+    "postAssetFolder": true
   },
   "security": {
     "turnstile": false,

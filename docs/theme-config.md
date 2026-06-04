@@ -6,10 +6,21 @@ The public configuration contract starts from `rb-blog.config.example.json` and 
 
 - Hexo `_config.yml`
 - Theme-specific config
-- Menu config
+- Theme menu config
 - Social links
 - Comments
 - Analytics
+- Feature toggles
 - Security toggles
+
+Current normalized sections are:
+
+- `site`
+- `theme`
+- `social`
+- `comments`
+- `analytics`
+- `features`
+- `security`
 
 WordPress themes are not compatible.

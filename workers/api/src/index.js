@@ -21,8 +21,8 @@ export default {
     }
 
     if (url.pathname === '/api/tasks/example' && request.method === 'POST') {
-      if (!env.PUBLISH_QUEUE) return json({ error: 'PUBLISH_QUEUE is not bound' }, { status: 500 });
-      await env.PUBLISH_QUEUE.send({ type: 'example', created_at: new Date().toISOString() });
+      if (!env.TASK_QUEUE) return json({ error: 'TASK_QUEUE is not bound' }, { status: 500 });
+      await env.TASK_QUEUE.send({ type: 'example', created_at: new Date().toISOString() });
       return json({ queued: true });
     }
 
