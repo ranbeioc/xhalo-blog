@@ -90,6 +90,13 @@ rb-blog.config.example.json
 wrangler.toml.example
 ```
 
+Current scaffold defaults are aligned around:
+
+- `workers/api/src/index.js`
+- `TASK_QUEUE` -> `xhalo-blog-tasks`
+- `DB` -> `xhalo-blog`
+- a normalized `rb-blog.config.example.json` contract for site, theme, comments, analytics, features, and security
+
 Never commit real API tokens, account IDs, zone IDs, analytics IDs, private keys, or production secrets.
 
 ## Project boundary

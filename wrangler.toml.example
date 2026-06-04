@@ -4,7 +4,7 @@ compatibility_date = "2026-06-01"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "xhalo_blog"
+database_name = "xhalo-blog"
 database_id = "00000000-0000-0000-0000-000000000000"
 
 [[r2_buckets]]
@@ -12,10 +12,10 @@ binding = "ASSETS"
 bucket_name = "xhalo-blog-assets"
 
 [[queues.producers]]
-binding = "PUBLISH_QUEUE"
-queue = "xhalo-blog-publish"
+binding = "TASK_QUEUE"
+queue = "xhalo-blog-tasks"
 
 [[queues.consumers]]
-queue = "xhalo-blog-publish"
+queue = "xhalo-blog-tasks"
 max_batch_size = 10
 max_batch_timeout = 30

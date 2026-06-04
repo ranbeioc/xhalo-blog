@@ -1,5 +1,17 @@
 # Queues
 
+Current scaffold queue name:
+
+```text
+xhalo-blog-tasks
+```
+
+Current producer / consumer binding:
+
+```text
+TASK_QUEUE
+```
+
 Queues are for async, retryable work:
 
 - Social sync
