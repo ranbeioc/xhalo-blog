@@ -52,6 +52,8 @@ npm install
 npm run check
 ```
 
+See [`docs/getting-started.md`](./docs/getting-started.md) for the full Stage 2.5 scaffold setup flow.
+
 To test the Hexo NexT example:
 
 ```bash
@@ -66,6 +68,16 @@ Default local URL:
 ```text
 http://localhost:4000
 ```
+
+## Documentation
+
+- [`docs/getting-started.md`](./docs/getting-started.md)
+- [`docs/cloudflare-pages.md`](./docs/cloudflare-pages.md)
+- [`docs/deploy-cloudflare.md`](./docs/deploy-cloudflare.md)
+- [`docs/functions-workers.md`](./docs/functions-workers.md)
+- [`docs/theme-config.md`](./docs/theme-config.md)
+- [`docs/security.md`](./docs/security.md)
+- [`docs/github-pr-publishing.md`](./docs/github-pr-publishing.md)
 
 ## Cloudflare Pages deployment
 
