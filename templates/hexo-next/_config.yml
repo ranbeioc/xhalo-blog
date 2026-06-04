@@ -1,19 +1,35 @@
-title: xhalo-blog
-subtitle: Cloudflare-native Hexo blog template
-description: A clean open-source community edition blog scaffold.
-author: Your Name
-language: en
-timezone: UTC
+title: xHalo Blog
+subtitle: A deployable Hexo starter for Cloudflare Pages
+description: Example content and baseline config for the open-source community edition.
+author: xHalo Team
+language: zh-CN
+timezone: Asia/Shanghai
 url: https://example.com
 permalink: :year/:month/:day/:title/
+permalink_defaults:
+pretty_urls:
+  trailing_index: false
+  trailing_html: false
 source_dir: source
 public_dir: public
+tag_dir: tags
+archive_dir: archives
+category_dir: categories
+code_dir: downloads/code
+i18n_dir: :lang
+new_post_name: :year-:month-:day-:title.md
+default_layout: post
+titlecase: false
 post_asset_folder: true
+relative_link: false
+future: true
 theme: next
 skip_render:
   - _headers
 include:
   - _headers
+exclude: []
+ignore:
 index_generator:
   path: ''
   per_page: 10
