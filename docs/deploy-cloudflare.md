@@ -2,6 +2,14 @@
 
 ## Cloudflare Pages
 
+For `examples/basic-blog`:
+
+```text
+Build command: npm run build
+Build output directory: dist
+Root directory: examples/basic-blog
+```
+
 For `examples/next-theme-blog`:
 
 ```text
