@@ -24,3 +24,22 @@ Recommended dynamic paths:
 ```
 
 Do not intercept all HTML routes in early versions.
+
+## Suggested responsibility split
+
+- Cloudflare Pages:
+  - public static HTML
+  - CSS, JS, images, feeds, and search files
+- Worker API:
+  - admin-facing write endpoints
+  - webhook handlers
+  - background task coordination
+  - optional authenticated internal APIs
+
+## Early routing rule
+
+Keep the public blog render path static first. Add dynamic routes only under explicit prefixes such as `/api/*` and `/admin/*`.
+
+## Stage 2.5 boundary
+
+The current repository includes placeholder worker structure and route boundaries. It does not yet provide a production-grade admin API or full request validation pipeline.
