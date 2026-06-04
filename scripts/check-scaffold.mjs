@@ -16,6 +16,7 @@ const required = [
   'examples/basic-blog/src/_headers',
   'templates/hexo-next/_config.yml',
   'examples/next-theme-blog/_config.yml',
+  'docs/getting-started.md',
   'docs/architecture.md',
   '.github/workflows/check.yml'
 ];
