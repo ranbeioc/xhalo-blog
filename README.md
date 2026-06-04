@@ -69,6 +69,14 @@ http://localhost:4000
 
 ## Cloudflare Pages deployment
 
+For the minimal static example, use:
+
+```text
+Build command: npm run build
+Build output directory: dist
+Root directory: examples/basic-blog
+```
+
 For the Hexo NexT example, use:
 
 ```text
@@ -78,7 +86,11 @@ Root directory: examples/next-theme-blog
 Environment variable: NODE_VERSION=20
 ```
 
-For a production site, fork this repository, copy `templates/hexo-next` or `examples/next-theme-blog`, customize configuration, and connect the repository to Cloudflare Pages.
+For a production site, fork this repository, choose one of these starting points, customize configuration, and connect the repository to Cloudflare Pages:
+
+- `examples/basic-blog` for the smallest static baseline
+- `examples/next-theme-blog` for a runnable Hexo plus NexT example
+- `templates/hexo-next` for a reusable Hexo plus NexT template directory
 
 ## Configuration
 
