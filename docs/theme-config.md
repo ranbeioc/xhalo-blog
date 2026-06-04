@@ -24,3 +24,25 @@ Current normalized sections are:
 - `security`
 
 WordPress themes are not compatible.
+
+## Current direction
+
+The scaffold treats `rb-blog.config.example.json` as the public-facing config contract and maps that contract into:
+
+- Hexo site config
+- NexT-compatible theme config
+- public feature toggles
+- optional comment and analytics providers
+
+## Stage 2.5 defaults
+
+Current defaults are intentionally conservative:
+
+- NexT-compatible baseline
+- `post_asset_folder: true`
+- placeholder comments and analytics values only
+- menu and theme structure that can be documented without private site data
+
+## Boundary
+
+This repository does not promise compatibility with every Hexo theme. The first stable target is the NexT-compatible path already included in the examples and template.
