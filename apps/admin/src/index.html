@@ -3,23 +3,80 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>xhalo-blog Admin</title>
+    <title>xhalo-blog Admin Scaffold</title>
     <link rel="stylesheet" href="./style.css" />
   </head>
   <body>
     <main>
-      <p class="eyebrow">xhalo-blog</p>
-      <h1>Admin Panel Placeholder</h1>
-      <p>This placeholder will evolve into a Cloudflare Access protected publishing dashboard.</p>
-      <section>
+      <header class="hero">
+        <p class="eyebrow">xhalo-blog</p>
+        <h1>Admin Scaffold</h1>
+        <p class="lede">
+          Stage 2.5 keeps the admin surface intentionally small. This page is a static operator-facing scaffold for
+          verifying boundaries before a real Cloudflare Access protected dashboard exists.
+        </p>
+      </header>
+
+      <section class="panel-grid" aria-label="Scaffold status">
+        <article class="panel">
+          <h2>Current shape</h2>
+          <ul class="plain-list">
+            <li>Static site stays on Cloudflare Pages.</li>
+            <li>Git remains the source of truth for posts and config.</li>
+            <li>Write paths are expected to open pull requests, not push to <code>main</code>.</li>
+            <li>Dynamic routes stay under explicit API and admin prefixes.</li>
+          </ul>
+        </article>
+
+        <article class="panel">
+          <h2>Scaffold APIs</h2>
+          <ul class="plain-list">
+            <li><code>GET /api/health</code></li>
+            <li><code>GET /api/scaffold</code></li>
+            <li><code>GET /api/posts</code></li>
+            <li><code>POST /api/tasks/example</code></li>
+          </ul>
+        </article>
+      </section>
+
+      <section class="panel">
         <h2>Planned modules</h2>
-        <ul>
-          <li>Posts index</li>
-          <li>Draft editor</li>
-          <li>GitHub PR publishing</li>
-          <li>Cloudflare Pages deployment status</li>
-          <li>Comment moderation</li>
+        <div class="module-grid">
+          <div class="module">
+            <strong>Posts Index</strong>
+            <span>Read-only post metadata and publish state.</span>
+          </div>
+          <div class="module">
+            <strong>Draft Editor</strong>
+            <span>Draft creation that still publishes through GitHub pull requests.</span>
+          </div>
+          <div class="module">
+            <strong>Publishing</strong>
+            <span>Branch creation, PR creation, and Cloudflare Pages deployment status.</span>
+          </div>
+          <div class="module">
+            <strong>Moderation</strong>
+            <span>Comment and abuse review surfaces behind protected routes.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Read first</h2>
+        <ul class="link-list">
+          <li><a href="https://github.com/ranbeioc/xhalo-blog/blob/main/docs/getting-started.md">docs/getting-started.md</a></li>
+          <li><a href="https://github.com/ranbeioc/xhalo-blog/blob/main/docs/github-pr-publishing.md">docs/github-pr-publishing.md</a></li>
+          <li><a href="https://github.com/ranbeioc/xhalo-blog/blob/main/docs/functions-workers.md">docs/functions-workers.md</a></li>
+          <li><a href="https://github.com/ranbeioc/xhalo-blog/blob/main/docs/security.md">docs/security.md</a></li>
         </ul>
+      </section>
+
+      <section class="panel panel-warning">
+        <h2>Boundary</h2>
+        <p>
+          This is not the production admin panel. It should not contain real secrets, production account identifiers,
+          private content, or direct write flows to <code>main</code>.
+        </p>
       </section>
     </main>
   </body>

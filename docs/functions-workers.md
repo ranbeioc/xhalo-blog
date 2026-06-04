@@ -14,6 +14,15 @@ Current queue binding used by the API example:
 TASK_QUEUE
 ```
 
+Current read-only scaffold routes:
+
+```text
+GET /api/health
+GET /api/scaffold
+GET /api/posts
+POST /api/tasks/example
+```
+
 Recommended dynamic paths:
 
 ```text
