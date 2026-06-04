@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>xhalo-blog Admin Scaffold</title>
     <link rel="stylesheet" href="./style.css" />
+    <script type="module" src="./app.js"></script>
   </head>
   <body>
     <main>
@@ -37,6 +38,44 @@
             <li><code>POST /api/tasks/example</code></li>
           </ul>
         </article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Scaffold data</h2>
+          <span class="status-badge" data-field="health-status" data-state="warning">Loading</span>
+        </div>
+        <div class="meta-grid">
+          <div class="meta-row">
+            <span class="meta-label">Repo</span>
+            <strong data-field="repo">xhalo-blog</strong>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Stage</span>
+            <strong data-field="stage">2.5</strong>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Mode</span>
+            <strong data-field="mode">scaffold</strong>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Static site</span>
+            <strong data-field="static-site">Cloudflare Pages</strong>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Queue</span>
+            <strong data-field="queue-name">xhalo-blog-tasks</strong>
+          </div>
+        </div>
+        <div class="meta-block">
+          <span class="meta-label">Expected paths</span>
+          <ul class="plain-list compact-list" data-field="expected-paths">
+            <li><code>/api/health</code></li>
+            <li><code>/api/scaffold</code></li>
+            <li><code>/api/posts</code></li>
+            <li><code>/api/tasks/example</code></li>
+          </ul>
+        </div>
       </section>
 
       <section class="panel">
