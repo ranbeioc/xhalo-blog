@@ -1,4 +1,8 @@
 import fs from 'node:fs';
+import {
+  validateEnvExample,
+  validateScaffoldConfig
+} from '../packages/core/src/index.js';
 
 const required = [
   'README.md',
@@ -50,6 +54,18 @@ for (const file of scanTargets) {
 if (hits.length > 0) {
   console.error('Forbidden production-specific values found:');
   for (const hit of hits) console.error(`- ${hit}`);
+  process.exit(1);
+}
+
+const configIssues = validateScaffoldConfig(
+  JSON.parse(fs.readFileSync('rb-blog.config.example.json', 'utf8'))
+);
+const envIssues = validateEnvExample(fs.readFileSync('.env.example', 'utf8'));
+const validationIssues = [...configIssues, ...envIssues];
+
+if (validationIssues.length > 0) {
+  console.error('Scaffold validation issues found:');
+  for (const issue of validationIssues) console.error(`- ${issue}`);
   process.exit(1);
 }
 
