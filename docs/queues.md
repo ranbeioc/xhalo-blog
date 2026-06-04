@@ -56,3 +56,10 @@ At minimum, track:
 ## Stage 2.5 boundary
 
 The scaffold only defines the queue name and the intended job classes. It does not yet implement the full worker pipeline for these task types.
+
+Current placeholder consumer behavior:
+
+- wraps messages into a normalized scaffold envelope
+- logs known example tasks
+- warns on unknown task types
+- acknowledges the message to avoid retry loops in the bare scaffold
