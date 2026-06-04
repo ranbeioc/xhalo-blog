@@ -17,6 +17,7 @@ const required = [
   'workers/api/migrations/0001_initial.sql',
   'workers/queue/src/index.js',
   'apps/admin/src/index.html',
+  'apps/admin/src/app.js',
   'examples/basic-blog/src/_headers',
   'templates/hexo-next/_config.yml',
   'examples/next-theme-blog/_config.yml',

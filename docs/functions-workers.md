@@ -23,6 +23,8 @@ GET /api/posts
 POST /api/tasks/example
 ```
 
+The admin scaffold can read `GET /api/health` and `GET /api/scaffold` when it is deployed on the same origin as the placeholder API. If those routes are not reachable, it falls back to static scaffold defaults.
+
 Recommended dynamic paths:
 
 ```text
