@@ -11,6 +11,7 @@ const fallbackScaffold = {
     '/api/tasks',
     '/api/drafts/template',
     '/api/drafts/preview',
+    '/api/drafts/tasks',
     '/api/tasks/example'
   ]
 };
@@ -63,6 +64,11 @@ const fallbackDraftPreview = {
     tags: ['cloudflare', 'stage3'],
     status: 'draft'
   }
+};
+
+const fallbackDraftTask = {
+  status: 'not queued',
+  task_id: '-'
 };
 
 function setText(selector, value) {
@@ -153,6 +159,11 @@ function renderDraftPreview(preview) {
   }
 }
 
+function renderDraftTaskResult(task) {
+  setText('[data-field="draft-task-status"]', task.status || fallbackDraftTask.status);
+  setText('[data-field="draft-task-id"]', task.task_id || fallbackDraftTask.task_id);
+}
+
 function getDraftFormPayload(form) {
   const formData = new FormData(form);
   const tags = String(formData.get('tags') || '')
@@ -170,37 +181,70 @@ function getDraftFormPayload(form) {
   };
 }
 
+async function postDraftAction(form, endpoint) {
+  if (window.location.protocol === 'file:') {
+    return { mode: 'static' };
+  }
+
+  const payload = getDraftFormPayload(form);
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) return { error: response.status };
+  return response.json();
+}
+
+function prependTask(task) {
+  const list = document.querySelector('[data-field="tasks-preview"]');
+  if (!list) return;
+
+  const node = document.createElement('li');
+  node.innerHTML = `<strong>${task.type || 'unknown'}</strong><span>${task.status || 'queued'}</span>`;
+  list.prepend(node);
+}
+
 async function handleDraftPreviewSubmit(event) {
   event.preventDefault();
   const form = event.currentTarget;
-  renderDraftPreviewStatus('warning', 'Generating preview');
-
-  if (window.location.protocol === 'file:') {
-    renderDraftPreview(fallbackDraftPreview);
-    renderDraftPreviewStatus('warning', 'Static preview');
-    return;
-  }
+  const action = event.submitter?.value || 'preview';
+  renderDraftPreviewStatus('warning', action === 'queue' ? 'Queueing task' : 'Generating preview');
 
   try {
-    const payload = getDraftFormPayload(form);
-    const response = await fetch('/api/drafts/preview', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+    const result = await postDraftAction(form, action === 'queue' ? '/api/drafts/tasks' : '/api/drafts/preview');
 
-    if (!response.ok) {
-      renderDraftPreviewStatus('warning', `Preview failed (${response.status})`);
+    if (result?.mode === 'static') {
+      renderDraftPreview(fallbackDraftPreview);
+      renderDraftTaskResult(fallbackDraftTask);
+      renderDraftPreviewStatus('warning', 'Static preview');
       return;
     }
 
-    const result = await response.json();
+    if (result?.error) {
+      renderDraftPreviewStatus('warning', `${action === 'queue' ? 'Queue failed' : 'Preview failed'} (${result.error})`);
+      return;
+    }
+
     if (result.preview) {
       renderDraftPreview(result.preview);
-      renderDraftPreviewStatus('ok', 'Preview ready');
-    } else {
-      renderDraftPreviewStatus('warning', 'Preview payload missing');
     }
+
+    if (action === 'queue') {
+      renderDraftTaskResult({
+        status: result.queued ? 'queued' : 'queue failed',
+        task_id: result.task_id || '-'
+      });
+      prependTask({
+        type: result.task_type || 'draft_preview',
+        status: result.queued ? 'queued' : 'unknown'
+      });
+      renderDraftPreviewStatus('ok', 'Task queued');
+      return;
+    }
+
+    renderDraftPreviewStatus('ok', 'Preview ready');
   } catch {
     renderDraftPreviewStatus('warning', 'Static preview');
   }
@@ -212,6 +256,7 @@ async function loadScaffoldData() {
   renderTasks(fallbackTasks);
   renderDraftTemplate(fallbackDraftTemplate);
   renderDraftPreview(fallbackDraftPreview);
+  renderDraftTaskResult(fallbackDraftTask);
   renderHealth(false, 'API not checked');
   renderDraftPreviewStatus('warning', 'Static preview');
 

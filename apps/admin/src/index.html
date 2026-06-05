@@ -38,6 +38,7 @@
             <li><code>GET /api/tasks</code></li>
             <li><code>GET /api/drafts/template</code></li>
             <li><code>POST /api/drafts/preview</code></li>
+            <li><code>POST /api/drafts/tasks</code></li>
             <li><code>POST /api/tasks/example</code></li>
           </ul>
         </article>
@@ -79,6 +80,7 @@
             <li><code>/api/tasks</code></li>
             <li><code>/api/drafts/template</code></li>
             <li><code>/api/drafts/preview</code></li>
+            <li><code>/api/drafts/tasks</code></li>
             <li><code>/api/tasks/example</code></li>
           </ul>
         </div>
@@ -152,7 +154,8 @@
               <input name="status" type="text" value="draft" />
             </label>
             <div class="form-actions field-span-2">
-              <button type="submit">Generate preview</button>
+              <button type="submit" name="action" value="preview">Generate preview</button>
+              <button type="submit" name="action" value="queue" class="button-secondary">Queue dry-run task</button>
             </div>
           </form>
 
@@ -188,6 +191,16 @@
               <pre class="preview-code" data-field="draft-preview-front-matter">{
   "title": "Stage 3 Prototype Post"
 }</pre>
+            </div>
+            <div class="meta-grid">
+              <div class="meta-row">
+                <span class="meta-label">Task status</span>
+                <strong data-field="draft-task-status">not queued</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Task id</span>
+                <strong data-field="draft-task-id">-</strong>
+              </div>
             </div>
           </div>
         </div>

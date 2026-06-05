@@ -1,6 +1,7 @@
 import {
-  buildQueueTaskEnvelope,
+  buildDraftTaskPrototype,
   buildPullRequestPreview,
+  buildQueueTaskEnvelope,
   defaultDraftTemplate,
   createFallbackPosts,
   createFallbackTasks,
@@ -90,6 +91,30 @@ export default {
       return createJsonResponse({
         preview,
         note: 'Stage 3 draft and PR preview only. No branch or PR has been created.'
+      });
+    }
+
+    if (url.pathname === '/api/drafts/tasks' && request.method === 'POST') {
+      if (!env.TASK_QUEUE) return createJsonResponse({ error: 'TASK_QUEUE is not bound' }, { status: 500 });
+
+      const input = await request.json();
+      const prototype = buildDraftTaskPrototype(input, {
+        repoOwner: env.GITHUB_OWNER || 'example',
+        repoName: env.GITHUB_REPO || 'xhalo-blog',
+        baseBranch: env.GITHUB_BRANCH || 'main',
+        stage: '3-prototype'
+      });
+
+      await env.TASK_QUEUE.send(prototype.queuedTask);
+      const persisted = await insertTaskRecord(env, prototype.taskRecord);
+
+      return createJsonResponse({
+        queued: true,
+        persisted,
+        task_id: prototype.taskRecord.id,
+        task_type: prototype.taskRecord.type,
+        preview: prototype.preview,
+        note: 'Dry-run draft task queued. No GitHub branch or PR has been created.'
       });
     }
 

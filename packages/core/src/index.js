@@ -6,10 +6,20 @@ export const defaultScaffoldMetadata = {
   worker_entry: 'workers/api/src/index.js',
   queue_binding: 'TASK_QUEUE',
   queue_name: 'xhalo-blog-tasks',
-  expected_paths: ['/api/health', '/api/scaffold', '/api/posts', '/api/tasks', '/api/tasks/example'],
+  expected_paths: [
+    '/api/health',
+    '/api/scaffold',
+    '/api/posts',
+    '/api/tasks',
+    '/api/drafts/template',
+    '/api/drafts/preview',
+    '/api/drafts/tasks',
+    '/api/tasks/example'
+  ],
   notes: [
     'Posts and site configuration stay Git-backed.',
     'Read-only D1-backed posts and task status routes are the first Stage 3 prototype slice.',
+    'Draft flows remain dry-run prototypes until GitHub branch and PR creation is implemented.',
     'Dynamic write flows should open pull requests rather than write to main directly.',
     'This API surface is placeholder-only and not a production admin implementation.'
   ]
@@ -276,6 +286,31 @@ export function buildPullRequestPreview(input = {}, options = {}) {
     commitMessage: `feat(posts): add draft ${draft.slug}`,
     pullRequestTitle: `Add draft: ${draft.title || draft.slug}`,
     repository: `${repoOwner}/${repoName}`
+  };
+}
+
+export function buildDraftTaskPrototype(input = {}, options = {}) {
+  const preview = buildPullRequestPreview(input, options);
+  const createdAt = nowIso();
+  const task = buildQueueTaskEnvelope({
+    type: 'draft_preview',
+    stage: options.stage || '3-prototype',
+    created_at: createdAt,
+    idempotency_key: crypto.randomUUID(),
+    preview
+  });
+
+  return {
+    preview,
+    queuedTask: task,
+    taskRecord: {
+      id: task.idempotency_key,
+      type: task.type,
+      status: 'queued',
+      payload: task,
+      created_at: createdAt,
+      updated_at: createdAt
+    }
   };
 }
 
