@@ -1,14 +1,15 @@
 export const defaultScaffoldMetadata = {
   repo: 'xhalo-blog',
-  stage: '2.5',
+  stage: '3-prototype',
   mode: 'scaffold',
   static_site: 'Cloudflare Pages',
   worker_entry: 'workers/api/src/index.js',
   queue_binding: 'TASK_QUEUE',
   queue_name: 'xhalo-blog-tasks',
-  expected_paths: ['/api/health', '/api/scaffold', '/api/posts', '/api/tasks/example'],
+  expected_paths: ['/api/health', '/api/scaffold', '/api/posts', '/api/tasks', '/api/tasks/example'],
   notes: [
     'Posts and site configuration stay Git-backed.',
+    'Read-only D1-backed posts and task status routes are the first Stage 3 prototype slice.',
     'Dynamic write flows should open pull requests rather than write to main directly.',
     'This API surface is placeholder-only and not a production admin implementation.'
   ]
@@ -148,11 +149,51 @@ export function validateEnvExample(content) {
 export function buildQueueTaskEnvelope(body = {}) {
   return {
     type: body.type || 'unknown',
-    stage: body.stage || '2.5',
+    stage: body.stage || '3-prototype',
     created_at: body.created_at || nowIso(),
     idempotency_key: body.idempotency_key || '',
     payload: body
   };
+}
+
+export function createFallbackPosts() {
+  return [
+    {
+      id: 'post-demo-1',
+      slug: 'hello-xhalo-blog',
+      title: 'Hello xhalo-blog',
+      path: 'source/_posts/hello-xhalo-blog.md',
+      status: 'published',
+      updated_at: nowIso()
+    },
+    {
+      id: 'post-demo-2',
+      slug: 'next-theme-baseline',
+      title: 'NexT Theme Baseline',
+      path: 'examples/next-theme-blog/source/_posts/hello-xhalo-blog.md',
+      status: 'example',
+      updated_at: nowIso()
+    }
+  ];
+}
+
+export function createFallbackTasks() {
+  return [
+    {
+      id: 'task-demo-1',
+      type: 'build_status_poll',
+      status: 'pending',
+      payload: '{"source":"scaffold"}',
+      updated_at: nowIso()
+    },
+    {
+      id: 'task-demo-2',
+      type: 'example',
+      status: 'queued',
+      payload: '{"source":"scaffold"}',
+      updated_at: nowIso()
+    }
+  ];
 }
 
 export function nowIso() {
