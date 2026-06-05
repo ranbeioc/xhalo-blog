@@ -183,9 +183,21 @@ main {
   display: block;
 }
 
+.preview-stack {
+  min-width: 0;
+}
+
 .preview-list span {
   color: #c8d6f0;
   text-align: right;
+}
+
+.preview-meta {
+  display: block;
+  margin-top: 8px;
+  color: #9ab0d8;
+  line-height: 1.45;
+  word-break: break-word;
 }
 
 .draft-workbench {

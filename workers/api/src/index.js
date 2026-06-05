@@ -429,12 +429,272 @@ function buildSignedUploadUrl(requestUrl, token) {
   return url.toString();
 }
 
+async function updatePostByBranchOrSlug(env, match = {}, patch = {}) {
+  if (!env.DB || typeof env.DB.prepare !== 'function') return false;
+
+  const matchClauses = [];
+  const matchArgs = [];
+
+  if (match.github_branch) {
+    matchClauses.push('github_branch = ?');
+    matchArgs.push(match.github_branch);
+  }
+
+  if (match.slug) {
+    matchClauses.push('slug = ?');
+    matchArgs.push(match.slug);
+  }
+
+  if (matchClauses.length === 0) return false;
+
+  const setClauses = [];
+  const setArgs = [];
+
+  if ('status' in patch) {
+    setClauses.push('status = ?');
+    setArgs.push(patch.status);
+  }
+  if ('updated_at' in patch) {
+    setClauses.push('updated_at = ?');
+    setArgs.push(patch.updated_at);
+  }
+  if ('github_pr_url' in patch) {
+    setClauses.push('github_pr_url = ?');
+    setArgs.push(patch.github_pr_url);
+  }
+  if ('published_at' in patch) {
+    setClauses.push('published_at = ?');
+    setArgs.push(patch.published_at);
+  }
+
+  if (setClauses.length === 0) return false;
+
+  await env.DB.prepare(
+    `UPDATE posts_index SET ${setClauses.join(', ')} WHERE ${matchClauses.join(' OR ')}`
+  ).bind(...setArgs, ...matchArgs).run();
+
+  return true;
+}
+
+function parseJsonSafe(value) {
+  if (value == null) return null;
+  if (typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+function summarizeTaskRecord(item) {
+  const payload = parseJsonSafe(item.payload) || {};
+  const summary = payload.reconciliation?.summary || {};
+  return {
+    ...item,
+    payload,
+    detail_primary: summary.outcome || item.status || 'unknown',
+    detail_secondary:
+      summary.previewUrl ||
+      summary.branch ||
+      summary.key ||
+      summary.channel ||
+      summary.commentId ||
+      summary.note ||
+      null
+  };
+}
+
+function summarizePostRecord(item) {
+  return {
+    ...item,
+    detail_primary: item.github_branch || null,
+    detail_secondary: item.github_pr_url || null
+  };
+}
+
+async function recordWebhookTask(env, type, payload) {
+  return insertTaskRecord(env, {
+    id: crypto.randomUUID(),
+    type,
+    status: 'completed',
+    payload,
+    created_at: nowIso(),
+    updated_at: nowIso()
+  });
+}
+
+async function verifyGithubWebhookSignature(env, request, rawBody) {
+  if (!env.GITHUB_WEBHOOK_SECRET) {
+    throw new Error('GITHUB_WEBHOOK_SECRET is required for GitHub webhooks.');
+  }
+
+  const signatureHeader = request.headers.get('x-hub-signature-256') || '';
+  if (!signatureHeader.startsWith('sha256=')) {
+    throw new Error('Missing GitHub webhook signature.');
+  }
+
+  const key = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(env.GITHUB_WEBHOOK_SECRET),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  const signature = new Uint8Array(
+    await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(rawBody))
+  );
+  const expected = `sha256=${Array.from(signature).map((value) => value.toString(16).padStart(2, '0')).join('')}`;
+
+  if (expected !== signatureHeader) {
+    throw new Error('GitHub webhook signature mismatch.');
+  }
+}
+
+function mapPullRequestWebhookStatus(action, merged) {
+  if (action === 'closed') return merged ? 'merged' : 'pr-closed';
+  if (action === 'ready_for_review') return 'review-ready';
+  return 'draft-pr-open';
+}
+
+async function verifyPreviewWebhookSecret(env, request) {
+  if (!env.PREVIEW_WEBHOOK_SECRET) {
+    throw new Error('PREVIEW_WEBHOOK_SECRET is required for preview deployment webhooks.');
+  }
+
+  const secret = request.headers.get('x-preview-webhook-secret') || '';
+  if (secret !== env.PREVIEW_WEBHOOK_SECRET) {
+    throw new Error('Preview deployment webhook secret mismatch.');
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
     if (url.pathname === '/api/health') {
       return createJsonResponse({ ok: true, service: 'xhalo-blog-api', stage: '3-prototype', mode: 'scaffold' });
+    }
+
+    if (url.pathname === '/webhooks/github' && request.method === 'POST') {
+      const rawBody = await request.text();
+
+      try {
+        await verifyGithubWebhookSignature(env, request, rawBody);
+      } catch (error) {
+        return createJsonResponse({ error: error.message || 'Invalid GitHub webhook.' }, { status: 403 });
+      }
+
+      const eventName = request.headers.get('x-github-event') || 'unknown';
+      const payload = JSON.parse(rawBody || '{}');
+
+      if (eventName === 'pull_request' && payload.pull_request) {
+        const pullRequest = payload.pull_request;
+        const action = payload.action || 'unknown';
+        const branchName = pullRequest.head?.ref || null;
+        const prUrl = pullRequest.html_url || null;
+        const merged = Boolean(pullRequest.merged);
+        const status = mapPullRequestWebhookStatus(action, merged);
+        const updatedAt = nowIso();
+        const persistedPost = await updatePostByBranchOrSlug(env, { github_branch: branchName }, {
+          status,
+          updated_at: updatedAt,
+          github_pr_url: prUrl,
+          published_at: merged ? updatedAt : null
+        });
+        const persistedTask = await recordWebhookTask(env, 'github_webhook', {
+          event: eventName,
+          action,
+          branchName,
+          pullRequestUrl: prUrl,
+          reconciliation: {
+            phase: 'completed',
+            summary: {
+              outcome: status,
+              branch: branchName,
+              pullRequestUrl: prUrl
+            }
+          }
+        });
+
+        return createJsonResponse({
+          accepted: true,
+          event: eventName,
+          action,
+          branch_name: branchName,
+          post_status: status,
+          persisted_post: persistedPost,
+          persisted_task: persistedTask
+        });
+      }
+
+      const persistedTask = await recordWebhookTask(env, 'github_webhook', {
+        event: eventName,
+        action: payload.action || 'ignored',
+        reconciliation: {
+          phase: 'completed',
+          summary: {
+            outcome: 'ignored-event',
+            event: eventName
+          }
+        }
+      });
+
+      return createJsonResponse({
+        accepted: true,
+        event: eventName,
+        ignored: true,
+        persisted_task: persistedTask
+      });
+    }
+
+    if (url.pathname === '/webhooks/deployments/preview' && request.method === 'POST') {
+      try {
+        await verifyPreviewWebhookSecret(env, request);
+      } catch (error) {
+        return createJsonResponse({ error: error.message || 'Invalid preview deployment webhook.' }, { status: 403 });
+      }
+
+      const payload = await request.json();
+      const branchName = String(payload.branchName || '').trim() || null;
+      const postSlug = String(payload.postSlug || '').trim() || null;
+      const previewUrl = String(payload.previewUrl || '').trim() || null;
+      const provider = String(payload.provider || 'cloudflare-pages').trim() || 'cloudflare-pages';
+      const status = String(payload.status || 'preview-ready').trim() || 'preview-ready';
+      const updatedAt = nowIso();
+      const persistedPost = await updatePostByBranchOrSlug(env, {
+        github_branch: branchName,
+        slug: postSlug
+      }, {
+        status,
+        updated_at: updatedAt
+      });
+      const persistedTask = await recordWebhookTask(env, 'preview_deployment_webhook', {
+        provider,
+        branchName,
+        postSlug,
+        previewUrl,
+        status,
+        reconciliation: {
+          phase: 'completed',
+          summary: {
+            outcome: status,
+            previewUrl,
+            postSlug,
+            branch: branchName
+          }
+        }
+      });
+
+      return createJsonResponse({
+        accepted: true,
+        provider,
+        branch_name: branchName,
+        post_slug: postSlug,
+        preview_url: previewUrl,
+        status,
+        persisted_post: persistedPost,
+        persisted_task: persistedTask
+      });
     }
 
     if (url.pathname === '/api/readiness') {
@@ -452,7 +712,7 @@ export default {
       );
 
       return createJsonResponse({
-        items: items ?? createFallbackPosts(),
+        items: items ? items.map(summarizePostRecord) : createFallbackPosts().map(summarizePostRecord),
         backend: items ? 'd1' : 'fallback',
         source_of_truth: 'git',
         note: items ? 'Read-only posts_index prototype.' : 'D1 posts_index integration pending; showing fallback examples.'
@@ -466,7 +726,7 @@ export default {
       );
 
       return createJsonResponse({
-        items: items ?? createFallbackTasks(),
+        items: items ? items.map(summarizeTaskRecord) : createFallbackTasks().map(summarizeTaskRecord),
         backend: items ? 'd1' : 'fallback',
         note: items ? 'Read-only tasks prototype.' : 'D1 task status integration pending; showing fallback examples.'
       });

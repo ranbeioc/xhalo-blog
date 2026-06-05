@@ -23,6 +23,8 @@ export const defaultScaffoldMetadata = {
     '/api/assets/r2-upload',
     '/api/assets/r2-upload/:token',
     '/api/assets/r2-tasks',
+    '/webhooks/github',
+    '/webhooks/deployments/preview',
     '/api/publish/notifications/template',
     '/api/publish/notifications/preview',
     '/api/publish/notifications/tasks',
@@ -71,9 +73,11 @@ export const requiredEnvKeys = [
   'GITHUB_OWNER',
   'GITHUB_REPO',
   'GITHUB_BRANCH',
+  'GITHUB_WEBHOOK_SECRET',
   'GITHUB_APP_ID',
   'GITHUB_APP_PRIVATE_KEY',
   'GITHUB_INSTALLATION_ID',
+  'PREVIEW_WEBHOOK_SECRET',
   'TURNSTILE_SITE_KEY',
   'TURNSTILE_SECRET_KEY'
 ];
@@ -130,9 +134,11 @@ export function buildProviderReadinessSnapshot(env = {}) {
   const hasGitHubRepoConfig = Boolean(env.GITHUB_OWNER) && Boolean(env.GITHUB_REPO) && Boolean(env.GITHUB_BRANCH);
   const hasGitHubApp = Boolean(env.GITHUB_APP_ID) && Boolean(env.GITHUB_APP_PRIVATE_KEY) && Boolean(env.GITHUB_INSTALLATION_ID);
   const hasGitHubToken = Boolean(env.GITHUB_TOKEN);
+  const hasGitHubWebhookSecret = Boolean(env.GITHUB_WEBHOOK_SECRET);
   const hasR2Binding = Boolean(env.ASSETS) && typeof env.ASSETS === 'object';
   const hasR2PublicBaseUrl = Boolean(env.ASSETS_PUBLIC_BASE_URL);
   const hasR2SigningSecret = Boolean(env.ASSETS_SIGNING_SECRET);
+  const hasPreviewWebhookSecret = Boolean(env.PREVIEW_WEBHOOK_SECRET);
   const hasQueue = Boolean(env.TASK_QUEUE) && typeof env.TASK_QUEUE.send === 'function';
   const hasTurnstile = Boolean(env.TURNSTILE_SITE_KEY) && Boolean(env.TURNSTILE_SECRET_KEY);
 
@@ -140,13 +146,21 @@ export function buildProviderReadinessSnapshot(env = {}) {
     {
       key: 'github',
       label: 'GitHub PR publishing',
-      status: hasGitHubRepoConfig && (hasGitHubApp || hasGitHubToken) ? 'ready' : hasGitHubRepoConfig ? 'partial' : 'missing',
+      status: hasGitHubRepoConfig && (hasGitHubApp || hasGitHubToken) && hasGitHubWebhookSecret ? 'ready' : hasGitHubRepoConfig ? 'partial' : 'missing',
       note: hasGitHubRepoConfig
         ? (
           hasGitHubApp
-            ? 'Repository and GitHub App env are present.'
+            ? (
+              hasGitHubWebhookSecret
+                ? 'Repository, GitHub App env, and webhook secret are present.'
+                : 'Repository and GitHub App env are present, but the webhook secret is missing.'
+            )
             : hasGitHubToken
-              ? 'Repository env and prototype GitHub token are present.'
+              ? (
+                hasGitHubWebhookSecret
+                  ? 'Repository env, prototype GitHub token, and webhook secret are present.'
+                  : 'Repository env and prototype GitHub token are present, but the webhook secret is missing.'
+              )
               : 'Repository env is present but GitHub App or prototype GitHub token is missing.'
         )
         : 'Repository publishing env is missing.'
@@ -174,6 +188,12 @@ export function buildProviderReadinessSnapshot(env = {}) {
       label: 'Queue worker',
       status: hasQueue ? 'ready' : 'missing',
       note: hasQueue ? 'TASK_QUEUE binding is present.' : 'TASK_QUEUE binding is missing.'
+    },
+    {
+      key: 'preview_deployments',
+      label: 'Preview deployment reconciliation',
+      status: hasPreviewWebhookSecret ? 'ready' : 'missing',
+      note: hasPreviewWebhookSecret ? 'Preview deployment webhook secret is present.' : 'PREVIEW_WEBHOOK_SECRET is missing.'
     },
     {
       key: 'turnstile',
@@ -314,8 +334,10 @@ export function createFallbackPosts() {
       slug: 'hello-xhalo-blog',
       title: 'Hello xhalo-blog',
       path: 'source/_posts/hello-xhalo-blog.md',
-      status: 'published',
-      updated_at: nowIso()
+      status: 'preview-ready',
+      updated_at: nowIso(),
+      github_branch: 'draft/hello-xhalo-blog',
+      github_pr_url: 'https://github.com/ranbeioc/xhalo-blog/pull/42'
     },
     {
       id: 'post-demo-2',
@@ -323,7 +345,9 @@ export function createFallbackPosts() {
       title: 'NexT Theme Baseline',
       path: 'examples/next-theme-blog/source/_posts/hello-xhalo-blog.md',
       status: 'example',
-      updated_at: nowIso()
+      updated_at: nowIso(),
+      github_branch: null,
+      github_pr_url: null
     }
   ];
 }
@@ -334,14 +358,14 @@ export function createFallbackTasks() {
       id: 'task-demo-1',
       type: 'build_status_poll',
       status: 'pending',
-      payload: '{"source":"scaffold"}',
+      payload: '{"reconciliation":{"summary":{"outcome":"polling","provider":"cloudflare-pages"}}}',
       updated_at: nowIso()
     },
     {
       id: 'task-demo-2',
-      type: 'example',
-      status: 'queued',
-      payload: '{"source":"scaffold"}',
+      type: 'preview_deployment_webhook',
+      status: 'completed',
+      payload: '{"reconciliation":{"summary":{"outcome":"preview-ready","previewUrl":"https://preview.example.com/hello-xhalo-blog/","postSlug":"hello-xhalo-blog"}}}',
       updated_at: nowIso()
     }
   ];

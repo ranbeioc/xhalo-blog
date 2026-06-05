@@ -33,6 +33,8 @@
 - Comment moderation design.
 - Comment moderation dry-run preview and queued task prototype.
 - Minimal D1-backed queue task reconciliation for known preview jobs.
+- GitHub webhook and preview deployment reconciliation prototype.
+- Richer read-only execution view for posts and tasks.
 
 ## v1.0.0
 

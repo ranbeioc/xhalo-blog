@@ -33,6 +33,8 @@ For live GitHub draft publishing, prefer `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KE
 
 For the first live R2 upload prototype, bind `ASSETS` in Wrangler and set both `ASSETS_PUBLIC_BASE_URL` and `ASSETS_SIGNING_SECRET`. The direct live upload path uses the public base URL, and the signed upload path also uses the signing secret to mint one-time worker upload URLs.
 
+For webhook reconciliation, also set `GITHUB_WEBHOOK_SECRET` and `PREVIEW_WEBHOOK_SECRET` before exposing `/webhooks/github` or `/webhooks/deployments/preview`.
+
 ## Run the minimal static example
 
 ```bash
