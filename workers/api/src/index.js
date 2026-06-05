@@ -35,6 +35,10 @@ function getGitHubRepository(env) {
   };
 }
 
+function hasGitHubAppConfig(env) {
+  return Boolean(env.GITHUB_APP_ID) && Boolean(env.GITHUB_APP_PRIVATE_KEY) && Boolean(env.GITHUB_INSTALLATION_ID);
+}
+
 function encodeBase64Utf8(input) {
   const bytes = new TextEncoder().encode(input);
   let binary = '';
@@ -54,6 +58,151 @@ function decodeBase64ToBytes(input) {
     return bytes;
   }
   return Uint8Array.from(Buffer.from(normalized, 'base64'));
+}
+
+function encodeBase64Url(input) {
+  const bytes = input instanceof Uint8Array ? input : new TextEncoder().encode(String(input));
+  let binary = '';
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  const encoded = typeof btoa === 'function'
+    ? btoa(binary)
+    : Buffer.from(bytes).toString('base64');
+
+  return encoded.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
+}
+
+function encodeDerLength(length) {
+  if (length < 0x80) return Uint8Array.of(length);
+  const bytes = [];
+  let remaining = length;
+  while (remaining > 0) {
+    bytes.unshift(remaining & 0xff);
+    remaining >>= 8;
+  }
+  return Uint8Array.of(0x80 | bytes.length, ...bytes);
+}
+
+function encodeDerSequence(...parts) {
+  const totalLength = parts.reduce((sum, part) => sum + part.byteLength, 0);
+  return Uint8Array.from([0x30, ...encodeDerLength(totalLength), ...parts.flatMap((part) => Array.from(part))]);
+}
+
+function encodeDerIntegerZero() {
+  return Uint8Array.of(0x02, 0x01, 0x00);
+}
+
+function encodeDerNull() {
+  return Uint8Array.of(0x05, 0x00);
+}
+
+function encodeDerOidRsaEncryption() {
+  return Uint8Array.of(0x06, 0x09, 0x2a, 0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x01, 0x01);
+}
+
+function encodeDerOctetString(bytes) {
+  return Uint8Array.from([0x04, ...encodeDerLength(bytes.byteLength), ...bytes]);
+}
+
+function wrapPkcs1PrivateKey(pkcs1Bytes) {
+  const algorithmIdentifier = encodeDerSequence(
+    encodeDerOidRsaEncryption(),
+    encodeDerNull()
+  );
+  return encodeDerSequence(
+    encodeDerIntegerZero(),
+    algorithmIdentifier,
+    encodeDerOctetString(pkcs1Bytes)
+  );
+}
+
+function parsePemPrivateKey(pem) {
+  const normalized = String(pem || '').replace(/\\n/g, '\n').trim();
+  const isPkcs1 = normalized.includes('-----BEGIN RSA PRIVATE KEY-----');
+  const base64 = normalized
+    .replace(/-----BEGIN RSA PRIVATE KEY-----/g, '')
+    .replace(/-----END RSA PRIVATE KEY-----/g, '')
+    .replace(/-----BEGIN PRIVATE KEY-----/g, '')
+    .replace(/-----END PRIVATE KEY-----/g, '')
+    .replace(/\s+/g, '');
+  const derBytes = decodeBase64ToBytes(base64);
+
+  return isPkcs1 ? wrapPkcs1PrivateKey(derBytes) : derBytes;
+}
+
+async function createGitHubAppJwt(env) {
+  const header = {
+    alg: 'RS256',
+    typ: 'JWT'
+  };
+  const now = Math.floor(Date.now() / 1000);
+  const payload = {
+    iat: now - 60,
+    exp: now + 9 * 60,
+    iss: env.GITHUB_APP_ID
+  };
+  const signingInput = `${encodeBase64Url(JSON.stringify(header))}.${encodeBase64Url(JSON.stringify(payload))}`;
+  const privateKey = await crypto.subtle.importKey(
+    'pkcs8',
+    parsePemPrivateKey(env.GITHUB_APP_PRIVATE_KEY),
+    {
+      name: 'RSASSA-PKCS1-v1_5',
+      hash: 'SHA-256'
+    },
+    false,
+    ['sign']
+  );
+  const signature = new Uint8Array(
+    await crypto.subtle.sign(
+      'RSASSA-PKCS1-v1_5',
+      privateKey,
+      new TextEncoder().encode(signingInput)
+    )
+  );
+
+  return `${signingInput}.${encodeBase64Url(signature)}`;
+}
+
+async function getGitHubAuthorization(env) {
+  if (env.__githubAuthorization) return env.__githubAuthorization;
+
+  if (hasGitHubAppConfig(env)) {
+    const appJwt = await createGitHubAppJwt(env);
+    const response = await getGitHubFetch(env)(`https://api.github.com/app/installations/${encodeURIComponent(env.GITHUB_INSTALLATION_ID)}/access_tokens`, {
+      method: 'POST',
+      headers: {
+        accept: 'application/vnd.github+json',
+        authorization: `Bearer ${appJwt}`,
+        'x-github-api-version': '2022-11-28'
+      }
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      const error = new Error(`GitHub App token ${response.status}: ${text}`);
+      error.status = response.status;
+      throw error;
+    }
+
+    const tokenPayload = await response.json();
+    env.__githubAuthorization = {
+      mode: 'app',
+      header: `Bearer ${tokenPayload.token}`
+    };
+    return env.__githubAuthorization;
+  }
+
+  if (env.GITHUB_TOKEN) {
+    env.__githubAuthorization = {
+      mode: 'token',
+      header: `Bearer ${env.GITHUB_TOKEN}`
+    };
+    return env.__githubAuthorization;
+  }
+
+  return {
+    mode: 'none',
+    header: null
+  };
 }
 
 function buildR2UploadBody(input = {}) {
@@ -81,10 +230,8 @@ async function githubApiRequest(env, path, init = {}) {
   const headers = new Headers(init.headers || {});
   headers.set('accept', 'application/vnd.github+json');
   headers.set('x-github-api-version', '2022-11-28');
-
-  if (env.GITHUB_TOKEN) {
-    headers.set('authorization', `Bearer ${env.GITHUB_TOKEN}`);
-  }
+  const authorization = await getGitHubAuthorization(env);
+  if (authorization.header) headers.set('authorization', authorization.header);
 
   const response = await getGitHubFetch(env)(`https://api.github.com${path}`, {
     ...init,
@@ -342,15 +489,17 @@ export default {
       if (mode !== 'live') {
         return createJsonResponse({
           mode,
+          auth_mode: hasGitHubAppConfig(env) ? 'app' : env.GITHUB_TOKEN ? 'token' : 'none',
           preview,
           plan,
           note: 'Dry-run draft publish only. No branch, commit, or PR has been created.'
         });
       }
 
-      if (!env.GITHUB_TOKEN) {
+      const authorization = await getGitHubAuthorization(env);
+      if (!authorization.header) {
         return createJsonResponse({
-          error: 'GITHUB_TOKEN is required for the live draft publish prototype.',
+          error: 'GitHub App env or GITHUB_TOKEN is required for the live draft publish prototype.',
           mode
         }, { status: 503 });
       }
@@ -380,6 +529,7 @@ export default {
 
       return createJsonResponse({
         mode,
+        auth_mode: authorization.mode,
         preview,
         plan,
         branch_created: branchResult.created,

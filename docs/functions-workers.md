@@ -52,7 +52,7 @@ Stage 3 prototype additions:
 - `POST /api/drafts/preview` returns a normalized draft payload, file path, branch name, and PR preview without creating anything remotely
 - `POST /api/drafts/tasks` queues a dry-run draft task and returns the preview plus task metadata without creating anything remotely
 - `POST /api/drafts/github-plan` returns the ordered GitHub operations plan for the current draft without creating anything remotely
-- `POST /api/drafts/publish` supports `dry-run` and a prototype `live` path. The live path requires `GITHUB_TOKEN` and creates a branch, commits a draft file, and opens a pull request without writing directly to `main`
+- `POST /api/drafts/publish` supports `dry-run` and a prototype `live` path. The live path prefers `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_INSTALLATION_ID`, accepts the downloaded GitHub App PEM, falls back to `GITHUB_TOKEN`, and creates a branch, commits a draft file, and opens a pull request without writing directly to `main`
 - `GET /api/assets/r2-template` exposes the current R2 upload contract for bucket binding, key prefix, and public URL shape
 - `POST /api/assets/r2-preview` returns the derived bucket/key/url tuple for a future upload without writing anything remotely
 - `POST /api/assets/r2-upload` supports `dry-run` and a bounded prototype `live` path. The live path requires the `ASSETS` binding plus `ASSETS_PUBLIC_BASE_URL`, writes one object to R2, and returns the derived public URL without introducing signed upload handlers yet
