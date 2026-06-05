@@ -29,6 +29,8 @@ This verifies the required scaffold files exist and that obvious production-only
 
 When the placeholder API is deployed on the same origin, you can also inspect `GET /api/readiness` to confirm whether GitHub, R2, queue, and Turnstile-related environment wiring looks ready before moving a dry-run prototype toward a real integration.
 
+For the first live GitHub draft publish prototype, set `GITHUB_TOKEN` in the worker environment. Keep `GITHUB_APP_*` placeholders for the later hardened path.
+
 ## Run the minimal static example
 
 ```bash

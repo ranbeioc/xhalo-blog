@@ -29,7 +29,7 @@ This repository only documents the flow and provides placeholder API structure.
 It does not yet provide:
 
 - a production admin panel
-- a production GitHub App implementation
+- a hardened production GitHub App implementation
 - queue retry logic for failed publishing jobs
 - downstream publish notification delivery
 - a complete audit UI for publish history
@@ -37,3 +37,13 @@ It does not yet provide:
 Initial versions should not write directly to `main`.
 
 Preview and draft workflows should stay on non-`main` branches until review is complete.
+
+## Current live prototype boundary
+
+The current prototype can use `GITHUB_TOKEN` to create:
+
+- a non-`main` draft branch
+- one draft Markdown file commit
+- one pull request into `main`
+
+It still does not replace the target GitHub App model for production hardening.

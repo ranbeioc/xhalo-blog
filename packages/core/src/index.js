@@ -16,6 +16,7 @@ export const defaultScaffoldMetadata = {
     '/api/drafts/preview',
     '/api/drafts/tasks',
     '/api/drafts/github-plan',
+    '/api/drafts/publish',
     '/api/assets/r2-template',
     '/api/assets/r2-preview',
     '/api/assets/r2-tasks',
@@ -120,6 +121,7 @@ export const defaultModerationTemplate = {
 export function buildProviderReadinessSnapshot(env = {}) {
   const hasGitHubRepoConfig = Boolean(env.GITHUB_OWNER) && Boolean(env.GITHUB_REPO) && Boolean(env.GITHUB_BRANCH);
   const hasGitHubApp = Boolean(env.GITHUB_APP_ID) && Boolean(env.GITHUB_APP_PRIVATE_KEY) && Boolean(env.GITHUB_INSTALLATION_ID);
+  const hasGitHubToken = Boolean(env.GITHUB_TOKEN);
   const hasR2Binding = Boolean(env.ASSETS) && typeof env.ASSETS === 'object';
   const hasR2PublicBaseUrl = Boolean(env.ASSETS_PUBLIC_BASE_URL);
   const hasQueue = Boolean(env.TASK_QUEUE) && typeof env.TASK_QUEUE.send === 'function';
@@ -129,9 +131,15 @@ export function buildProviderReadinessSnapshot(env = {}) {
     {
       key: 'github',
       label: 'GitHub PR publishing',
-      status: hasGitHubRepoConfig && hasGitHubApp ? 'ready' : hasGitHubRepoConfig ? 'partial' : 'missing',
+      status: hasGitHubRepoConfig && (hasGitHubApp || hasGitHubToken) ? 'ready' : hasGitHubRepoConfig ? 'partial' : 'missing',
       note: hasGitHubRepoConfig
-        ? (hasGitHubApp ? 'Repository and GitHub App env are present.' : 'Repository env is present but GitHub App env is missing.')
+        ? (
+          hasGitHubApp
+            ? 'Repository and GitHub App env are present.'
+            : hasGitHubToken
+              ? 'Repository env and prototype GitHub token are present.'
+              : 'Repository env is present but GitHub App or prototype GitHub token is missing.'
+        )
         : 'Repository publishing env is missing.'
     },
     {
@@ -333,6 +341,7 @@ export function normalizeDraftInput(input = {}) {
   const title = String(input.title || '').trim();
   const slug = String(input.slug || slugifyTitle(title)).trim() || 'untitled-draft';
   const summary = String(input.summary || '').trim();
+  const body = String(input.body || '').trim();
   const category = String(input.category || defaultDraftTemplate.defaults.category).trim();
   const status = String(input.status || defaultDraftTemplate.defaults.status).trim();
   const tags = Array.isArray(input.tags)
@@ -343,6 +352,7 @@ export function normalizeDraftInput(input = {}) {
     title,
     slug,
     summary,
+    body,
     category,
     status,
     tags
@@ -365,6 +375,30 @@ export function buildDraftFrontMatter(input = {}) {
 export function buildDraftFilePath(input = {}) {
   const draft = normalizeDraftInput(input);
   return `${defaultDraftTemplate.postDir}/${draft.slug}.md`;
+}
+
+function serializeFrontMatterValue(value) {
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '[]';
+    return `\n${value.map((item) => `  - ${String(item)}`).join('\n')}`;
+  }
+
+  if (typeof value === 'string') {
+    if (value.length === 0) return '""';
+    if (/^[a-zA-Z0-9._/-]+$/.test(value)) return value;
+    return JSON.stringify(value);
+  }
+
+  return JSON.stringify(value);
+}
+
+export function buildDraftMarkdownDocument(input = {}) {
+  const draft = normalizeDraftInput(input);
+  const frontMatter = buildDraftFrontMatter(draft);
+  const frontMatterLines = Object.entries(frontMatter).map(([key, value]) => `${key}: ${serializeFrontMatterValue(value)}`);
+  const body = draft.body || draft.summary || 'Draft body placeholder.';
+
+  return `---\n${frontMatterLines.join('\n')}\n---\n\n${body}\n`;
 }
 
 export function buildDraftBranchName(input = {}) {

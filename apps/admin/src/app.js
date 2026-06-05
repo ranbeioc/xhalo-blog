@@ -14,6 +14,7 @@ const fallbackScaffold = {
     '/api/drafts/preview',
     '/api/drafts/tasks',
     '/api/drafts/github-plan',
+    '/api/drafts/publish',
     '/api/assets/r2-template',
     '/api/assets/r2-preview',
     '/api/assets/r2-tasks',
@@ -115,6 +116,11 @@ const fallbackDraftPreview = {
 const fallbackDraftTask = {
   status: 'not queued',
   task_id: '-'
+};
+
+const fallbackDraftPublish = {
+  mode: 'dry-run',
+  pull_request: '-'
 };
 
 const fallbackDraftPlan = {
@@ -330,6 +336,11 @@ function renderDraftTaskResult(task) {
   setText('[data-field="draft-task-id"]', task.task_id || fallbackDraftTask.task_id);
 }
 
+function renderDraftPublishResult(result) {
+  setText('[data-field="draft-publish-mode"]', result.mode || fallbackDraftPublish.mode);
+  setText('[data-field="draft-publish-pr"]', result.pull_request || fallbackDraftPublish.pull_request);
+}
+
 function renderDraftPlan(plan) {
   renderCollection(
     '[data-field="draft-plan-actions"]',
@@ -526,6 +537,8 @@ async function handleDraftPreviewSubmit(event) {
   const action = event.submitter?.value || 'preview';
   const statusText = action === 'queue'
     ? 'Queueing task'
+    : action === 'publish'
+      ? 'Publishing draft'
     : action === 'plan'
       ? 'Building plan'
       : 'Generating preview';
@@ -534,6 +547,8 @@ async function handleDraftPreviewSubmit(event) {
   try {
     const endpoint = action === 'queue'
       ? '/api/drafts/tasks'
+      : action === 'publish'
+        ? '/api/drafts/publish'
       : action === 'plan'
         ? '/api/drafts/github-plan'
         : '/api/drafts/preview';
@@ -542,6 +557,7 @@ async function handleDraftPreviewSubmit(event) {
     if (result?.mode === 'static') {
       renderDraftPreview(fallbackDraftPreview);
       renderDraftTaskResult(fallbackDraftTask);
+      renderDraftPublishResult(fallbackDraftPublish);
       renderDraftPreviewStatus('warning', 'Static preview');
       return;
     }
@@ -557,6 +573,14 @@ async function handleDraftPreviewSubmit(event) {
 
     if (result.plan) {
       renderDraftPlan(result.plan);
+      if (action === 'publish') {
+        renderDraftPublishResult({
+          mode: result.mode || 'live',
+          pull_request: result.pull_request?.url || '-'
+        });
+        renderDraftPreviewStatus('ok', result.mode === 'live' ? 'Publish request completed' : 'Publish dry-run ready');
+        return;
+      }
       renderDraftPreviewStatus('ok', 'Plan ready');
       return;
     }
@@ -727,6 +751,7 @@ async function loadScaffoldData() {
   renderDraftTemplate(fallbackDraftTemplate);
   renderDraftPreview(fallbackDraftPreview);
   renderDraftTaskResult(fallbackDraftTask);
+  renderDraftPublishResult(fallbackDraftPublish);
   renderDraftPlan(fallbackDraftPlan);
   renderR2Template(fallbackR2Template);
   renderR2Preview(fallbackR2Preview);
