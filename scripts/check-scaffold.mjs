@@ -23,6 +23,9 @@ const required = [
   'examples/next-theme-blog/_config.yml',
   'docs/getting-started.md',
   'docs/architecture.md',
+  'docs/public-config-contract.md',
+  'docs/stable-deployment-guide.md',
+  'docs/stable-template-layout.md',
   '.github/workflows/check.yml'
 ];
 

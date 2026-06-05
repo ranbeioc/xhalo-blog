@@ -1,12 +1,13 @@
 # Security Policy
 
-`xhalo-blog` is an early-stage scaffold. Treat all production deployments as self-managed.
+`xhalo-blog` now has a stable public scaffold contract, but production deployments are still self-managed. Treat every provider integration beyond the published baseline docs as requiring operator review.
 
 ## Supported versions
 
 | Version | Supported |
 |---|---|
-| 0.1.x alpha | Best-effort only |
+| 1.x stable scaffold contract | Supported baseline docs and examples |
+| pre-1.0 alpha snapshots | Best-effort only |
 
 ## Reporting a vulnerability
 
@@ -27,3 +28,21 @@ Never commit:
 - Real production database credentials
 
 Use `.env.example` and platform environment variables instead.
+
+## Default settings review
+
+The current stable defaults are intentionally conservative:
+
+- comments are disabled by default
+- analytics IDs are blank by default
+- Turnstile and Access toggles default to `false`
+- GitHub publish flows default to PR-based writes instead of direct `main` updates
+- Cloudflare resource IDs are placeholders only
+
+Review required before production use:
+
+- replace every placeholder secret
+- verify webhook secrets before exposing webhook endpoints
+- verify Access policy rules in Cloudflare dashboard
+- review R2 URL strategy before publishing user-uploaded assets
+- review queue retry and failure handling if the scaffold is extended beyond the current prototype behavior

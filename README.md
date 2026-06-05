@@ -4,7 +4,7 @@
 
 It starts as a clean community edition template, not as a copy of any production blog. The repository contains example content, placeholder configuration, and a minimal Cloudflare platform skeleton for Pages, Workers, D1, R2, Queues, Turnstile, Access, and GitHub PR-based publishing workflows.
 
-> Status: `v0.1.0-alpha` scaffold. APIs, package boundaries, and deployment conventions may change before the first stable release.
+> Status: `v1.0.0` stable scaffold contract. The public configuration surface, deployment baseline, and template layout are now frozen, while some provider integrations remain prototype-grade.
 
 ## Goals
 
@@ -72,6 +72,9 @@ http://localhost:4000
 ## Documentation
 
 - [`docs/getting-started.md`](./docs/getting-started.md)
+- [`docs/public-config-contract.md`](./docs/public-config-contract.md)
+- [`docs/stable-deployment-guide.md`](./docs/stable-deployment-guide.md)
+- [`docs/stable-template-layout.md`](./docs/stable-template-layout.md)
 - [`docs/cloudflare-pages.md`](./docs/cloudflare-pages.md)
 - [`docs/deploy-cloudflare.md`](./docs/deploy-cloudflare.md)
 - [`docs/functions-workers.md`](./docs/functions-workers.md)
@@ -120,6 +123,8 @@ Current scaffold defaults are aligned around:
 - `TASK_QUEUE` -> `xhalo-blog-tasks`
 - `DB` -> `xhalo-blog`
 - a normalized `rb-blog.config.example.json` contract for site, theme, comments, analytics, features, and security
+
+The stable public scaffold contract is documented in [`docs/public-config-contract.md`](./docs/public-config-contract.md).
 
 Never commit real API tokens, account IDs, zone IDs, analytics IDs, private keys, or production secrets.
 
