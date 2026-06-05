@@ -44,6 +44,7 @@
             <li><code>POST /api/drafts/publish</code></li>
             <li><code>GET /api/assets/r2-template</code></li>
             <li><code>POST /api/assets/r2-preview</code></li>
+            <li><code>POST /api/assets/r2-signed-upload</code></li>
             <li><code>POST /api/assets/r2-upload</code></li>
             <li><code>POST /api/assets/r2-tasks</code></li>
             <li><code>GET /api/publish/notifications/template</code></li>
@@ -99,7 +100,9 @@
             <li><code>/api/drafts/publish</code></li>
             <li><code>/api/assets/r2-template</code></li>
             <li><code>/api/assets/r2-preview</code></li>
+            <li><code>/api/assets/r2-signed-upload</code></li>
             <li><code>/api/assets/r2-upload</code></li>
+            <li><code>/api/assets/r2-upload/:token</code></li>
             <li><code>/api/assets/r2-tasks</code></li>
             <li><code>/api/publish/notifications/template</code></li>
             <li><code>/api/publish/notifications/preview</code></li>
@@ -322,6 +325,7 @@
             <div class="form-actions field-span-2">
               <button type="submit" name="action" value="preview">Generate upload preview</button>
               <button type="submit" name="action" value="queue" class="button-secondary">Queue dry-run upload</button>
+              <button type="submit" name="action" value="signed" class="button-secondary">Upload via signed URL</button>
               <button type="submit" name="action" value="publish" class="button-secondary">Upload to R2</button>
             </div>
           </form>
@@ -363,6 +367,18 @@
               <div class="meta-row">
                 <span class="meta-label">Uploaded bytes</span>
                 <strong data-field="r2-upload-bytes">0</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Signed auth</span>
+                <strong data-field="r2-signed-auth-mode">hmac</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Signed expires</span>
+                <strong data-field="r2-signed-expires-at">-</strong>
+              </div>
+              <div class="meta-row field-span-2">
+                <span class="meta-label">Signed upload URL</span>
+                <strong data-field="r2-signed-upload-url">-</strong>
               </div>
             </div>
           </div>

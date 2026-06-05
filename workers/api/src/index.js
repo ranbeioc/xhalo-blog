@@ -10,6 +10,7 @@ import {
   buildPullRequestPreview,
   buildQueueTaskEnvelope,
   buildR2UploadPreview,
+  buildR2SignedUploadPlan,
   buildR2UploadTaskPrototype,
   buildR2UploadWritePlan,
   defaultDraftTemplate,
@@ -226,6 +227,63 @@ function buildR2UploadBody(input = {}) {
   };
 }
 
+function encodeJsonBase64Url(value) {
+  return encodeBase64Url(JSON.stringify(value));
+}
+
+function decodeBase64UrlToText(input) {
+  const normalized = String(input || '').replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized + '==='.slice((normalized.length + 3) % 4);
+  const bytes = decodeBase64ToBytes(padded);
+  return new TextDecoder().decode(bytes);
+}
+
+function decodeBase64UrlToBytes(input) {
+  const normalized = String(input || '').replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized + '==='.slice((normalized.length + 3) % 4);
+  return decodeBase64ToBytes(padded);
+}
+
+async function getAssetsSigningKey(env) {
+  if (env.__assetsSigningKey) return env.__assetsSigningKey;
+  env.__assetsSigningKey = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(String(env.ASSETS_SIGNING_SECRET || '')),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign', 'verify']
+  );
+  return env.__assetsSigningKey;
+}
+
+async function signUploadToken(env, payload) {
+  const encodedPayload = encodeJsonBase64Url(payload);
+  const signature = new Uint8Array(
+    await crypto.subtle.sign(
+      'HMAC',
+      await getAssetsSigningKey(env),
+      new TextEncoder().encode(encodedPayload)
+    )
+  );
+
+  return `${encodedPayload}.${encodeBase64Url(signature)}`;
+}
+
+async function verifyUploadToken(env, token) {
+  const [encodedPayload, encodedSignature] = String(token || '').split('.');
+  if (!encodedPayload || !encodedSignature) throw new Error('Malformed upload token.');
+  const signature = decodeBase64UrlToBytes(encodedSignature);
+  const verified = await crypto.subtle.verify(
+    'HMAC',
+    await getAssetsSigningKey(env),
+    signature,
+    new TextEncoder().encode(encodedPayload)
+  );
+
+  if (!verified) throw new Error('Invalid upload token signature.');
+  return JSON.parse(decodeBase64UrlToText(encodedPayload));
+}
+
 async function githubApiRequest(env, path, init = {}) {
   const headers = new Headers(init.headers || {});
   headers.set('accept', 'application/vnd.github+json');
@@ -362,6 +420,13 @@ async function putAssetObject(env, preview, uploadBody) {
       ...(preview.postSlug ? { postSlug: preview.postSlug } : {})
     }
   });
+}
+
+function buildSignedUploadUrl(requestUrl, token) {
+  const url = new URL(requestUrl);
+  url.pathname = `/api/assets/r2-upload/${token}`;
+  url.search = '';
+  return url.toString();
 }
 
 export default {
@@ -562,6 +627,160 @@ export default {
         preview,
         note: 'Stage 3 R2 upload preview only. No object has been written.'
       });
+    }
+
+    if (url.pathname === '/api/assets/r2-signed-upload' && request.method === 'POST') {
+      const input = await request.json();
+      const mode = input.mode === 'live' ? 'live' : 'dry-run';
+      const preview = buildR2UploadPreview(input, {
+        bucketBinding: 'ASSETS',
+        bucketName: 'xhalo-blog-assets',
+        publicBaseUrl: env.ASSETS_PUBLIC_BASE_URL || defaultR2UploadTemplate.publicBaseUrl
+      });
+      const ttlSeconds = Number(input.ttlSeconds || defaultR2UploadTemplate.defaults.uploadUrlTtlSeconds) || defaultR2UploadTemplate.defaults.uploadUrlTtlSeconds;
+      const plan = buildR2SignedUploadPlan(input, {
+        bucketBinding: 'ASSETS',
+        bucketName: 'xhalo-blog-assets',
+        publicBaseUrl: env.ASSETS_PUBLIC_BASE_URL || defaultR2UploadTemplate.publicBaseUrl,
+        ttlSeconds
+      });
+
+      if (mode !== 'live') {
+        return createJsonResponse({
+          mode,
+          preview,
+          plan,
+          note: 'Dry-run signed upload plan only. No signed URL has been issued.'
+        });
+      }
+
+      if (!env.ASSETS || typeof env.ASSETS.put !== 'function') {
+        return createJsonResponse({
+          error: 'ASSETS binding is required for the live signed upload prototype.',
+          mode
+        }, { status: 503 });
+      }
+
+      if (!env.ASSETS_PUBLIC_BASE_URL) {
+        return createJsonResponse({
+          error: 'ASSETS_PUBLIC_BASE_URL is required for the live signed upload prototype.',
+          mode
+        }, { status: 503 });
+      }
+
+      if (!env.ASSETS_SIGNING_SECRET) {
+        return createJsonResponse({
+          error: 'ASSETS_SIGNING_SECRET is required for the live signed upload prototype.',
+          mode
+        }, { status: 503 });
+      }
+
+      const uploadBody = buildR2UploadBody(input);
+      if (uploadBody.byteLength > 1024 * 1024) {
+        return createJsonResponse({
+          error: 'Prototype signed uploads are limited to 1 MiB.',
+          mode,
+          uploaded_bytes: uploadBody.byteLength
+        }, { status: 413 });
+      }
+
+      const issuedAt = Date.now();
+      const expiresAt = issuedAt + ttlSeconds * 1000;
+      const token = await signUploadToken(env, {
+        objectKey: preview.objectKey,
+        contentType: preview.contentType,
+        cacheControl: uploadBody.cacheControl,
+        filename: preview.filename,
+        scope: preview.scope,
+        postSlug: preview.postSlug,
+        publicUrl: preview.publicUrl,
+        exp: expiresAt
+      });
+      const uploadUrl = buildSignedUploadUrl(request.url, token);
+
+      return createJsonResponse({
+        mode,
+        auth_mode: 'hmac',
+        preview,
+        plan,
+        upload_url: uploadUrl,
+        upload_method: 'PUT',
+        upload_headers: {
+          'content-type': preview.contentType
+        },
+        expires_at: new Date(expiresAt).toISOString(),
+        uploaded_bytes: uploadBody.byteLength,
+        note: 'Signed worker upload URL issued. Upload bytes with PUT before it expires.'
+      });
+    }
+
+    if (url.pathname.startsWith('/api/assets/r2-upload/') && request.method === 'PUT') {
+      const token = decodeURIComponent(url.pathname.slice('/api/assets/r2-upload/'.length));
+
+      if (!env.ASSETS || typeof env.ASSETS.put !== 'function') {
+        return createJsonResponse({ error: 'ASSETS binding is required for signed uploads.' }, { status: 503 });
+      }
+
+      if (!env.ASSETS_SIGNING_SECRET) {
+        return createJsonResponse({ error: 'ASSETS_SIGNING_SECRET is required for signed uploads.' }, { status: 503 });
+      }
+
+      let signedPayload;
+      try {
+        signedPayload = await verifyUploadToken(env, token);
+      } catch (error) {
+        return createJsonResponse({ error: error.message || 'Invalid upload token.' }, { status: 403 });
+      }
+
+      if (Date.now() > Number(signedPayload.exp || 0)) {
+        return createJsonResponse({ error: 'Upload token has expired.' }, { status: 410 });
+      }
+
+      const body = new Uint8Array(await request.arrayBuffer());
+      if (body.byteLength > 1024 * 1024) {
+        return createJsonResponse({ error: 'Prototype signed uploads are limited to 1 MiB.' }, { status: 413 });
+      }
+
+      const requestContentType = request.headers.get('content-type') || '';
+      if (signedPayload.contentType && requestContentType && requestContentType !== signedPayload.contentType) {
+        return createJsonResponse({ error: 'Content-Type does not match the signed upload intent.' }, { status: 400 });
+      }
+
+      const object = await env.ASSETS.put(signedPayload.objectKey, body, {
+        httpMetadata: {
+          contentType: signedPayload.contentType,
+          cacheControl: signedPayload.cacheControl
+        },
+        customMetadata: {
+          scope: signedPayload.scope || 'uploads',
+          filename: signedPayload.filename || 'asset',
+          ...(signedPayload.postSlug ? { postSlug: signedPayload.postSlug } : {})
+        }
+      });
+      const recordedAt = nowIso();
+      const persisted = await insertTaskRecord(env, {
+        id: crypto.randomUUID(),
+        type: 'r2_upload_signed',
+        status: 'completed',
+        payload: {
+          mode: 'signed-upload',
+          objectKey: signedPayload.objectKey,
+          publicUrl: signedPayload.publicUrl,
+          uploaded_bytes: body.byteLength
+        },
+        created_at: recordedAt,
+        updated_at: recordedAt
+      });
+
+      return createJsonResponse({
+        mode: 'signed-upload',
+        public_url: signedPayload.publicUrl,
+        object_key: signedPayload.objectKey,
+        uploaded_bytes: body.byteLength,
+        etag: object?.etag || null,
+        version: object?.version || null,
+        persisted
+      }, { status: 201 });
     }
 
     if (url.pathname === '/api/assets/r2-upload' && request.method === 'POST') {

@@ -17,7 +17,9 @@ const fallbackScaffold = {
     '/api/drafts/publish',
     '/api/assets/r2-template',
     '/api/assets/r2-preview',
+    '/api/assets/r2-signed-upload',
     '/api/assets/r2-upload',
+    '/api/assets/r2-upload/:token',
     '/api/assets/r2-tasks',
     '/api/publish/notifications/template',
     '/api/publish/notifications/preview',
@@ -167,6 +169,12 @@ const fallbackR2Upload = {
   mode: 'dry-run',
   etag: '-',
   uploaded_bytes: 0
+};
+
+const fallbackR2SignedUpload = {
+  auth_mode: 'hmac',
+  upload_url: '-',
+  expires_at: '-'
 };
 
 const fallbackPublishTemplate = {
@@ -385,6 +393,12 @@ function renderR2UploadResult(result) {
   setText('[data-field="r2-upload-bytes"]', String(result.uploaded_bytes ?? fallbackR2Upload.uploaded_bytes));
 }
 
+function renderR2SignedUploadResult(result) {
+  setText('[data-field="r2-signed-auth-mode"]', result.auth_mode || fallbackR2SignedUpload.auth_mode);
+  setText('[data-field="r2-signed-upload-url"]', result.upload_url || fallbackR2SignedUpload.upload_url);
+  setText('[data-field="r2-signed-expires-at"]', result.expires_at || fallbackR2SignedUpload.expires_at);
+}
+
 function renderPublishTemplate(template) {
   setText('[data-field="publish-queue-binding"]', template.queueBinding || fallbackPublishTemplate.queueBinding);
   setText('[data-field="publish-channel"]', template.defaults?.channel || fallbackPublishTemplate.defaults.channel);
@@ -455,6 +469,17 @@ function getR2FormPayload(form) {
     encoding: String(formData.get('encoding') || '').trim(),
     cacheControl: String(formData.get('cacheControl') || '').trim()
   };
+}
+
+function buildR2UploadRequestBody(payload) {
+  if (String(payload.encoding || '').trim().toLowerCase() === 'base64') {
+    const binary = atob(payload.content || '');
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+    return bytes;
+  }
+
+  return new TextEncoder().encode(payload.content || '');
 }
 
 function getPublishFormPayload(form) {
@@ -637,6 +662,8 @@ async function handleR2PreviewSubmit(event) {
   const action = event.submitter?.value || 'preview';
   const statusText = action === 'queue'
     ? 'Queueing upload'
+    : action === 'signed'
+      ? 'Uploading via signed URL'
     : action === 'publish'
       ? 'Uploading object to R2'
       : 'Generating upload preview';
@@ -645,26 +672,61 @@ async function handleR2PreviewSubmit(event) {
   try {
     const endpoint = action === 'queue'
       ? '/api/assets/r2-tasks'
+      : action === 'signed'
+        ? '/api/assets/r2-signed-upload'
       : action === 'publish'
         ? '/api/assets/r2-upload'
         : '/api/assets/r2-preview';
-    const result = await postR2Action(form, endpoint, action === 'publish' ? { mode: 'live' } : {});
+    const result = await postR2Action(form, endpoint, action === 'publish' || action === 'signed' ? { mode: 'live' } : {});
 
     if (result?.mode === 'static') {
       renderR2Preview(fallbackR2Preview);
       renderR2TaskResult(fallbackR2Task);
       renderR2UploadResult(fallbackR2Upload);
+      renderR2SignedUploadResult(fallbackR2SignedUpload);
       renderR2PreviewStatus('warning', 'Static preview');
       return;
     }
 
     if (result?.error) {
-      renderR2PreviewStatus('warning', `${action === 'queue' ? 'Upload queue failed' : action === 'publish' ? 'Live upload failed' : 'Upload preview failed'} (${result.error})`);
+      renderR2PreviewStatus('warning', `${action === 'queue' ? 'Upload queue failed' : action === 'publish' ? 'Live upload failed' : action === 'signed' ? 'Signed upload failed' : 'Upload preview failed'} (${result.error})`);
       return;
     }
 
     if (result.preview) {
       renderR2Preview(result.preview);
+    }
+
+    if (action === 'signed') {
+      renderR2SignedUploadResult({
+        auth_mode: result.auth_mode || 'hmac',
+        upload_url: result.upload_url || '-',
+        expires_at: result.expires_at || '-'
+      });
+      const payload = getR2FormPayload(form);
+      const uploadResponse = await fetch(result.upload_url, {
+        method: 'PUT',
+        headers: {
+          'content-type': payload.contentType || 'application/octet-stream'
+        },
+        body: buildR2UploadRequestBody(payload)
+      });
+      const uploadResult = uploadResponse.ok ? await uploadResponse.json() : { error: uploadResponse.status };
+      if (!uploadResponse.ok || uploadResult.error) {
+        renderR2PreviewStatus('warning', `Signed upload PUT failed (${uploadResult.error || uploadResponse.status})`);
+        return;
+      }
+      renderR2UploadResult({
+        mode: uploadResult.mode || 'signed-upload',
+        etag: uploadResult.etag || '-',
+        uploaded_bytes: uploadResult.uploaded_bytes ?? 0
+      });
+      prependTask({
+        type: 'r2_upload_signed',
+        status: 'completed'
+      });
+      renderR2PreviewStatus('ok', 'Signed upload completed');
+      return;
     }
 
     if (action === 'publish') {
@@ -804,6 +866,7 @@ async function loadScaffoldData() {
   renderR2Preview(fallbackR2Preview);
   renderR2TaskResult(fallbackR2Task);
   renderR2UploadResult(fallbackR2Upload);
+  renderR2SignedUploadResult(fallbackR2SignedUpload);
   renderPublishTemplate(fallbackPublishTemplate);
   renderPublishPreview(fallbackPublishPreview);
   renderPublishTaskResult(fallbackPublishTask);

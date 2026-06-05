@@ -29,6 +29,7 @@ POST /api/drafts/github-plan
 POST /api/drafts/publish
 GET /api/assets/r2-template
 POST /api/assets/r2-preview
+POST /api/assets/r2-signed-upload
 POST /api/assets/r2-upload
 POST /api/assets/r2-tasks
 GET /api/publish/notifications/template
@@ -55,7 +56,9 @@ Stage 3 prototype additions:
 - `POST /api/drafts/publish` supports `dry-run` and a prototype `live` path. The live path prefers `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_INSTALLATION_ID`, accepts the downloaded GitHub App PEM, falls back to `GITHUB_TOKEN`, and creates a branch, commits a draft file, and opens a pull request without writing directly to `main`
 - `GET /api/assets/r2-template` exposes the current R2 upload contract for bucket binding, key prefix, and public URL shape
 - `POST /api/assets/r2-preview` returns the derived bucket/key/url tuple for a future upload without writing anything remotely
+- `POST /api/assets/r2-signed-upload` supports `dry-run` and a prototype `live` path. The live path requires `ASSETS`, `ASSETS_PUBLIC_BASE_URL`, and `ASSETS_SIGNING_SECRET`, then issues a one-time signed worker upload URL
 - `POST /api/assets/r2-upload` supports `dry-run` and a bounded prototype `live` path. The live path requires the `ASSETS` binding plus `ASSETS_PUBLIC_BASE_URL`, writes one object to R2, and returns the derived public URL without introducing signed upload handlers yet
+- `PUT /api/assets/r2-upload/:token` consumes the one-time signed worker upload URL, validates the HMAC token and expiry, and writes the uploaded bytes to R2
 - `POST /api/assets/r2-tasks` queues a dry-run upload task and returns the preview plus task metadata without writing anything remotely
 - `GET /api/publish/notifications/template` exposes the current publish notification contract for queue binding and delivery channels
 - `POST /api/publish/notifications/preview` returns the derived notification title, message, and delivery target without sending anything remotely
