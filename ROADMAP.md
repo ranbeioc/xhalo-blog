@@ -14,10 +14,11 @@
 
 ## v0.2.0-alpha
 
-- Admin panel static prototype.
+- Admin panel scaffold with same-origin placeholder API wiring.
+- Read-only posts index API prototype.
+- Read-only D1 task status integration prototype.
 - Draft metadata flow.
 - GitHub branch and PR creation design refined.
-- D1 task status integration prototype.
 
 ## v0.3.0-alpha
 

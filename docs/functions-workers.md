@@ -20,10 +20,17 @@ Current read-only scaffold routes:
 GET /api/health
 GET /api/scaffold
 GET /api/posts
+GET /api/tasks
 POST /api/tasks/example
 ```
 
 The admin scaffold can read `GET /api/health` and `GET /api/scaffold` when it is deployed on the same origin as the placeholder API. If those routes are not reachable, it falls back to static scaffold defaults.
+
+Stage 3 prototype additions:
+
+- `GET /api/posts` reads from `posts_index` when D1 is bound, otherwise falls back to example rows
+- `GET /api/tasks` reads from `tasks` when D1 is bound, otherwise falls back to example rows
+- `POST /api/tasks/example` now persists a queued task record when D1 is available before the queue consumer handles it
 
 Recommended dynamic paths:
 
