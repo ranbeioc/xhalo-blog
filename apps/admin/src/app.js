@@ -12,6 +12,7 @@ const fallbackScaffold = {
     '/api/drafts/template',
     '/api/drafts/preview',
     '/api/drafts/tasks',
+    '/api/drafts/github-plan',
     '/api/tasks/example'
   ]
 };
@@ -69,6 +70,16 @@ const fallbackDraftPreview = {
 const fallbackDraftTask = {
   status: 'not queued',
   task_id: '-'
+};
+
+const fallbackDraftPlan = {
+  actions: [
+    { type: 'create_branch', summary: 'Create draft/stage-3-prototype-post from main' },
+    { type: 'write_post_file', summary: 'Write source/_posts/stage-3-prototype-post.md with generated front matter' },
+    { type: 'commit_changes', summary: 'Commit draft changes with "feat(posts): add draft stage-3-prototype-post"' },
+    { type: 'open_pull_request', summary: 'Open PR "Add draft: Stage 3 Prototype Post" into main' },
+    { type: 'verify_preview_deployment', summary: 'Wait for the preview deployment and validate the draft URL before merge' }
+  ]
 };
 
 function setText(selector, value) {
@@ -164,6 +175,14 @@ function renderDraftTaskResult(task) {
   setText('[data-field="draft-task-id"]', task.task_id || fallbackDraftTask.task_id);
 }
 
+function renderDraftPlan(plan) {
+  renderCollection(
+    '[data-field="draft-plan-actions"]',
+    Array.isArray(plan.actions) ? plan.actions : fallbackDraftPlan.actions,
+    (action) => `<strong>${action.type || 'unknown'}</strong><span>${action.summary || 'No summary available'}</span>`
+  );
+}
+
 function getDraftFormPayload(form) {
   const formData = new FormData(form);
   const tags = String(formData.get('tags') || '')
@@ -194,7 +213,7 @@ async function postDraftAction(form, endpoint) {
   });
 
   if (!response.ok) return { error: response.status };
-  return response.json();
+    return response.json();
 }
 
 function prependTask(task) {
@@ -210,10 +229,20 @@ async function handleDraftPreviewSubmit(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const action = event.submitter?.value || 'preview';
-  renderDraftPreviewStatus('warning', action === 'queue' ? 'Queueing task' : 'Generating preview');
+  const statusText = action === 'queue'
+    ? 'Queueing task'
+    : action === 'plan'
+      ? 'Building plan'
+      : 'Generating preview';
+  renderDraftPreviewStatus('warning', statusText);
 
   try {
-    const result = await postDraftAction(form, action === 'queue' ? '/api/drafts/tasks' : '/api/drafts/preview');
+    const endpoint = action === 'queue'
+      ? '/api/drafts/tasks'
+      : action === 'plan'
+        ? '/api/drafts/github-plan'
+        : '/api/drafts/preview';
+    const result = await postDraftAction(form, endpoint);
 
     if (result?.mode === 'static') {
       renderDraftPreview(fallbackDraftPreview);
@@ -229,6 +258,12 @@ async function handleDraftPreviewSubmit(event) {
 
     if (result.preview) {
       renderDraftPreview(result.preview);
+    }
+
+    if (result.plan) {
+      renderDraftPlan(result.plan);
+      renderDraftPreviewStatus('ok', 'Plan ready');
+      return;
     }
 
     if (action === 'queue') {
@@ -257,6 +292,7 @@ async function loadScaffoldData() {
   renderDraftTemplate(fallbackDraftTemplate);
   renderDraftPreview(fallbackDraftPreview);
   renderDraftTaskResult(fallbackDraftTask);
+  renderDraftPlan(fallbackDraftPlan);
   renderHealth(false, 'API not checked');
   renderDraftPreviewStatus('warning', 'Static preview');
 

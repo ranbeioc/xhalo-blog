@@ -1,5 +1,6 @@
 import {
   buildDraftTaskPrototype,
+  buildGitHubWritePlan,
   buildPullRequestPreview,
   buildQueueTaskEnvelope,
   defaultDraftTemplate,
@@ -115,6 +116,25 @@ export default {
         task_type: prototype.taskRecord.type,
         preview: prototype.preview,
         note: 'Dry-run draft task queued. No GitHub branch or PR has been created.'
+      });
+    }
+
+    if (url.pathname === '/api/drafts/github-plan' && request.method === 'POST') {
+      const input = await request.json();
+      const plan = buildGitHubWritePlan(input, {
+        repoOwner: env.GITHUB_OWNER || 'example',
+        repoName: env.GITHUB_REPO || 'xhalo-blog',
+        baseBranch: env.GITHUB_BRANCH || 'main'
+      });
+
+      return createJsonResponse({
+        preview: buildPullRequestPreview(input, {
+          repoOwner: env.GITHUB_OWNER || 'example',
+          repoName: env.GITHUB_REPO || 'xhalo-blog',
+          baseBranch: env.GITHUB_BRANCH || 'main'
+        }),
+        plan,
+        note: 'Dry-run GitHub operation plan only. No branch, commit, or PR has been created.'
       });
     }
 
