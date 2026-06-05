@@ -19,7 +19,9 @@ export const defaultScaffoldMetadata = {
     '/api/drafts/publish',
     '/api/assets/r2-template',
     '/api/assets/r2-preview',
+    '/api/assets/r2-signed-upload',
     '/api/assets/r2-upload',
+    '/api/assets/r2-upload/:token',
     '/api/assets/r2-tasks',
     '/api/publish/notifications/template',
     '/api/publish/notifications/preview',
@@ -33,7 +35,7 @@ export const defaultScaffoldMetadata = {
     'Posts and site configuration stay Git-backed.',
     'Read-only D1-backed posts and task status routes are the first Stage 3 prototype slice.',
     'Draft flows now include a token-gated live GitHub branch and PR prototype.',
-    'R2 upload flows now include a bounded live object write prototype before signed upload handlers and lifecycle rules exist.',
+    'R2 upload flows now include a bounded live object write prototype and a worker-signed upload prototype.',
     'Publish notification flows remain dry-run prototypes until downstream delivery targets are implemented.',
     'Moderation flows remain dry-run prototypes until the real comment provider and anti-abuse controls are wired.',
     'Dynamic write flows should open pull requests rather than write to main directly.',
@@ -65,6 +67,7 @@ export const requiredEnvKeys = [
   'CLOUDFLARE_API_TOKEN',
   'CLOUDFLARE_ZONE_ID',
   'ASSETS_PUBLIC_BASE_URL',
+  'ASSETS_SIGNING_SECRET',
   'GITHUB_OWNER',
   'GITHUB_REPO',
   'GITHUB_BRANCH',
@@ -96,7 +99,8 @@ export const defaultR2UploadTemplate = {
     scope: 'uploads',
     contentType: 'image/png',
     encoding: 'utf-8',
-    cacheControl: 'public, max-age=31536000, immutable'
+    cacheControl: 'public, max-age=31536000, immutable',
+    uploadUrlTtlSeconds: 900
   }
 };
 
@@ -128,6 +132,7 @@ export function buildProviderReadinessSnapshot(env = {}) {
   const hasGitHubToken = Boolean(env.GITHUB_TOKEN);
   const hasR2Binding = Boolean(env.ASSETS) && typeof env.ASSETS === 'object';
   const hasR2PublicBaseUrl = Boolean(env.ASSETS_PUBLIC_BASE_URL);
+  const hasR2SigningSecret = Boolean(env.ASSETS_SIGNING_SECRET);
   const hasQueue = Boolean(env.TASK_QUEUE) && typeof env.TASK_QUEUE.send === 'function';
   const hasTurnstile = Boolean(env.TURNSTILE_SITE_KEY) && Boolean(env.TURNSTILE_SECRET_KEY);
 
@@ -149,10 +154,20 @@ export function buildProviderReadinessSnapshot(env = {}) {
     {
       key: 'r2',
       label: 'R2 assets',
-      status: hasR2Binding && hasR2PublicBaseUrl ? 'ready' : hasR2Binding ? 'partial' : 'missing',
+      status: hasR2Binding && hasR2PublicBaseUrl && hasR2SigningSecret ? 'ready' : hasR2Binding || hasR2PublicBaseUrl ? 'partial' : 'missing',
       note: hasR2Binding
-        ? (hasR2PublicBaseUrl ? 'Bucket binding and public base URL are present.' : 'Bucket binding is present but public base URL is missing.')
-        : 'R2 bucket binding is missing.'
+        ? (
+          hasR2PublicBaseUrl
+            ? (
+              hasR2SigningSecret
+                ? 'Bucket binding, public base URL, and signing secret are present.'
+                : 'Bucket binding and public base URL are present, but the signing secret is missing.'
+            )
+            : 'Bucket binding is present but public base URL is missing.'
+        )
+        : hasR2PublicBaseUrl || hasR2SigningSecret
+          ? 'R2 public URL or signing secret is present, but the bucket binding is missing.'
+          : 'R2 bucket binding is missing.'
     },
     {
       key: 'queue',
@@ -558,6 +573,51 @@ export function buildR2UploadWritePlan(input = {}, options = {}) {
           contentType: preview.contentType,
           encoding,
           cacheControl
+        }
+      },
+      {
+        type: 'verify_public_url',
+        summary: `Verify the uploaded object on ${preview.publicUrl}`,
+        payload: {
+          publicUrl: preview.publicUrl
+        }
+      }
+    ]
+  };
+}
+
+export function buildR2SignedUploadPlan(input = {}, options = {}) {
+  const preview = buildR2UploadPreview(input, options);
+  const ttlSeconds = Number(options.ttlSeconds || defaultR2UploadTemplate.defaults.uploadUrlTtlSeconds) || defaultR2UploadTemplate.defaults.uploadUrlTtlSeconds;
+
+  return {
+    preview,
+    ttlSeconds,
+    actions: [
+      {
+        type: 'derive_object_key',
+        summary: `Resolve ${preview.objectKey} under ${preview.bucketName}`,
+        payload: {
+          bucketBinding: preview.bucketBinding,
+          bucketName: preview.bucketName,
+          objectKey: preview.objectKey
+        }
+      },
+      {
+        type: 'sign_upload_url',
+        summary: `Issue a one-time signed worker upload URL for ${preview.objectKey}`,
+        payload: {
+          ttlSeconds,
+          method: 'PUT',
+          pathPrefix: '/api/assets/r2-upload/'
+        }
+      },
+      {
+        type: 'browser_put_upload',
+        summary: `PUT the asset bytes to the signed upload URL with ${preview.contentType}`,
+        payload: {
+          contentType: preview.contentType,
+          publicUrl: preview.publicUrl
         }
       },
       {

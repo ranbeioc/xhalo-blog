@@ -39,14 +39,19 @@ This repository now includes dry-run scaffold routes for upload planning:
 
 - `GET /api/assets/r2-template`
 - `POST /api/assets/r2-preview`
+- `POST /api/assets/r2-signed-upload`
 - `POST /api/assets/r2-tasks`
 
-These routes only derive the bucket binding, object key, public URL, and queued task metadata.
+This repository now also includes two bounded live prototypes:
+
+- `POST /api/assets/r2-upload`
+- `PUT /api/assets/r2-upload/:token`
+
+The signed route mints a one-time worker upload URL. The token route consumes that URL and writes the bytes to R2.
 
 They do not yet provide:
 
 - production upload handlers
-- signed upload flows
 - direct browser-to-R2 uploads
 - asset lifecycle cleanup jobs
 - historical asset migration tooling
