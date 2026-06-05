@@ -55,12 +55,14 @@ At minimum, track:
 
 ## Stage 2.5 boundary
 
-The scaffold only defines the queue name and the intended job classes. It does not yet implement the full worker pipeline for these task types.
+The scaffold still does not implement the full worker pipeline for these task types, but it now performs minimal D1-backed reconciliation for known preview jobs.
 
 Current placeholder consumer behavior:
 
 - wraps messages into a normalized scaffold envelope
+- updates known D1 task rows from `queued` to `processing` to `completed`
 - logs known example tasks
 - logs known draft preview, R2 upload preview, publish notification preview, and moderation preview tasks
+- stores a small reconciliation summary inside the task payload for later inspection
 - warns on unknown task types
 - acknowledges the message to avoid retry loops in the bare scaffold
