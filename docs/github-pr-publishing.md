@@ -31,6 +31,7 @@ It does not yet provide:
 - a production admin panel
 - a production GitHub App implementation
 - queue retry logic for failed publishing jobs
+- downstream publish notification delivery
 - a complete audit UI for publish history
 
 Initial versions should not write directly to `main`.

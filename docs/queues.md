@@ -61,5 +61,6 @@ Current placeholder consumer behavior:
 
 - wraps messages into a normalized scaffold envelope
 - logs known example tasks
+- logs known draft preview, R2 upload preview, and publish notification preview tasks
 - warns on unknown task types
 - acknowledges the message to avoid retry loops in the bare scaffold

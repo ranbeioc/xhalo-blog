@@ -29,6 +29,7 @@
 - R2 upload prototype.
 - R2 upload dry-run preview and queued task prototype.
 - Queue-based publish notification prototype.
+- Queue-based publish notification dry-run preview and queued task prototype.
 - Comment moderation design.
 
 ## v1.0.0

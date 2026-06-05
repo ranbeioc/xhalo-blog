@@ -16,6 +16,9 @@ const fallbackScaffold = {
     '/api/assets/r2-template',
     '/api/assets/r2-preview',
     '/api/assets/r2-tasks',
+    '/api/publish/notifications/template',
+    '/api/publish/notifications/preview',
+    '/api/publish/notifications/tasks',
     '/api/tasks/example'
   ]
 };
@@ -111,6 +114,30 @@ const fallbackR2Task = {
   task_id: '-'
 };
 
+const fallbackPublishTemplate = {
+  queueBinding: 'TASK_QUEUE',
+  defaults: {
+    channel: 'cloudflare-pages-preview',
+    status: 'preview-ready'
+  }
+};
+
+const fallbackPublishPreview = {
+  queueBinding: 'TASK_QUEUE',
+  postSlug: 'hello-xhalo-blog',
+  branchName: 'draft/hello-xhalo-blog',
+  previewUrl: 'https://preview.example.com/hello-xhalo-blog/',
+  channel: 'cloudflare-pages-preview',
+  status: 'preview-ready',
+  title: 'Preview ready for hello-xhalo-blog',
+  message: 'Preview deployment is ready on https://preview.example.com/hello-xhalo-blog/'
+};
+
+const fallbackPublishTask = {
+  status: 'not queued',
+  task_id: '-'
+};
+
 function setText(selector, value) {
   const element = document.querySelector(selector);
   if (element) element.textContent = value;
@@ -163,6 +190,13 @@ function renderDraftPreviewStatus(state, note) {
 
 function renderR2PreviewStatus(state, note) {
   const badge = document.querySelector('[data-field="r2-preview-status"]');
+  if (!badge) return;
+  badge.textContent = note;
+  badge.dataset.state = state;
+}
+
+function renderPublishPreviewStatus(state, note) {
+  const badge = document.querySelector('[data-field="publish-preview-status"]');
   if (!badge) return;
   badge.textContent = note;
   badge.dataset.state = state;
@@ -238,6 +272,27 @@ function renderR2TaskResult(task) {
   setText('[data-field="r2-task-id"]', task.task_id || fallbackR2Task.task_id);
 }
 
+function renderPublishTemplate(template) {
+  setText('[data-field="publish-queue-binding"]', template.queueBinding || fallbackPublishTemplate.queueBinding);
+  setText('[data-field="publish-channel"]', template.defaults?.channel || fallbackPublishTemplate.defaults.channel);
+}
+
+function renderPublishPreview(preview) {
+  setText('[data-field="publish-title"]', preview.title || fallbackPublishPreview.title);
+  setText('[data-field="publish-channel-output"]', preview.channel || fallbackPublishPreview.channel);
+  setText('[data-field="publish-preview-url"]', preview.previewUrl || fallbackPublishPreview.previewUrl);
+  setText('[data-field="publish-status-output"]', preview.status || fallbackPublishPreview.status);
+  const message = document.querySelector('[data-field="publish-message"]');
+  if (message) {
+    message.textContent = preview.message || fallbackPublishPreview.message;
+  }
+}
+
+function renderPublishTaskResult(task) {
+  setText('[data-field="publish-task-status"]', task.status || fallbackPublishTask.status);
+  setText('[data-field="publish-task-id"]', task.task_id || fallbackPublishTask.task_id);
+}
+
 function getDraftFormPayload(form) {
   const formData = new FormData(form);
   const tags = String(formData.get('tags') || '')
@@ -265,6 +320,17 @@ function getR2FormPayload(form) {
   };
 }
 
+function getPublishFormPayload(form) {
+  const formData = new FormData(form);
+  return {
+    postSlug: String(formData.get('postSlug') || '').trim(),
+    branchName: String(formData.get('branchName') || '').trim(),
+    previewUrl: String(formData.get('previewUrl') || '').trim(),
+    channel: String(formData.get('channel') || '').trim(),
+    status: String(formData.get('status') || '').trim()
+  };
+}
+
 async function postDraftAction(form, endpoint) {
   if (window.location.protocol === 'file:') {
     return { mode: 'static' };
@@ -287,6 +353,22 @@ async function postR2Action(form, endpoint) {
   }
 
   const payload = getR2FormPayload(form);
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) return { error: response.status };
+  return response.json();
+}
+
+async function postPublishAction(form, endpoint) {
+  if (window.location.protocol === 'file:') {
+    return { mode: 'static' };
+  }
+
+  const payload = getPublishFormPayload(form);
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -411,6 +493,53 @@ async function handleR2PreviewSubmit(event) {
   }
 }
 
+async function handlePublishPreviewSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const action = event.submitter?.value || 'preview';
+  renderPublishPreviewStatus('warning', action === 'queue' ? 'Queueing notification' : 'Generating notification preview');
+
+  try {
+    const endpoint = action === 'queue'
+      ? '/api/publish/notifications/tasks'
+      : '/api/publish/notifications/preview';
+    const result = await postPublishAction(form, endpoint);
+
+    if (result?.mode === 'static') {
+      renderPublishPreview(fallbackPublishPreview);
+      renderPublishTaskResult(fallbackPublishTask);
+      renderPublishPreviewStatus('warning', 'Static preview');
+      return;
+    }
+
+    if (result?.error) {
+      renderPublishPreviewStatus('warning', `${action === 'queue' ? 'Notification queue failed' : 'Notification preview failed'} (${result.error})`);
+      return;
+    }
+
+    if (result.preview) {
+      renderPublishPreview(result.preview);
+    }
+
+    if (action === 'queue') {
+      renderPublishTaskResult({
+        status: result.queued ? 'queued' : 'queue failed',
+        task_id: result.task_id || '-'
+      });
+      prependTask({
+        type: result.task_type || 'publish_notification_preview',
+        status: result.queued ? 'queued' : 'unknown'
+      });
+      renderPublishPreviewStatus('ok', 'Notification task queued');
+      return;
+    }
+
+    renderPublishPreviewStatus('ok', 'Notification preview ready');
+  } catch {
+    renderPublishPreviewStatus('warning', 'Static preview');
+  }
+}
+
 async function loadScaffoldData() {
   renderScaffold(fallbackScaffold);
   renderPosts(fallbackPosts);
@@ -422,9 +551,13 @@ async function loadScaffoldData() {
   renderR2Template(fallbackR2Template);
   renderR2Preview(fallbackR2Preview);
   renderR2TaskResult(fallbackR2Task);
+  renderPublishTemplate(fallbackPublishTemplate);
+  renderPublishPreview(fallbackPublishPreview);
+  renderPublishTaskResult(fallbackPublishTask);
   renderHealth(false, 'API not checked');
   renderDraftPreviewStatus('warning', 'Static preview');
   renderR2PreviewStatus('warning', 'Static preview');
+  renderPublishPreviewStatus('warning', 'Static preview');
 
   const draftForm = document.querySelector('[data-role="draft-preview-form"]');
   if (draftForm) {
@@ -433,6 +566,10 @@ async function loadScaffoldData() {
   const r2Form = document.querySelector('[data-role="r2-preview-form"]');
   if (r2Form) {
     r2Form.addEventListener('submit', handleR2PreviewSubmit);
+  }
+  const publishForm = document.querySelector('[data-role="publish-preview-form"]');
+  if (publishForm) {
+    publishForm.addEventListener('submit', handlePublishPreviewSubmit);
   }
 
   if (window.location.protocol === 'file:') {
@@ -451,6 +588,7 @@ async function loadScaffoldData() {
     ]);
     const draftTemplateResponse = await fetch('/api/drafts/template');
     const r2TemplateResponse = await fetch('/api/assets/r2-template');
+    const publishTemplateResponse = await fetch('/api/publish/notifications/template');
 
     if (healthResponse.ok) {
       const health = await healthResponse.json();
@@ -489,10 +627,19 @@ async function loadScaffoldData() {
     } else {
       renderR2PreviewStatus('warning', `Upload unavailable (${r2TemplateResponse.status})`);
     }
+
+    if (publishTemplateResponse.ok) {
+      const publishTemplate = await publishTemplateResponse.json();
+      if (publishTemplate.template) renderPublishTemplate(publishTemplate.template);
+      renderPublishPreviewStatus('ok', 'Notification preview ready');
+    } else {
+      renderPublishPreviewStatus('warning', `Notification unavailable (${publishTemplateResponse.status})`);
+    }
   } catch {
     renderHealth(false, 'Static-only preview');
     renderDraftPreviewStatus('warning', 'Static preview');
     renderR2PreviewStatus('warning', 'Static preview');
+    renderPublishPreviewStatus('warning', 'Static preview');
   }
 }
 
