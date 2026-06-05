@@ -27,6 +27,8 @@ npm run check
 
 This verifies the required scaffold files exist and that obvious production-only values are not present in the checked baseline files.
 
+When the placeholder API is deployed on the same origin, you can also inspect `GET /api/readiness` to confirm whether GitHub, R2, queue, and Turnstile-related environment wiring looks ready before moving a dry-run prototype toward a real integration.
+
 ## Run the minimal static example
 
 ```bash

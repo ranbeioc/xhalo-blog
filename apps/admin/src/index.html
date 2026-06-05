@@ -33,6 +33,7 @@
           <h2>Scaffold APIs</h2>
           <ul class="plain-list">
             <li><code>GET /api/health</code></li>
+            <li><code>GET /api/readiness</code></li>
             <li><code>GET /api/scaffold</code></li>
             <li><code>GET /api/posts</code></li>
             <li><code>GET /api/tasks</code></li>
@@ -85,6 +86,7 @@
           <span class="meta-label">Expected paths</span>
           <ul class="plain-list compact-list" data-field="expected-paths">
             <li><code>/api/health</code></li>
+            <li><code>/api/readiness</code></li>
             <li><code>/api/scaffold</code></li>
             <li><code>/api/posts</code></li>
             <li><code>/api/tasks</code></li>
@@ -121,6 +123,20 @@
             <li><strong>example</strong><span>queued</span></li>
           </ul>
         </article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Provider readiness</h2>
+          <span class="status-badge" data-field="readiness-status" data-state="warning">Static defaults</span>
+        </div>
+        <ul class="preview-list" data-field="readiness-items">
+          <li><strong>GitHub PR publishing</strong><span>partial · repository env only</span></li>
+          <li><strong>R2 assets</strong><span>missing · bucket binding missing</span></li>
+          <li><strong>Queue worker</strong><span>missing · TASK_QUEUE binding missing</span></li>
+          <li><strong>Turnstile</strong><span>missing · env keys missing</span></li>
+          <li><strong>Cloudflare Access</strong><span>manual · verify in dashboard</span></li>
+        </ul>
       </section>
 
       <section class="panel">

@@ -8,6 +8,7 @@ export const defaultScaffoldMetadata = {
   queue_name: 'xhalo-blog-tasks',
   expected_paths: [
     '/api/health',
+    '/api/readiness',
     '/api/scaffold',
     '/api/posts',
     '/api/tasks',
@@ -115,6 +116,61 @@ export const defaultModerationTemplate = {
   },
   fields: ['commentId', 'provider', 'action', 'reason']
 };
+
+export function buildProviderReadinessSnapshot(env = {}) {
+  const hasGitHubRepoConfig = Boolean(env.GITHUB_OWNER) && Boolean(env.GITHUB_REPO) && Boolean(env.GITHUB_BRANCH);
+  const hasGitHubApp = Boolean(env.GITHUB_APP_ID) && Boolean(env.GITHUB_APP_PRIVATE_KEY) && Boolean(env.GITHUB_INSTALLATION_ID);
+  const hasR2Binding = Boolean(env.ASSETS) && typeof env.ASSETS === 'object';
+  const hasR2PublicBaseUrl = Boolean(env.ASSETS_PUBLIC_BASE_URL);
+  const hasQueue = Boolean(env.TASK_QUEUE) && typeof env.TASK_QUEUE.send === 'function';
+  const hasTurnstile = Boolean(env.TURNSTILE_SITE_KEY) && Boolean(env.TURNSTILE_SECRET_KEY);
+
+  const items = [
+    {
+      key: 'github',
+      label: 'GitHub PR publishing',
+      status: hasGitHubRepoConfig && hasGitHubApp ? 'ready' : hasGitHubRepoConfig ? 'partial' : 'missing',
+      note: hasGitHubRepoConfig
+        ? (hasGitHubApp ? 'Repository and GitHub App env are present.' : 'Repository env is present but GitHub App env is missing.')
+        : 'Repository publishing env is missing.'
+    },
+    {
+      key: 'r2',
+      label: 'R2 assets',
+      status: hasR2Binding && hasR2PublicBaseUrl ? 'ready' : hasR2Binding ? 'partial' : 'missing',
+      note: hasR2Binding
+        ? (hasR2PublicBaseUrl ? 'Bucket binding and public base URL are present.' : 'Bucket binding is present but public base URL is missing.')
+        : 'R2 bucket binding is missing.'
+    },
+    {
+      key: 'queue',
+      label: 'Queue worker',
+      status: hasQueue ? 'ready' : 'missing',
+      note: hasQueue ? 'TASK_QUEUE binding is present.' : 'TASK_QUEUE binding is missing.'
+    },
+    {
+      key: 'turnstile',
+      label: 'Turnstile',
+      status: hasTurnstile ? 'ready' : 'missing',
+      note: hasTurnstile ? 'Turnstile site and secret keys are present.' : 'Turnstile env keys are missing.'
+    },
+    {
+      key: 'access',
+      label: 'Cloudflare Access',
+      status: 'manual',
+      note: 'Access policy state is not inferred from worker env. Verify it in Cloudflare dashboard.'
+    }
+  ];
+
+  const summary = {
+    ready: items.filter((item) => item.status === 'ready').length,
+    partial: items.filter((item) => item.status === 'partial').length,
+    missing: items.filter((item) => item.status === 'missing').length,
+    manual: items.filter((item) => item.status === 'manual').length
+  };
+
+  return { items, summary };
+}
 
 export function createJsonResponse(data, init = {}) {
   return new Response(JSON.stringify(data, null, 2), {

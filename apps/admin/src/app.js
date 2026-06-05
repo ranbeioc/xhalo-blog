@@ -6,6 +6,7 @@ const fallbackScaffold = {
   queue_name: 'xhalo-blog-tasks',
   expected_paths: [
     '/api/health',
+    '/api/readiness',
     '/api/scaffold',
     '/api/posts',
     '/api/tasks',
@@ -38,6 +39,41 @@ const fallbackPosts = [
     slug: 'next-theme-baseline'
   }
 ];
+
+const fallbackReadiness = {
+  items: [
+    {
+      key: 'github',
+      label: 'GitHub PR publishing',
+      status: 'partial',
+      note: 'Repository env is present but GitHub App env is missing.'
+    },
+    {
+      key: 'r2',
+      label: 'R2 assets',
+      status: 'missing',
+      note: 'R2 bucket binding is missing.'
+    },
+    {
+      key: 'queue',
+      label: 'Queue worker',
+      status: 'missing',
+      note: 'TASK_QUEUE binding is missing.'
+    },
+    {
+      key: 'turnstile',
+      label: 'Turnstile',
+      status: 'missing',
+      note: 'Turnstile env keys are missing.'
+    },
+    {
+      key: 'access',
+      label: 'Cloudflare Access',
+      status: 'manual',
+      note: 'Verify policy state in Cloudflare dashboard.'
+    }
+  ]
+};
 
 const fallbackTasks = [
   {
@@ -208,6 +244,13 @@ function renderHealth(ok, note) {
   badge.dataset.state = ok ? 'ok' : 'warning';
 }
 
+function renderReadinessStatus(state, note) {
+  const badge = document.querySelector('[data-field="readiness-status"]');
+  if (!badge) return;
+  badge.textContent = note;
+  badge.dataset.state = state;
+}
+
 function renderDraftPreviewStatus(state, note) {
   const badge = document.querySelector('[data-field="draft-preview-status"]');
   if (!badge) return;
@@ -246,6 +289,14 @@ function renderTasks(items) {
   renderCollection('[data-field="tasks-preview"]', items, (item) => (
     `<strong>${item.type || 'unknown'}</strong><span>${item.status || 'unknown'}</span>`
   ));
+}
+
+function renderReadiness(items) {
+  renderCollection(
+    '[data-field="readiness-items"]',
+    Array.isArray(items) ? items : fallbackReadiness.items,
+    (item) => `<strong>${item.label || item.key || 'unknown'}</strong><span>${item.status || 'unknown'} · ${item.note || 'No note available'}</span>`
+  );
 }
 
 function renderDraftTemplate(template) {
@@ -670,6 +721,7 @@ async function handleModerationPreviewSubmit(event) {
 
 async function loadScaffoldData() {
   renderScaffold(fallbackScaffold);
+  renderReadiness(fallbackReadiness.items);
   renderPosts(fallbackPosts);
   renderTasks(fallbackTasks);
   renderDraftTemplate(fallbackDraftTemplate);
@@ -686,6 +738,7 @@ async function loadScaffoldData() {
   renderModerationPreview(fallbackModerationPreview);
   renderModerationTaskResult(fallbackModerationTask);
   renderHealth(false, 'API not checked');
+  renderReadinessStatus('warning', 'Static defaults');
   renderDraftPreviewStatus('warning', 'Static preview');
   renderR2PreviewStatus('warning', 'Static preview');
   renderPublishPreviewStatus('warning', 'Static preview');
@@ -718,6 +771,7 @@ async function loadScaffoldData() {
       fetch('/api/health'),
       fetch('/api/scaffold')
     ]);
+    const readinessResponse = await fetch('/api/readiness');
     const [postsResponse, tasksResponse] = await Promise.all([
       fetch('/api/posts'),
       fetch('/api/tasks')
@@ -737,6 +791,18 @@ async function loadScaffoldData() {
     if (scaffoldResponse.ok) {
       const scaffold = await scaffoldResponse.json();
       renderScaffold(scaffold);
+    }
+
+    if (readinessResponse.ok) {
+      const readiness = await readinessResponse.json();
+      renderReadiness(readiness.items);
+      const missing = readiness.summary?.missing || 0;
+      const partial = readiness.summary?.partial || 0;
+      const ready = readiness.summary?.ready || 0;
+      const badgeState = missing > 0 ? 'warning' : 'ok';
+      renderReadinessStatus(badgeState, `${ready} ready / ${partial} partial / ${missing} missing`);
+    } else {
+      renderReadinessStatus('warning', `Readiness unavailable (${readinessResponse.status})`);
     }
 
     if (postsResponse.ok) {
@@ -782,6 +848,7 @@ async function loadScaffoldData() {
     }
   } catch {
     renderHealth(false, 'Static-only preview');
+    renderReadinessStatus('warning', 'Static defaults');
     renderDraftPreviewStatus('warning', 'Static preview');
     renderR2PreviewStatus('warning', 'Static preview');
     renderPublishPreviewStatus('warning', 'Static preview');
