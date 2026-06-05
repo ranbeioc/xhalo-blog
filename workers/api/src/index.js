@@ -1,4 +1,5 @@
 import {
+  buildProviderReadinessSnapshot,
   buildDraftTaskPrototype,
   buildGitHubWritePlan,
   buildModerationPreview,
@@ -50,6 +51,10 @@ export default {
 
     if (url.pathname === '/api/health') {
       return createJsonResponse({ ok: true, service: 'xhalo-blog-api', stage: '3-prototype', mode: 'scaffold' });
+    }
+
+    if (url.pathname === '/api/readiness') {
+      return createJsonResponse(buildProviderReadinessSnapshot(env));
     }
 
     if (url.pathname === '/api/scaffold') {

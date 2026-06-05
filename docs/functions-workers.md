@@ -18,6 +18,7 @@ Current read-only scaffold routes:
 
 ```text
 GET /api/health
+GET /api/readiness
 GET /api/scaffold
 GET /api/posts
 GET /api/tasks
@@ -38,6 +39,8 @@ POST /api/tasks/example
 ```
 
 The admin scaffold can read `GET /api/health` and `GET /api/scaffold` when it is deployed on the same origin as the placeholder API. If those routes are not reachable, it falls back to static scaffold defaults.
+
+`GET /api/readiness` summarizes whether the current worker environment looks ready for GitHub PR publishing, R2 assets, queue tasks, Turnstile, and Access-adjacent rollout checks. It does not validate external dashboards or perform write operations.
 
 Stage 3 prototype additions:
 
