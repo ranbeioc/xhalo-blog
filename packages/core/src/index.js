@@ -6,10 +6,20 @@ export const defaultScaffoldMetadata = {
   worker_entry: 'workers/api/src/index.js',
   queue_binding: 'TASK_QUEUE',
   queue_name: 'xhalo-blog-tasks',
-  expected_paths: ['/api/health', '/api/scaffold', '/api/posts', '/api/tasks', '/api/tasks/example'],
+  expected_paths: [
+    '/api/health',
+    '/api/scaffold',
+    '/api/posts',
+    '/api/tasks',
+    '/api/drafts/template',
+    '/api/drafts/preview',
+    '/api/drafts/tasks',
+    '/api/tasks/example'
+  ],
   notes: [
     'Posts and site configuration stay Git-backed.',
     'Read-only D1-backed posts and task status routes are the first Stage 3 prototype slice.',
+    'Draft flows remain dry-run prototypes until GitHub branch and PR creation is implemented.',
     'Dynamic write flows should open pull requests rather than write to main directly.',
     'This API surface is placeholder-only and not a production admin implementation.'
   ]
@@ -47,6 +57,17 @@ export const requiredEnvKeys = [
   'TURNSTILE_SITE_KEY',
   'TURNSTILE_SECRET_KEY'
 ];
+
+export const defaultDraftTemplate = {
+  fields: ['title', 'slug', 'summary', 'tags', 'category', 'status'],
+  defaults: {
+    status: 'draft',
+    tags: [],
+    category: 'notes'
+  },
+  branchPrefix: 'draft/',
+  postDir: 'source/_posts'
+};
 
 export function createJsonResponse(data, init = {}) {
   return new Response(JSON.stringify(data, null, 2), {
@@ -194,6 +215,103 @@ export function createFallbackTasks() {
       updated_at: nowIso()
     }
   ];
+}
+
+export function slugifyTitle(input = '') {
+  return String(input)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80);
+}
+
+export function normalizeDraftInput(input = {}) {
+  const title = String(input.title || '').trim();
+  const slug = String(input.slug || slugifyTitle(title)).trim() || 'untitled-draft';
+  const summary = String(input.summary || '').trim();
+  const category = String(input.category || defaultDraftTemplate.defaults.category).trim();
+  const status = String(input.status || defaultDraftTemplate.defaults.status).trim();
+  const tags = Array.isArray(input.tags)
+    ? input.tags.map((tag) => String(tag).trim()).filter(Boolean)
+    : [];
+
+  return {
+    title,
+    slug,
+    summary,
+    category,
+    status,
+    tags
+  };
+}
+
+export function buildDraftFrontMatter(input = {}) {
+  const draft = normalizeDraftInput(input);
+  return {
+    title: draft.title,
+    date: nowIso(),
+    updated: nowIso(),
+    tags: draft.tags,
+    categories: [draft.category],
+    summary: draft.summary,
+    status: draft.status
+  };
+}
+
+export function buildDraftFilePath(input = {}) {
+  const draft = normalizeDraftInput(input);
+  return `${defaultDraftTemplate.postDir}/${draft.slug}.md`;
+}
+
+export function buildDraftBranchName(input = {}) {
+  const draft = normalizeDraftInput(input);
+  return `${defaultDraftTemplate.branchPrefix}${draft.slug}`;
+}
+
+export function buildPullRequestPreview(input = {}, options = {}) {
+  const draft = normalizeDraftInput(input);
+  const branchName = buildDraftBranchName(draft);
+  const filePath = buildDraftFilePath(draft);
+  const repoOwner = options.repoOwner || 'example';
+  const repoName = options.repoName || 'xhalo-blog';
+  const baseBranch = options.baseBranch || 'main';
+
+  return {
+    draft,
+    branchName,
+    baseBranch,
+    filePath,
+    frontMatter: buildDraftFrontMatter(draft),
+    commitMessage: `feat(posts): add draft ${draft.slug}`,
+    pullRequestTitle: `Add draft: ${draft.title || draft.slug}`,
+    repository: `${repoOwner}/${repoName}`
+  };
+}
+
+export function buildDraftTaskPrototype(input = {}, options = {}) {
+  const preview = buildPullRequestPreview(input, options);
+  const createdAt = nowIso();
+  const task = buildQueueTaskEnvelope({
+    type: 'draft_preview',
+    stage: options.stage || '3-prototype',
+    created_at: createdAt,
+    idempotency_key: crypto.randomUUID(),
+    preview
+  });
+
+  return {
+    preview,
+    queuedTask: task,
+    taskRecord: {
+      id: task.idempotency_key,
+      type: task.type,
+      status: 'queued',
+      payload: task,
+      created_at: createdAt,
+      updated_at: createdAt
+    }
+  };
 }
 
 export function nowIso() {

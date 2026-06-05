@@ -13,8 +13,8 @@
         <p class="eyebrow">xhalo-blog</p>
         <h1>Admin Scaffold</h1>
         <p class="lede">
-          Stage 2.5 keeps the admin surface intentionally small. This page is a static operator-facing scaffold for
-          verifying boundaries before a real Cloudflare Access protected dashboard exists.
+          Stage 3 begins with read-only platform primitives. This page is still a scaffold, but it now reflects the
+          first D1-backed prototype slice before a real Cloudflare Access protected dashboard exists.
         </p>
       </header>
 
@@ -36,6 +36,9 @@
             <li><code>GET /api/scaffold</code></li>
             <li><code>GET /api/posts</code></li>
             <li><code>GET /api/tasks</code></li>
+            <li><code>GET /api/drafts/template</code></li>
+            <li><code>POST /api/drafts/preview</code></li>
+            <li><code>POST /api/drafts/tasks</code></li>
             <li><code>POST /api/tasks/example</code></li>
           </ul>
         </article>
@@ -53,7 +56,7 @@
           </div>
           <div class="meta-row">
             <span class="meta-label">Stage</span>
-            <strong data-field="stage">2.5</strong>
+            <strong data-field="stage">3-prototype</strong>
           </div>
           <div class="meta-row">
             <span class="meta-label">Mode</span>
@@ -75,6 +78,9 @@
             <li><code>/api/scaffold</code></li>
             <li><code>/api/posts</code></li>
             <li><code>/api/tasks</code></li>
+            <li><code>/api/drafts/template</code></li>
+            <li><code>/api/drafts/preview</code></li>
+            <li><code>/api/drafts/tasks</code></li>
             <li><code>/api/tasks/example</code></li>
           </ul>
         </div>
@@ -95,6 +101,109 @@
             <li><strong>example</strong><span>queued</span></li>
           </ul>
         </article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Draft prototype</h2>
+          <span class="status-badge" data-field="draft-preview-status" data-state="warning">Static preview</span>
+        </div>
+        <div class="meta-grid">
+          <div class="meta-row">
+            <span class="meta-label">Branch prefix</span>
+            <strong data-field="draft-branch-prefix">draft/</strong>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Post directory</span>
+            <strong data-field="draft-post-dir">source/_posts</strong>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Default status</span>
+            <strong data-field="draft-default-status">draft</strong>
+          </div>
+        </div>
+        <ul class="preview-list" data-field="draft-fields">
+          <li><strong>title</strong><span>draft field</span></li>
+          <li><strong>slug</strong><span>draft field</span></li>
+          <li><strong>summary</strong><span>draft field</span></li>
+        </ul>
+        <div class="draft-workbench">
+          <form class="draft-form" data-role="draft-preview-form">
+            <label>
+              <span>Title</span>
+              <input name="title" type="text" value="Stage 3 Prototype Post" />
+            </label>
+            <label>
+              <span>Slug</span>
+              <input name="slug" type="text" value="" placeholder="auto-from-title" />
+            </label>
+            <label class="field-span-2">
+              <span>Summary</span>
+              <textarea name="summary" rows="3">Draft metadata preview</textarea>
+            </label>
+            <label>
+              <span>Tags</span>
+              <input name="tags" type="text" value="cloudflare, stage3" />
+            </label>
+            <label>
+              <span>Category</span>
+              <input name="category" type="text" value="notes" />
+            </label>
+            <label>
+              <span>Status</span>
+              <input name="status" type="text" value="draft" />
+            </label>
+            <div class="form-actions field-span-2">
+              <button type="submit" name="action" value="preview">Generate preview</button>
+              <button type="submit" name="action" value="queue" class="button-secondary">Queue dry-run task</button>
+            </div>
+          </form>
+
+          <div class="draft-output">
+            <div class="meta-grid">
+              <div class="meta-row">
+                <span class="meta-label">Preview branch</span>
+                <strong data-field="draft-preview-branch">draft/stage-3-prototype-post</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Preview path</span>
+                <strong data-field="draft-preview-path">source/_posts/stage-3-prototype-post.md</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Repository</span>
+                <strong data-field="draft-preview-repo">example/xhalo-blog</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">PR title</span>
+                <strong data-field="draft-preview-pr-title">Add draft: Stage 3 Prototype Post</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Commit message</span>
+                <strong data-field="draft-preview-commit">feat(posts): add draft stage-3-prototype-post</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Base branch</span>
+                <strong data-field="draft-preview-base">main</strong>
+              </div>
+            </div>
+            <div class="meta-block">
+              <span class="meta-label">Front matter</span>
+              <pre class="preview-code" data-field="draft-preview-front-matter">{
+  "title": "Stage 3 Prototype Post"
+}</pre>
+            </div>
+            <div class="meta-grid">
+              <div class="meta-row">
+                <span class="meta-label">Task status</span>
+                <strong data-field="draft-task-status">not queued</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Task id</span>
+                <strong data-field="draft-task-id">-</strong>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="panel">

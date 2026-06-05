@@ -4,7 +4,16 @@ const fallbackScaffold = {
   mode: 'scaffold',
   static_site: 'Cloudflare Pages',
   queue_name: 'xhalo-blog-tasks',
-  expected_paths: ['/api/health', '/api/scaffold', '/api/posts', '/api/tasks', '/api/tasks/example']
+  expected_paths: [
+    '/api/health',
+    '/api/scaffold',
+    '/api/posts',
+    '/api/tasks',
+    '/api/drafts/template',
+    '/api/drafts/preview',
+    '/api/drafts/tasks',
+    '/api/tasks/example'
+  ]
 };
 
 const fallbackPosts = [
@@ -30,6 +39,37 @@ const fallbackTasks = [
     status: 'queued'
   }
 ];
+
+const fallbackDraftTemplate = {
+  branchPrefix: 'draft/',
+  postDir: 'source/_posts',
+  defaults: {
+    status: 'draft',
+    category: 'notes'
+  },
+  fields: ['title', 'slug', 'summary', 'tags', 'category', 'status']
+};
+
+const fallbackDraftPreview = {
+  branchName: 'draft/stage-3-prototype-post',
+  baseBranch: 'main',
+  filePath: 'source/_posts/stage-3-prototype-post.md',
+  commitMessage: 'feat(posts): add draft stage-3-prototype-post',
+  pullRequestTitle: 'Add draft: Stage 3 Prototype Post',
+  repository: 'example/xhalo-blog',
+  frontMatter: {
+    title: 'Stage 3 Prototype Post',
+    summary: 'Draft metadata preview',
+    categories: ['notes'],
+    tags: ['cloudflare', 'stage3'],
+    status: 'draft'
+  }
+};
+
+const fallbackDraftTask = {
+  status: 'not queued',
+  task_id: '-'
+};
 
 function setText(selector, value) {
   const element = document.querySelector(selector);
@@ -74,6 +114,13 @@ function renderHealth(ok, note) {
   badge.dataset.state = ok ? 'ok' : 'warning';
 }
 
+function renderDraftPreviewStatus(state, note) {
+  const badge = document.querySelector('[data-field="draft-preview-status"]');
+  if (!badge) return;
+  badge.textContent = note;
+  badge.dataset.state = state;
+}
+
 function renderPosts(items) {
   renderCollection('[data-field="posts-preview"]', items, (item) => (
     `<strong>${item.title || item.slug || 'Untitled'}</strong><span>${item.status || 'unknown'} · ${item.slug || '-'}</span>`
@@ -86,11 +133,137 @@ function renderTasks(items) {
   ));
 }
 
+function renderDraftTemplate(template) {
+  setText('[data-field="draft-branch-prefix"]', template.branchPrefix || fallbackDraftTemplate.branchPrefix);
+  setText('[data-field="draft-post-dir"]', template.postDir || fallbackDraftTemplate.postDir);
+  setText('[data-field="draft-default-status"]', template.defaults?.status || fallbackDraftTemplate.defaults.status);
+
+  renderCollection(
+    '[data-field="draft-fields"]',
+    Array.isArray(template.fields) ? template.fields : fallbackDraftTemplate.fields,
+    (field) => `<strong>${field}</strong><span>draft field</span>`
+  );
+}
+
+function renderDraftPreview(preview) {
+  setText('[data-field="draft-preview-branch"]', preview.branchName || fallbackDraftPreview.branchName);
+  setText('[data-field="draft-preview-path"]', preview.filePath || fallbackDraftPreview.filePath);
+  setText('[data-field="draft-preview-repo"]', preview.repository || fallbackDraftPreview.repository);
+  setText('[data-field="draft-preview-pr-title"]', preview.pullRequestTitle || fallbackDraftPreview.pullRequestTitle);
+  setText('[data-field="draft-preview-commit"]', preview.commitMessage || fallbackDraftPreview.commitMessage);
+  setText('[data-field="draft-preview-base"]', preview.baseBranch || fallbackDraftPreview.baseBranch);
+
+  const frontMatter = document.querySelector('[data-field="draft-preview-front-matter"]');
+  if (frontMatter) {
+    frontMatter.textContent = JSON.stringify(preview.frontMatter || fallbackDraftPreview.frontMatter, null, 2);
+  }
+}
+
+function renderDraftTaskResult(task) {
+  setText('[data-field="draft-task-status"]', task.status || fallbackDraftTask.status);
+  setText('[data-field="draft-task-id"]', task.task_id || fallbackDraftTask.task_id);
+}
+
+function getDraftFormPayload(form) {
+  const formData = new FormData(form);
+  const tags = String(formData.get('tags') || '')
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+
+  return {
+    title: String(formData.get('title') || '').trim(),
+    slug: String(formData.get('slug') || '').trim(),
+    summary: String(formData.get('summary') || '').trim(),
+    tags,
+    category: String(formData.get('category') || '').trim(),
+    status: String(formData.get('status') || '').trim()
+  };
+}
+
+async function postDraftAction(form, endpoint) {
+  if (window.location.protocol === 'file:') {
+    return { mode: 'static' };
+  }
+
+  const payload = getDraftFormPayload(form);
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) return { error: response.status };
+  return response.json();
+}
+
+function prependTask(task) {
+  const list = document.querySelector('[data-field="tasks-preview"]');
+  if (!list) return;
+
+  const node = document.createElement('li');
+  node.innerHTML = `<strong>${task.type || 'unknown'}</strong><span>${task.status || 'queued'}</span>`;
+  list.prepend(node);
+}
+
+async function handleDraftPreviewSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const action = event.submitter?.value || 'preview';
+  renderDraftPreviewStatus('warning', action === 'queue' ? 'Queueing task' : 'Generating preview');
+
+  try {
+    const result = await postDraftAction(form, action === 'queue' ? '/api/drafts/tasks' : '/api/drafts/preview');
+
+    if (result?.mode === 'static') {
+      renderDraftPreview(fallbackDraftPreview);
+      renderDraftTaskResult(fallbackDraftTask);
+      renderDraftPreviewStatus('warning', 'Static preview');
+      return;
+    }
+
+    if (result?.error) {
+      renderDraftPreviewStatus('warning', `${action === 'queue' ? 'Queue failed' : 'Preview failed'} (${result.error})`);
+      return;
+    }
+
+    if (result.preview) {
+      renderDraftPreview(result.preview);
+    }
+
+    if (action === 'queue') {
+      renderDraftTaskResult({
+        status: result.queued ? 'queued' : 'queue failed',
+        task_id: result.task_id || '-'
+      });
+      prependTask({
+        type: result.task_type || 'draft_preview',
+        status: result.queued ? 'queued' : 'unknown'
+      });
+      renderDraftPreviewStatus('ok', 'Task queued');
+      return;
+    }
+
+    renderDraftPreviewStatus('ok', 'Preview ready');
+  } catch {
+    renderDraftPreviewStatus('warning', 'Static preview');
+  }
+}
+
 async function loadScaffoldData() {
   renderScaffold(fallbackScaffold);
   renderPosts(fallbackPosts);
   renderTasks(fallbackTasks);
+  renderDraftTemplate(fallbackDraftTemplate);
+  renderDraftPreview(fallbackDraftPreview);
+  renderDraftTaskResult(fallbackDraftTask);
   renderHealth(false, 'API not checked');
+  renderDraftPreviewStatus('warning', 'Static preview');
+
+  const draftForm = document.querySelector('[data-role="draft-preview-form"]');
+  if (draftForm) {
+    draftForm.addEventListener('submit', handleDraftPreviewSubmit);
+  }
 
   if (window.location.protocol === 'file:') {
     renderHealth(false, 'Static-only preview');
@@ -106,6 +279,7 @@ async function loadScaffoldData() {
       fetch('/api/posts'),
       fetch('/api/tasks')
     ]);
+    const draftTemplateResponse = await fetch('/api/drafts/template');
 
     if (healthResponse.ok) {
       const health = await healthResponse.json();
@@ -128,8 +302,17 @@ async function loadScaffoldData() {
       const tasks = await tasksResponse.json();
       if (Array.isArray(tasks.items) && tasks.items.length > 0) renderTasks(tasks.items);
     }
+
+    if (draftTemplateResponse.ok) {
+      const draftTemplate = await draftTemplateResponse.json();
+      if (draftTemplate.template) renderDraftTemplate(draftTemplate.template);
+      renderDraftPreviewStatus('ok', 'API preview ready');
+    } else {
+      renderDraftPreviewStatus('warning', `Preview unavailable (${draftTemplateResponse.status})`);
+    }
   } catch {
     renderHealth(false, 'Static-only preview');
+    renderDraftPreviewStatus('warning', 'Static preview');
   }
 }
 
