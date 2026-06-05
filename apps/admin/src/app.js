@@ -21,6 +21,8 @@ const fallbackScaffold = {
     '/api/assets/r2-upload',
     '/api/assets/r2-upload/:token',
     '/api/assets/r2-tasks',
+    '/webhooks/github',
+    '/webhooks/deployments/preview',
     '/api/publish/notifications/template',
     '/api/publish/notifications/preview',
     '/api/publish/notifications/tasks',
@@ -34,13 +36,19 @@ const fallbackScaffold = {
 const fallbackPosts = [
   {
     title: 'Hello xhalo-blog',
-    status: 'published',
-    slug: 'hello-xhalo-blog'
+    status: 'preview-ready',
+    slug: 'hello-xhalo-blog',
+    path: 'source/_posts/hello-xhalo-blog.md',
+    detail_primary: 'draft/hello-xhalo-blog',
+    detail_secondary: 'https://github.com/ranbeioc/xhalo-blog/pull/42'
   },
   {
     title: 'NexT Theme Baseline',
     status: 'example',
-    slug: 'next-theme-baseline'
+    slug: 'next-theme-baseline',
+    path: 'examples/next-theme-blog/source/_posts/hello-xhalo-blog.md',
+    detail_primary: null,
+    detail_secondary: null
   }
 ];
 
@@ -65,6 +73,12 @@ const fallbackReadiness = {
       note: 'TASK_QUEUE binding is missing.'
     },
     {
+      key: 'preview_deployments',
+      label: 'Preview deployment reconciliation',
+      status: 'missing',
+      note: 'PREVIEW_WEBHOOK_SECRET is missing.'
+    },
+    {
       key: 'turnstile',
       label: 'Turnstile',
       status: 'missing',
@@ -81,12 +95,18 @@ const fallbackReadiness = {
 
 const fallbackTasks = [
   {
-    type: 'build_status_poll',
-    status: 'pending'
+    type: 'preview_deployment_webhook',
+    status: 'completed',
+    detail_primary: 'preview-ready',
+    detail_secondary: 'https://preview.example.com/hello-xhalo-blog/',
+    updated_at: new Date().toISOString()
   },
   {
-    type: 'example',
-    status: 'queued'
+    type: 'github_webhook',
+    status: 'completed',
+    detail_primary: 'merged',
+    detail_secondary: 'draft/hello-xhalo-blog',
+    updated_at: new Date().toISOString()
   }
 ];
 
@@ -305,13 +325,13 @@ function renderModerationPreviewStatus(state, note) {
 
 function renderPosts(items) {
   renderCollection('[data-field="posts-preview"]', items, (item) => (
-    `<strong>${item.title || item.slug || 'Untitled'}</strong><span>${item.status || 'unknown'} · ${item.slug || '-'}</span>`
+    `<div class="preview-stack"><strong>${item.title || item.slug || 'Untitled'}</strong><span>${item.status || 'unknown'} · ${item.slug || '-'}</span><small class="preview-meta">${[item.path, item.detail_primary, item.detail_secondary].filter(Boolean).join(' · ')}</small></div>`
   ));
 }
 
 function renderTasks(items) {
   renderCollection('[data-field="tasks-preview"]', items, (item) => (
-    `<strong>${item.type || 'unknown'}</strong><span>${item.status || 'unknown'}</span>`
+    `<div class="preview-stack"><strong>${item.type || 'unknown'}</strong><span>${item.status || 'unknown'}${item.updated_at ? ` · ${item.updated_at}` : ''}</span><small class="preview-meta">${[item.detail_primary, item.detail_secondary].filter(Boolean).join(' · ')}</small></div>`
   ));
 }
 

@@ -47,6 +47,8 @@
             <li><code>POST /api/assets/r2-signed-upload</code></li>
             <li><code>POST /api/assets/r2-upload</code></li>
             <li><code>POST /api/assets/r2-tasks</code></li>
+            <li><code>POST /webhooks/github</code></li>
+            <li><code>POST /webhooks/deployments/preview</code></li>
             <li><code>GET /api/publish/notifications/template</code></li>
             <li><code>POST /api/publish/notifications/preview</code></li>
             <li><code>POST /api/publish/notifications/tasks</code></li>
@@ -104,6 +106,8 @@
             <li><code>/api/assets/r2-upload</code></li>
             <li><code>/api/assets/r2-upload/:token</code></li>
             <li><code>/api/assets/r2-tasks</code></li>
+            <li><code>/webhooks/github</code></li>
+            <li><code>/webhooks/deployments/preview</code></li>
             <li><code>/api/publish/notifications/template</code></li>
             <li><code>/api/publish/notifications/preview</code></li>
             <li><code>/api/publish/notifications/tasks</code></li>
@@ -117,17 +121,17 @@
 
       <section class="panel panel-grid" aria-label="Prototype data panels">
         <article class="panel inset-panel">
-          <h2>Posts index prototype</h2>
+          <h2>Posts execution view</h2>
           <ul class="preview-list" data-field="posts-preview">
-            <li><strong>Hello xhalo-blog</strong><span>published · hello-xhalo-blog</span></li>
-            <li><strong>NexT Theme Baseline</strong><span>example · next-theme-baseline</span></li>
+            <li><div class="preview-stack"><strong>Hello xhalo-blog</strong><span>preview-ready · hello-xhalo-blog</span><small class="preview-meta">source/_posts/hello-xhalo-blog.md · draft/hello-xhalo-blog · https://github.com/ranbeioc/xhalo-blog/pull/42</small></div></li>
+            <li><div class="preview-stack"><strong>NexT Theme Baseline</strong><span>example · next-theme-baseline</span><small class="preview-meta">examples/next-theme-blog/source/_posts/hello-xhalo-blog.md</small></div></li>
           </ul>
         </article>
         <article class="panel inset-panel">
-          <h2>Task status prototype</h2>
+          <h2>Task execution view</h2>
           <ul class="preview-list" data-field="tasks-preview">
-            <li><strong>build_status_poll</strong><span>pending</span></li>
-            <li><strong>example</strong><span>queued</span></li>
+            <li><div class="preview-stack"><strong>preview_deployment_webhook</strong><span>completed</span><small class="preview-meta">preview-ready · https://preview.example.com/hello-xhalo-blog/</small></div></li>
+            <li><div class="preview-stack"><strong>github_webhook</strong><span>completed</span><small class="preview-meta">merged · draft/hello-xhalo-blog</small></div></li>
           </ul>
         </article>
       </section>
@@ -141,6 +145,7 @@
           <li><strong>GitHub PR publishing</strong><span>partial · repository env only</span></li>
           <li><strong>R2 assets</strong><span>missing · bucket binding missing</span></li>
           <li><strong>Queue worker</strong><span>missing · TASK_QUEUE binding missing</span></li>
+          <li><strong>Preview deployment reconciliation</strong><span>missing · PREVIEW_WEBHOOK_SECRET missing</span></li>
           <li><strong>Turnstile</strong><span>missing · env keys missing</span></li>
           <li><strong>Cloudflare Access</strong><span>manual · verify in dashboard</span></li>
         </ul>

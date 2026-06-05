@@ -32,6 +32,8 @@ POST /api/assets/r2-preview
 POST /api/assets/r2-signed-upload
 POST /api/assets/r2-upload
 POST /api/assets/r2-tasks
+POST /webhooks/github
+POST /webhooks/deployments/preview
 GET /api/publish/notifications/template
 POST /api/publish/notifications/preview
 POST /api/publish/notifications/tasks
@@ -69,6 +71,8 @@ Stage 3 prototype additions:
 - `POST /api/tasks/example` now persists a queued task record when D1 is available before the queue consumer handles it
 - `apps/admin` now includes a dry-run draft form that can preview draft metadata, queue a dry-run task, and render the future GitHub operation plan in the browser
 - `workers/queue` now performs minimal D1-backed reconciliation for known preview tasks, moving task rows through `processing` and `completed` with a small typed summary
+- `POST /webhooks/github` verifies `x-hub-signature-256` with `GITHUB_WEBHOOK_SECRET` and reconciles pull request status back into `posts_index` and `tasks`
+- `POST /webhooks/deployments/preview` verifies `x-preview-webhook-secret` with `PREVIEW_WEBHOOK_SECRET` and reconciles preview deployment status back into `posts_index` and `tasks`
 
 Recommended dynamic paths:
 

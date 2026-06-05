@@ -48,7 +48,15 @@ The current prototype prefers a GitHub App installation token and falls back to 
 
 It is closer to the target GitHub App model, but it still does not include:
 
-- webhook verification
 - installation scoping audits
 - queue-backed retries for failed publish jobs
 - richer branch naming, dedupe, and conflict handling
+
+## Current reconciliation additions
+
+The scaffold now includes:
+
+- `POST /webhooks/github` for pull request webhook reconciliation
+- `POST /webhooks/deployments/preview` for preview deployment reconciliation
+
+These routes update D1 task rows and reconcile post status back into `posts_index`.
