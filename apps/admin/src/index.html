@@ -44,6 +44,7 @@
             <li><code>POST /api/drafts/publish</code></li>
             <li><code>GET /api/assets/r2-template</code></li>
             <li><code>POST /api/assets/r2-preview</code></li>
+            <li><code>POST /api/assets/r2-upload</code></li>
             <li><code>POST /api/assets/r2-tasks</code></li>
             <li><code>GET /api/publish/notifications/template</code></li>
             <li><code>POST /api/publish/notifications/preview</code></li>
@@ -98,6 +99,7 @@
             <li><code>/api/drafts/publish</code></li>
             <li><code>/api/assets/r2-template</code></li>
             <li><code>/api/assets/r2-preview</code></li>
+            <li><code>/api/assets/r2-upload</code></li>
             <li><code>/api/assets/r2-tasks</code></li>
             <li><code>/api/publish/notifications/template</code></li>
             <li><code>/api/publish/notifications/preview</code></li>
@@ -301,9 +303,22 @@
               <span>Post slug</span>
               <input name="postSlug" type="text" value="" placeholder="optional-post-slug" />
             </label>
+            <label>
+              <span>Encoding</span>
+              <input name="encoding" type="text" value="utf-8" />
+            </label>
+            <label class="field-span-2">
+              <span>Content</span>
+              <textarea name="content" rows="4">Prototype asset payload from the admin scaffold.</textarea>
+            </label>
+            <label class="field-span-2">
+              <span>Cache-Control</span>
+              <input name="cacheControl" type="text" value="public, max-age=31536000, immutable" />
+            </label>
             <div class="form-actions field-span-2">
               <button type="submit" name="action" value="preview">Generate upload preview</button>
               <button type="submit" name="action" value="queue" class="button-secondary">Queue dry-run upload</button>
+              <button type="submit" name="action" value="publish" class="button-secondary">Upload to R2</button>
             </div>
           </form>
 
@@ -332,6 +347,18 @@
               <div class="meta-row">
                 <span class="meta-label">Upload task id</span>
                 <strong data-field="r2-task-id">-</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Upload mode</span>
+                <strong data-field="r2-upload-mode">dry-run</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">ETag</span>
+                <strong data-field="r2-upload-etag">-</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Uploaded bytes</span>
+                <strong data-field="r2-upload-bytes">0</strong>
               </div>
             </div>
           </div>

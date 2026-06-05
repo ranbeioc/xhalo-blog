@@ -19,6 +19,7 @@ export const defaultScaffoldMetadata = {
     '/api/drafts/publish',
     '/api/assets/r2-template',
     '/api/assets/r2-preview',
+    '/api/assets/r2-upload',
     '/api/assets/r2-tasks',
     '/api/publish/notifications/template',
     '/api/publish/notifications/preview',
@@ -31,8 +32,8 @@ export const defaultScaffoldMetadata = {
   notes: [
     'Posts and site configuration stay Git-backed.',
     'Read-only D1-backed posts and task status routes are the first Stage 3 prototype slice.',
-    'Draft flows remain dry-run prototypes until GitHub branch and PR creation is implemented.',
-    'R2 upload flows remain dry-run prototypes until signed upload handlers and lifecycle rules exist.',
+    'Draft flows now include a token-gated live GitHub branch and PR prototype.',
+    'R2 upload flows now include a bounded live object write prototype before signed upload handlers and lifecycle rules exist.',
     'Publish notification flows remain dry-run prototypes until downstream delivery targets are implemented.',
     'Moderation flows remain dry-run prototypes until the real comment provider and anti-abuse controls are wired.',
     'Dynamic write flows should open pull requests rather than write to main directly.',
@@ -63,6 +64,7 @@ export const requiredEnvKeys = [
   'CLOUDFLARE_ACCOUNT_ID',
   'CLOUDFLARE_API_TOKEN',
   'CLOUDFLARE_ZONE_ID',
+  'ASSETS_PUBLIC_BASE_URL',
   'GITHUB_OWNER',
   'GITHUB_REPO',
   'GITHUB_BRANCH',
@@ -89,10 +91,12 @@ export const defaultR2UploadTemplate = {
   bucketName: 'xhalo-blog-assets',
   keyPrefix: 'uploads',
   publicBaseUrl: 'https://assets.example.com',
-  fields: ['filename', 'contentType', 'scope', 'postSlug'],
+  fields: ['filename', 'contentType', 'scope', 'postSlug', 'content', 'encoding', 'cacheControl'],
   defaults: {
     scope: 'uploads',
-    contentType: 'image/png'
+    contentType: 'image/png',
+    encoding: 'utf-8',
+    cacheControl: 'public, max-age=31536000, immutable'
   }
 };
 
@@ -527,6 +531,43 @@ export function buildR2UploadTaskPrototype(input = {}, options = {}) {
       created_at: createdAt,
       updated_at: createdAt
     }
+  };
+}
+
+export function buildR2UploadWritePlan(input = {}, options = {}) {
+  const preview = buildR2UploadPreview(input, options);
+  const encoding = String(input.encoding || defaultR2UploadTemplate.defaults.encoding).trim() || defaultR2UploadTemplate.defaults.encoding;
+  const cacheControl = String(input.cacheControl || defaultR2UploadTemplate.defaults.cacheControl).trim() || defaultR2UploadTemplate.defaults.cacheControl;
+
+  return {
+    preview,
+    actions: [
+      {
+        type: 'derive_object_key',
+        summary: `Resolve ${preview.objectKey} under ${preview.bucketName}`,
+        payload: {
+          bucketBinding: preview.bucketBinding,
+          bucketName: preview.bucketName,
+          objectKey: preview.objectKey
+        }
+      },
+      {
+        type: 'write_object',
+        summary: `Write ${preview.filename} to ${preview.objectKey} with ${preview.contentType}`,
+        payload: {
+          contentType: preview.contentType,
+          encoding,
+          cacheControl
+        }
+      },
+      {
+        type: 'verify_public_url',
+        summary: `Verify the uploaded object on ${preview.publicUrl}`,
+        payload: {
+          publicUrl: preview.publicUrl
+        }
+      }
+    ]
   };
 }
 

@@ -31,6 +31,8 @@ When the placeholder API is deployed on the same origin, you can also inspect `G
 
 For the first live GitHub draft publish prototype, set `GITHUB_TOKEN` in the worker environment. Keep `GITHUB_APP_*` placeholders for the later hardened path.
 
+For the first live R2 upload prototype, bind `ASSETS` in Wrangler and set `ASSETS_PUBLIC_BASE_URL` so the worker can return a stable public URL after the object write completes.
+
 ## Run the minimal static example
 
 ```bash
