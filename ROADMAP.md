@@ -32,6 +32,7 @@
 - Queue-based publish notification dry-run preview and queued task prototype.
 - Comment moderation design.
 - Comment moderation dry-run preview and queued task prototype.
+- Minimal D1-backed queue task reconciliation for known preview jobs.
 
 ## v1.0.0
 

@@ -68,6 +68,7 @@ Stage 3 prototype additions:
 - `POST /api/moderation/tasks` queues a dry-run moderation task and returns the preview plus task metadata without updating anything remotely
 - `POST /api/tasks/example` now persists a queued task record when D1 is available before the queue consumer handles it
 - `apps/admin` now includes a dry-run draft form that can preview draft metadata, queue a dry-run task, and render the future GitHub operation plan in the browser
+- `workers/queue` now performs minimal D1-backed reconciliation for known preview tasks, moving task rows through `processing` and `completed` with a small typed summary
 
 Recommended dynamic paths:
 
