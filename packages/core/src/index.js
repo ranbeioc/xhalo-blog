@@ -18,6 +18,9 @@ export const defaultScaffoldMetadata = {
     '/api/assets/r2-template',
     '/api/assets/r2-preview',
     '/api/assets/r2-tasks',
+    '/api/publish/notifications/template',
+    '/api/publish/notifications/preview',
+    '/api/publish/notifications/tasks',
     '/api/tasks/example'
   ],
   notes: [
@@ -25,6 +28,7 @@ export const defaultScaffoldMetadata = {
     'Read-only D1-backed posts and task status routes are the first Stage 3 prototype slice.',
     'Draft flows remain dry-run prototypes until GitHub branch and PR creation is implemented.',
     'R2 upload flows remain dry-run prototypes until signed upload handlers and lifecycle rules exist.',
+    'Publish notification flows remain dry-run prototypes until downstream delivery targets are implemented.',
     'Dynamic write flows should open pull requests rather than write to main directly.',
     'This API surface is placeholder-only and not a production admin implementation.'
   ]
@@ -84,6 +88,16 @@ export const defaultR2UploadTemplate = {
     scope: 'uploads',
     contentType: 'image/png'
   }
+};
+
+export const defaultPublishNotificationTemplate = {
+  queueBinding: 'TASK_QUEUE',
+  channels: ['cloudflare-pages-preview', 'github-pr-comment'],
+  defaults: {
+    channel: 'cloudflare-pages-preview',
+    status: 'preview-ready'
+  },
+  fields: ['postSlug', 'branchName', 'previewUrl', 'channel', 'status']
 };
 
 export function createJsonResponse(data, init = {}) {
@@ -390,6 +404,61 @@ export function buildR2UploadTaskPrototype(input = {}, options = {}) {
   const createdAt = nowIso();
   const task = buildQueueTaskEnvelope({
     type: 'r2_upload_preview',
+    stage: options.stage || '3-prototype',
+    created_at: createdAt,
+    idempotency_key: crypto.randomUUID(),
+    preview
+  });
+
+  return {
+    preview,
+    queuedTask: task,
+    taskRecord: {
+      id: task.idempotency_key,
+      type: task.type,
+      status: 'queued',
+      payload: task,
+      created_at: createdAt,
+      updated_at: createdAt
+    }
+  };
+}
+
+export function normalizePublishNotificationInput(input = {}) {
+  const postSlug = String(input.postSlug || 'hello-xhalo-blog').trim();
+  const branchName = String(input.branchName || `draft/${slugifyTitle(postSlug) || 'hello-xhalo-blog'}`).trim();
+  const previewUrl = String(input.previewUrl || `https://preview.example.com/${slugifyTitle(postSlug) || 'hello-xhalo-blog'}/`).trim();
+  const channel = String(input.channel || defaultPublishNotificationTemplate.defaults.channel).trim();
+  const status = String(input.status || defaultPublishNotificationTemplate.defaults.status).trim();
+
+  return {
+    postSlug: slugifyTitle(postSlug) || 'hello-xhalo-blog',
+    branchName,
+    previewUrl,
+    channel,
+    status
+  };
+}
+
+export function buildPublishNotificationPreview(input = {}, options = {}) {
+  const normalized = normalizePublishNotificationInput(input);
+  return {
+    queueBinding: options.queueBinding || defaultPublishNotificationTemplate.queueBinding,
+    postSlug: normalized.postSlug,
+    branchName: normalized.branchName,
+    previewUrl: normalized.previewUrl,
+    channel: normalized.channel,
+    status: normalized.status,
+    title: `Preview ready for ${normalized.postSlug}`,
+    message: `Preview deployment is ready on ${normalized.previewUrl}`
+  };
+}
+
+export function buildPublishNotificationTaskPrototype(input = {}, options = {}) {
+  const preview = buildPublishNotificationPreview(input, options);
+  const createdAt = nowIso();
+  const task = buildQueueTaskEnvelope({
+    type: 'publish_notification_preview',
     stage: options.stage || '3-prototype',
     created_at: createdAt,
     idempotency_key: crypto.randomUUID(),

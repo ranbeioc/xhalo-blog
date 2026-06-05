@@ -25,6 +25,14 @@ export default {
             contentType: task.payload?.preview?.contentType
           }));
           break;
+        case 'publish_notification_preview':
+          console.log('xhalo-blog queue publish notification preview task', JSON.stringify({
+            idempotency_key: task.idempotency_key,
+            channel: task.payload?.preview?.channel,
+            previewUrl: task.payload?.preview?.previewUrl,
+            postSlug: task.payload?.preview?.postSlug
+          }));
+          break;
         default:
           console.warn('xhalo-blog queue unknown task type', JSON.stringify(task));
           break;

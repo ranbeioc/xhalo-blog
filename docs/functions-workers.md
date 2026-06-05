@@ -28,6 +28,9 @@ POST /api/drafts/github-plan
 GET /api/assets/r2-template
 POST /api/assets/r2-preview
 POST /api/assets/r2-tasks
+GET /api/publish/notifications/template
+POST /api/publish/notifications/preview
+POST /api/publish/notifications/tasks
 POST /api/tasks/example
 ```
 
@@ -44,6 +47,9 @@ Stage 3 prototype additions:
 - `GET /api/assets/r2-template` exposes the current R2 upload contract for bucket binding, key prefix, and public URL shape
 - `POST /api/assets/r2-preview` returns the derived bucket/key/url tuple for a future upload without writing anything remotely
 - `POST /api/assets/r2-tasks` queues a dry-run upload task and returns the preview plus task metadata without writing anything remotely
+- `GET /api/publish/notifications/template` exposes the current publish notification contract for queue binding and delivery channels
+- `POST /api/publish/notifications/preview` returns the derived notification title, message, and delivery target without sending anything remotely
+- `POST /api/publish/notifications/tasks` queues a dry-run publish notification task and returns the preview plus task metadata without sending anything remotely
 - `POST /api/tasks/example` now persists a queued task record when D1 is available before the queue consumer handles it
 - `apps/admin` now includes a dry-run draft form that can preview draft metadata, queue a dry-run task, and render the future GitHub operation plan in the browser
 

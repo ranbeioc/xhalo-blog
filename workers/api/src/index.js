@@ -1,11 +1,14 @@
 import {
   buildDraftTaskPrototype,
   buildGitHubWritePlan,
+  buildPublishNotificationPreview,
+  buildPublishNotificationTaskPrototype,
   buildPullRequestPreview,
   buildQueueTaskEnvelope,
   buildR2UploadPreview,
   buildR2UploadTaskPrototype,
   defaultDraftTemplate,
+  defaultPublishNotificationTemplate,
   defaultR2UploadTemplate,
   createFallbackPosts,
   createFallbackTasks,
@@ -183,6 +186,47 @@ export default {
         task_type: prototype.taskRecord.type,
         preview: prototype.preview,
         note: 'Dry-run R2 upload task queued. No object has been written.'
+      });
+    }
+
+    if (url.pathname === '/api/publish/notifications/template') {
+      return createJsonResponse({
+        template: defaultPublishNotificationTemplate,
+        note: 'Stage 3 publish notification prototype. No real downstream notification is sent here.'
+      });
+    }
+
+    if (url.pathname === '/api/publish/notifications/preview' && request.method === 'POST') {
+      const input = await request.json();
+      const preview = buildPublishNotificationPreview(input, {
+        queueBinding: 'TASK_QUEUE'
+      });
+
+      return createJsonResponse({
+        preview,
+        note: 'Stage 3 publish notification preview only. No downstream notification has been sent.'
+      });
+    }
+
+    if (url.pathname === '/api/publish/notifications/tasks' && request.method === 'POST') {
+      if (!env.TASK_QUEUE) return createJsonResponse({ error: 'TASK_QUEUE is not bound' }, { status: 500 });
+
+      const input = await request.json();
+      const prototype = buildPublishNotificationTaskPrototype(input, {
+        queueBinding: 'TASK_QUEUE',
+        stage: '3-prototype'
+      });
+
+      await env.TASK_QUEUE.send(prototype.queuedTask);
+      const persisted = await insertTaskRecord(env, prototype.taskRecord);
+
+      return createJsonResponse({
+        queued: true,
+        persisted,
+        task_id: prototype.taskRecord.id,
+        task_type: prototype.taskRecord.type,
+        preview: prototype.preview,
+        note: 'Dry-run publish notification task queued. No downstream notification has been sent.'
       });
     }
 

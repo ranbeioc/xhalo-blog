@@ -43,6 +43,9 @@
             <li><code>GET /api/assets/r2-template</code></li>
             <li><code>POST /api/assets/r2-preview</code></li>
             <li><code>POST /api/assets/r2-tasks</code></li>
+            <li><code>GET /api/publish/notifications/template</code></li>
+            <li><code>POST /api/publish/notifications/preview</code></li>
+            <li><code>POST /api/publish/notifications/tasks</code></li>
             <li><code>POST /api/tasks/example</code></li>
           </ul>
         </article>
@@ -89,6 +92,9 @@
             <li><code>/api/assets/r2-template</code></li>
             <li><code>/api/assets/r2-preview</code></li>
             <li><code>/api/assets/r2-tasks</code></li>
+            <li><code>/api/publish/notifications/template</code></li>
+            <li><code>/api/publish/notifications/preview</code></li>
+            <li><code>/api/publish/notifications/tasks</code></li>
             <li><code>/api/tasks/example</code></li>
           </ul>
         </div>
@@ -317,6 +323,84 @@
           <div class="module">
             <strong>Moderation</strong>
             <span>Comment and abuse review surfaces behind protected routes.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Publish notification prototype</h2>
+          <span class="status-badge" data-field="publish-preview-status" data-state="warning">Static preview</span>
+        </div>
+        <div class="meta-grid">
+          <div class="meta-row">
+            <span class="meta-label">Queue binding</span>
+            <strong data-field="publish-queue-binding">TASK_QUEUE</strong>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Default channel</span>
+            <strong data-field="publish-channel">cloudflare-pages-preview</strong>
+          </div>
+        </div>
+        <div class="draft-workbench">
+          <form class="draft-form" data-role="publish-preview-form">
+            <label>
+              <span>Post slug</span>
+              <input name="postSlug" type="text" value="hello-xhalo-blog" />
+            </label>
+            <label>
+              <span>Branch name</span>
+              <input name="branchName" type="text" value="draft/hello-xhalo-blog" />
+            </label>
+            <label class="field-span-2">
+              <span>Preview URL</span>
+              <input name="previewUrl" type="text" value="https://preview.example.com/hello-xhalo-blog/" />
+            </label>
+            <label>
+              <span>Channel</span>
+              <input name="channel" type="text" value="cloudflare-pages-preview" />
+            </label>
+            <label>
+              <span>Status</span>
+              <input name="status" type="text" value="preview-ready" />
+            </label>
+            <div class="form-actions field-span-2">
+              <button type="submit" name="action" value="preview">Generate notification preview</button>
+              <button type="submit" name="action" value="queue" class="button-secondary">Queue dry-run notification</button>
+            </div>
+          </form>
+
+          <div class="draft-output">
+            <div class="meta-grid">
+              <div class="meta-row">
+                <span class="meta-label">Title</span>
+                <strong data-field="publish-title">Preview ready for hello-xhalo-blog</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Channel</span>
+                <strong data-field="publish-channel-output">cloudflare-pages-preview</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Preview URL</span>
+                <strong data-field="publish-preview-url">https://preview.example.com/hello-xhalo-blog/</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Notification status</span>
+                <strong data-field="publish-status-output">preview-ready</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Notification task status</span>
+                <strong data-field="publish-task-status">not queued</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Notification task id</span>
+                <strong data-field="publish-task-id">-</strong>
+              </div>
+            </div>
+            <div class="meta-block">
+              <span class="meta-label">Message</span>
+              <pre class="preview-code" data-field="publish-message">Preview deployment is ready on https://preview.example.com/hello-xhalo-blog/</pre>
+            </div>
           </div>
         </div>
       </section>
