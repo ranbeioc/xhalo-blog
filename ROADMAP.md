@@ -31,6 +31,7 @@
 - Queue-based publish notification prototype.
 - Queue-based publish notification dry-run preview and queued task prototype.
 - Comment moderation design.
+- Comment moderation dry-run preview and queued task prototype.
 
 ## v1.0.0
 

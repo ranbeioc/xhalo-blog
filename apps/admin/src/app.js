@@ -19,6 +19,9 @@ const fallbackScaffold = {
     '/api/publish/notifications/template',
     '/api/publish/notifications/preview',
     '/api/publish/notifications/tasks',
+    '/api/moderation/template',
+    '/api/moderation/preview',
+    '/api/moderation/tasks',
     '/api/tasks/example'
   ]
 };
@@ -138,6 +141,30 @@ const fallbackPublishTask = {
   task_id: '-'
 };
 
+const fallbackModerationTemplate = {
+  queueBinding: 'TASK_QUEUE',
+  defaults: {
+    provider: 'waline',
+    action: 'flag',
+    reason: 'manual-review'
+  }
+};
+
+const fallbackModerationPreview = {
+  queueBinding: 'TASK_QUEUE',
+  commentId: 'comment-demo-1',
+  provider: 'waline',
+  action: 'flag',
+  reason: 'manual-review',
+  title: 'Moderation review for comment-demo-1',
+  message: 'flag comment comment-demo-1 via waline'
+};
+
+const fallbackModerationTask = {
+  status: 'not queued',
+  task_id: '-'
+};
+
 function setText(selector, value) {
   const element = document.querySelector(selector);
   if (element) element.textContent = value;
@@ -197,6 +224,13 @@ function renderR2PreviewStatus(state, note) {
 
 function renderPublishPreviewStatus(state, note) {
   const badge = document.querySelector('[data-field="publish-preview-status"]');
+  if (!badge) return;
+  badge.textContent = note;
+  badge.dataset.state = state;
+}
+
+function renderModerationPreviewStatus(state, note) {
+  const badge = document.querySelector('[data-field="moderation-preview-status"]');
   if (!badge) return;
   badge.textContent = note;
   badge.dataset.state = state;
@@ -293,6 +327,27 @@ function renderPublishTaskResult(task) {
   setText('[data-field="publish-task-id"]', task.task_id || fallbackPublishTask.task_id);
 }
 
+function renderModerationTemplate(template) {
+  setText('[data-field="moderation-queue-binding"]', template.queueBinding || fallbackModerationTemplate.queueBinding);
+  setText('[data-field="moderation-provider"]', template.defaults?.provider || fallbackModerationTemplate.defaults.provider);
+}
+
+function renderModerationPreview(preview) {
+  setText('[data-field="moderation-title"]', preview.title || fallbackModerationPreview.title);
+  setText('[data-field="moderation-action"]', preview.action || fallbackModerationPreview.action);
+  setText('[data-field="moderation-comment-id"]', preview.commentId || fallbackModerationPreview.commentId);
+  setText('[data-field="moderation-reason"]', preview.reason || fallbackModerationPreview.reason);
+  const message = document.querySelector('[data-field="moderation-message"]');
+  if (message) {
+    message.textContent = preview.message || fallbackModerationPreview.message;
+  }
+}
+
+function renderModerationTaskResult(task) {
+  setText('[data-field="moderation-task-status"]', task.status || fallbackModerationTask.status);
+  setText('[data-field="moderation-task-id"]', task.task_id || fallbackModerationTask.task_id);
+}
+
 function getDraftFormPayload(form) {
   const formData = new FormData(form);
   const tags = String(formData.get('tags') || '')
@@ -328,6 +383,16 @@ function getPublishFormPayload(form) {
     previewUrl: String(formData.get('previewUrl') || '').trim(),
     channel: String(formData.get('channel') || '').trim(),
     status: String(formData.get('status') || '').trim()
+  };
+}
+
+function getModerationFormPayload(form) {
+  const formData = new FormData(form);
+  return {
+    commentId: String(formData.get('commentId') || '').trim(),
+    provider: String(formData.get('provider') || '').trim(),
+    action: String(formData.get('action') || '').trim(),
+    reason: String(formData.get('reason') || '').trim()
   };
 }
 
@@ -369,6 +434,22 @@ async function postPublishAction(form, endpoint) {
   }
 
   const payload = getPublishFormPayload(form);
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) return { error: response.status };
+  return response.json();
+}
+
+async function postModerationAction(form, endpoint) {
+  if (window.location.protocol === 'file:') {
+    return { mode: 'static' };
+  }
+
+  const payload = getModerationFormPayload(form);
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -540,6 +621,53 @@ async function handlePublishPreviewSubmit(event) {
   }
 }
 
+async function handleModerationPreviewSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const action = event.submitter?.value || 'preview';
+  renderModerationPreviewStatus('warning', action === 'queue' ? 'Queueing moderation' : 'Generating moderation preview');
+
+  try {
+    const endpoint = action === 'queue'
+      ? '/api/moderation/tasks'
+      : '/api/moderation/preview';
+    const result = await postModerationAction(form, endpoint);
+
+    if (result?.mode === 'static') {
+      renderModerationPreview(fallbackModerationPreview);
+      renderModerationTaskResult(fallbackModerationTask);
+      renderModerationPreviewStatus('warning', 'Static preview');
+      return;
+    }
+
+    if (result?.error) {
+      renderModerationPreviewStatus('warning', `${action === 'queue' ? 'Moderation queue failed' : 'Moderation preview failed'} (${result.error})`);
+      return;
+    }
+
+    if (result.preview) {
+      renderModerationPreview(result.preview);
+    }
+
+    if (action === 'queue') {
+      renderModerationTaskResult({
+        status: result.queued ? 'queued' : 'queue failed',
+        task_id: result.task_id || '-'
+      });
+      prependTask({
+        type: result.task_type || 'moderation_preview',
+        status: result.queued ? 'queued' : 'unknown'
+      });
+      renderModerationPreviewStatus('ok', 'Moderation task queued');
+      return;
+    }
+
+    renderModerationPreviewStatus('ok', 'Moderation preview ready');
+  } catch {
+    renderModerationPreviewStatus('warning', 'Static preview');
+  }
+}
+
 async function loadScaffoldData() {
   renderScaffold(fallbackScaffold);
   renderPosts(fallbackPosts);
@@ -554,10 +682,14 @@ async function loadScaffoldData() {
   renderPublishTemplate(fallbackPublishTemplate);
   renderPublishPreview(fallbackPublishPreview);
   renderPublishTaskResult(fallbackPublishTask);
+  renderModerationTemplate(fallbackModerationTemplate);
+  renderModerationPreview(fallbackModerationPreview);
+  renderModerationTaskResult(fallbackModerationTask);
   renderHealth(false, 'API not checked');
   renderDraftPreviewStatus('warning', 'Static preview');
   renderR2PreviewStatus('warning', 'Static preview');
   renderPublishPreviewStatus('warning', 'Static preview');
+  renderModerationPreviewStatus('warning', 'Static preview');
 
   const draftForm = document.querySelector('[data-role="draft-preview-form"]');
   if (draftForm) {
@@ -570,6 +702,10 @@ async function loadScaffoldData() {
   const publishForm = document.querySelector('[data-role="publish-preview-form"]');
   if (publishForm) {
     publishForm.addEventListener('submit', handlePublishPreviewSubmit);
+  }
+  const moderationForm = document.querySelector('[data-role="moderation-preview-form"]');
+  if (moderationForm) {
+    moderationForm.addEventListener('submit', handleModerationPreviewSubmit);
   }
 
   if (window.location.protocol === 'file:') {
@@ -589,6 +725,7 @@ async function loadScaffoldData() {
     const draftTemplateResponse = await fetch('/api/drafts/template');
     const r2TemplateResponse = await fetch('/api/assets/r2-template');
     const publishTemplateResponse = await fetch('/api/publish/notifications/template');
+    const moderationTemplateResponse = await fetch('/api/moderation/template');
 
     if (healthResponse.ok) {
       const health = await healthResponse.json();
@@ -635,11 +772,20 @@ async function loadScaffoldData() {
     } else {
       renderPublishPreviewStatus('warning', `Notification unavailable (${publishTemplateResponse.status})`);
     }
+
+    if (moderationTemplateResponse.ok) {
+      const moderationTemplate = await moderationTemplateResponse.json();
+      if (moderationTemplate.template) renderModerationTemplate(moderationTemplate.template);
+      renderModerationPreviewStatus('ok', 'Moderation preview ready');
+    } else {
+      renderModerationPreviewStatus('warning', `Moderation unavailable (${moderationTemplateResponse.status})`);
+    }
   } catch {
     renderHealth(false, 'Static-only preview');
     renderDraftPreviewStatus('warning', 'Static preview');
     renderR2PreviewStatus('warning', 'Static preview');
     renderPublishPreviewStatus('warning', 'Static preview');
+    renderModerationPreviewStatus('warning', 'Static preview');
   }
 }
 

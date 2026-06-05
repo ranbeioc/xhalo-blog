@@ -1,6 +1,8 @@
 import {
   buildDraftTaskPrototype,
   buildGitHubWritePlan,
+  buildModerationPreview,
+  buildModerationTaskPrototype,
   buildPublishNotificationPreview,
   buildPublishNotificationTaskPrototype,
   buildPullRequestPreview,
@@ -8,6 +10,7 @@ import {
   buildR2UploadPreview,
   buildR2UploadTaskPrototype,
   defaultDraftTemplate,
+  defaultModerationTemplate,
   defaultPublishNotificationTemplate,
   defaultR2UploadTemplate,
   createFallbackPosts,
@@ -227,6 +230,47 @@ export default {
         task_type: prototype.taskRecord.type,
         preview: prototype.preview,
         note: 'Dry-run publish notification task queued. No downstream notification has been sent.'
+      });
+    }
+
+    if (url.pathname === '/api/moderation/template') {
+      return createJsonResponse({
+        template: defaultModerationTemplate,
+        note: 'Stage 3 moderation prototype. No real comment provider write happens here.'
+      });
+    }
+
+    if (url.pathname === '/api/moderation/preview' && request.method === 'POST') {
+      const input = await request.json();
+      const preview = buildModerationPreview(input, {
+        queueBinding: 'TASK_QUEUE'
+      });
+
+      return createJsonResponse({
+        preview,
+        note: 'Stage 3 moderation preview only. No real comment has been updated.'
+      });
+    }
+
+    if (url.pathname === '/api/moderation/tasks' && request.method === 'POST') {
+      if (!env.TASK_QUEUE) return createJsonResponse({ error: 'TASK_QUEUE is not bound' }, { status: 500 });
+
+      const input = await request.json();
+      const prototype = buildModerationTaskPrototype(input, {
+        queueBinding: 'TASK_QUEUE',
+        stage: '3-prototype'
+      });
+
+      await env.TASK_QUEUE.send(prototype.queuedTask);
+      const persisted = await insertTaskRecord(env, prototype.taskRecord);
+
+      return createJsonResponse({
+        queued: true,
+        persisted,
+        task_id: prototype.taskRecord.id,
+        task_type: prototype.taskRecord.type,
+        preview: prototype.preview,
+        note: 'Dry-run moderation task queued. No real comment has been updated.'
       });
     }
 

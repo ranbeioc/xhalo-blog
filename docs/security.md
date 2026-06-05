@@ -59,6 +59,7 @@ Block or challenge probes for WordPress, `.env`, PHP test files, and server-stat
 
 - Protect `/admin/*` with Access before exposing an admin UI.
 - Put Turnstile in front of public write actions before enabling comments, forms, or webhook-style submissions.
+- Keep moderation actions behind protected routes and do not wire them to a real comment provider until rate limits and audit records are in place.
 - Apply rate limits to dynamic worker routes before exposing write endpoints.
 - Keep preview deployments on `*.pages.dev` and let them stay `noindex`.
 - Review `_headers` and cache behavior before attaching a production domain.
