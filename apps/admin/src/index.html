@@ -40,6 +40,9 @@
             <li><code>POST /api/drafts/preview</code></li>
             <li><code>POST /api/drafts/tasks</code></li>
             <li><code>POST /api/drafts/github-plan</code></li>
+            <li><code>GET /api/assets/r2-template</code></li>
+            <li><code>POST /api/assets/r2-preview</code></li>
+            <li><code>POST /api/assets/r2-tasks</code></li>
             <li><code>POST /api/tasks/example</code></li>
           </ul>
         </article>
@@ -83,6 +86,9 @@
             <li><code>/api/drafts/preview</code></li>
             <li><code>/api/drafts/tasks</code></li>
             <li><code>/api/drafts/github-plan</code></li>
+            <li><code>/api/assets/r2-template</code></li>
+            <li><code>/api/assets/r2-preview</code></li>
+            <li><code>/api/assets/r2-tasks</code></li>
             <li><code>/api/tasks/example</code></li>
           </ul>
         </div>
@@ -210,6 +216,84 @@
               <ul class="preview-list compact-preview-list" data-field="draft-plan-actions">
                 <li><strong>create_branch</strong><span>Create draft/stage-3-prototype-post from main</span></li>
               </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>R2 upload prototype</h2>
+          <span class="status-badge" data-field="r2-preview-status" data-state="warning">Static preview</span>
+        </div>
+        <div class="meta-grid">
+          <div class="meta-row">
+            <span class="meta-label">Bucket binding</span>
+            <strong data-field="r2-bucket-binding">ASSETS</strong>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Bucket name</span>
+            <strong data-field="r2-bucket-name">xhalo-blog-assets</strong>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Key prefix</span>
+            <strong data-field="r2-key-prefix">uploads</strong>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Public base URL</span>
+            <strong data-field="r2-public-base-url">https://assets.example.com</strong>
+          </div>
+        </div>
+        <div class="draft-workbench">
+          <form class="draft-form" data-role="r2-preview-form">
+            <label>
+              <span>Filename</span>
+              <input name="filename" type="text" value="hero-image.png" />
+            </label>
+            <label>
+              <span>Content type</span>
+              <input name="contentType" type="text" value="image/png" />
+            </label>
+            <label>
+              <span>Scope</span>
+              <input name="scope" type="text" value="uploads" />
+            </label>
+            <label>
+              <span>Post slug</span>
+              <input name="postSlug" type="text" value="" placeholder="optional-post-slug" />
+            </label>
+            <div class="form-actions field-span-2">
+              <button type="submit" name="action" value="preview">Generate upload preview</button>
+              <button type="submit" name="action" value="queue" class="button-secondary">Queue dry-run upload</button>
+            </div>
+          </form>
+
+          <div class="draft-output">
+            <div class="meta-grid">
+              <div class="meta-row">
+                <span class="meta-label">Object key</span>
+                <strong data-field="r2-object-key">uploads/2026/06/05/hero-image.png</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Public URL</span>
+                <strong data-field="r2-public-url">https://assets.example.com/uploads/2026/06/05/hero-image.png</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Content type</span>
+                <strong data-field="r2-content-type">image/png</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Scope</span>
+                <strong data-field="r2-scope">uploads</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Upload task status</span>
+                <strong data-field="r2-task-status">not queued</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Upload task id</span>
+                <strong data-field="r2-task-id">-</strong>
+              </div>
             </div>
           </div>
         </div>
