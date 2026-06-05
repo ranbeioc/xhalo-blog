@@ -14,6 +14,7 @@ export const defaultScaffoldMetadata = {
     '/api/drafts/template',
     '/api/drafts/preview',
     '/api/drafts/tasks',
+    '/api/drafts/github-plan',
     '/api/tasks/example'
   ],
   notes: [
@@ -311,6 +312,61 @@ export function buildDraftTaskPrototype(input = {}, options = {}) {
       created_at: createdAt,
       updated_at: createdAt
     }
+  };
+}
+
+export function buildGitHubWritePlan(input = {}, options = {}) {
+  const preview = buildPullRequestPreview(input, options);
+
+  return {
+    repository: preview.repository,
+    branchName: preview.branchName,
+    baseBranch: preview.baseBranch,
+    filePath: preview.filePath,
+    actions: [
+      {
+        type: 'create_branch',
+        summary: `Create ${preview.branchName} from ${preview.baseBranch}`,
+        payload: {
+          repository: preview.repository,
+          baseBranch: preview.baseBranch,
+          branchName: preview.branchName
+        }
+      },
+      {
+        type: 'write_post_file',
+        summary: `Write ${preview.filePath} with generated front matter`,
+        payload: {
+          filePath: preview.filePath,
+          frontMatter: preview.frontMatter
+        }
+      },
+      {
+        type: 'commit_changes',
+        summary: `Commit draft changes with "${preview.commitMessage}"`,
+        payload: {
+          commitMessage: preview.commitMessage
+        }
+      },
+      {
+        type: 'open_pull_request',
+        summary: `Open PR "${preview.pullRequestTitle}" into ${preview.baseBranch}`,
+        payload: {
+          repository: preview.repository,
+          title: preview.pullRequestTitle,
+          baseBranch: preview.baseBranch,
+          headBranch: preview.branchName
+        }
+      },
+      {
+        type: 'verify_preview_deployment',
+        summary: 'Wait for the preview deployment and validate the draft URL before merge',
+        payload: {
+          provider: 'cloudflare-pages',
+          branchName: preview.branchName
+        }
+      }
+    ]
   };
 }
 

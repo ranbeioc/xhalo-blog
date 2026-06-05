@@ -22,6 +22,7 @@
 - Draft metadata flow.
 - Queue-backed draft task prototype.
 - GitHub branch and PR creation design refined.
+- GitHub operation plan prototype.
 
 ## v0.3.0-alpha
 

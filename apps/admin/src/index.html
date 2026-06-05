@@ -39,6 +39,7 @@
             <li><code>GET /api/drafts/template</code></li>
             <li><code>POST /api/drafts/preview</code></li>
             <li><code>POST /api/drafts/tasks</code></li>
+            <li><code>POST /api/drafts/github-plan</code></li>
             <li><code>POST /api/tasks/example</code></li>
           </ul>
         </article>
@@ -81,6 +82,7 @@
             <li><code>/api/drafts/template</code></li>
             <li><code>/api/drafts/preview</code></li>
             <li><code>/api/drafts/tasks</code></li>
+            <li><code>/api/drafts/github-plan</code></li>
             <li><code>/api/tasks/example</code></li>
           </ul>
         </div>
@@ -156,6 +158,7 @@
             <div class="form-actions field-span-2">
               <button type="submit" name="action" value="preview">Generate preview</button>
               <button type="submit" name="action" value="queue" class="button-secondary">Queue dry-run task</button>
+              <button type="submit" name="action" value="plan" class="button-secondary">Show GitHub plan</button>
             </div>
           </form>
 
@@ -201,6 +204,12 @@
                 <span class="meta-label">Task id</span>
                 <strong data-field="draft-task-id">-</strong>
               </div>
+            </div>
+            <div class="meta-block">
+              <span class="meta-label">GitHub plan</span>
+              <ul class="preview-list compact-preview-list" data-field="draft-plan-actions">
+                <li><strong>create_branch</strong><span>Create draft/stage-3-prototype-post from main</span></li>
+              </ul>
             </div>
           </div>
         </div>
