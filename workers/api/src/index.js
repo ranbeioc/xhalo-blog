@@ -3,7 +3,10 @@ import {
   buildGitHubWritePlan,
   buildPullRequestPreview,
   buildQueueTaskEnvelope,
+  buildR2UploadPreview,
+  buildR2UploadTaskPrototype,
   defaultDraftTemplate,
+  defaultR2UploadTemplate,
   createFallbackPosts,
   createFallbackTasks,
   createJsonResponse,
@@ -135,6 +138,51 @@ export default {
         }),
         plan,
         note: 'Dry-run GitHub operation plan only. No branch, commit, or PR has been created.'
+      });
+    }
+
+    if (url.pathname === '/api/assets/r2-template') {
+      return createJsonResponse({
+        template: defaultR2UploadTemplate,
+        note: 'Stage 3 R2 upload prototype. No real signed upload or bucket write happens here.'
+      });
+    }
+
+    if (url.pathname === '/api/assets/r2-preview' && request.method === 'POST') {
+      const input = await request.json();
+      const preview = buildR2UploadPreview(input, {
+        bucketBinding: 'ASSETS',
+        bucketName: 'xhalo-blog-assets',
+        publicBaseUrl: env.ASSETS_PUBLIC_BASE_URL || defaultR2UploadTemplate.publicBaseUrl
+      });
+
+      return createJsonResponse({
+        preview,
+        note: 'Stage 3 R2 upload preview only. No object has been written.'
+      });
+    }
+
+    if (url.pathname === '/api/assets/r2-tasks' && request.method === 'POST') {
+      if (!env.TASK_QUEUE) return createJsonResponse({ error: 'TASK_QUEUE is not bound' }, { status: 500 });
+
+      const input = await request.json();
+      const prototype = buildR2UploadTaskPrototype(input, {
+        bucketBinding: 'ASSETS',
+        bucketName: 'xhalo-blog-assets',
+        publicBaseUrl: env.ASSETS_PUBLIC_BASE_URL || defaultR2UploadTemplate.publicBaseUrl,
+        stage: '3-prototype'
+      });
+
+      await env.TASK_QUEUE.send(prototype.queuedTask);
+      const persisted = await insertTaskRecord(env, prototype.taskRecord);
+
+      return createJsonResponse({
+        queued: true,
+        persisted,
+        task_id: prototype.taskRecord.id,
+        task_type: prototype.taskRecord.type,
+        preview: prototype.preview,
+        note: 'Dry-run R2 upload task queued. No object has been written.'
       });
     }
 

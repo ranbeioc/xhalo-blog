@@ -15,12 +15,16 @@ export const defaultScaffoldMetadata = {
     '/api/drafts/preview',
     '/api/drafts/tasks',
     '/api/drafts/github-plan',
+    '/api/assets/r2-template',
+    '/api/assets/r2-preview',
+    '/api/assets/r2-tasks',
     '/api/tasks/example'
   ],
   notes: [
     'Posts and site configuration stay Git-backed.',
     'Read-only D1-backed posts and task status routes are the first Stage 3 prototype slice.',
     'Draft flows remain dry-run prototypes until GitHub branch and PR creation is implemented.',
+    'R2 upload flows remain dry-run prototypes until signed upload handlers and lifecycle rules exist.',
     'Dynamic write flows should open pull requests rather than write to main directly.',
     'This API surface is placeholder-only and not a production admin implementation.'
   ]
@@ -68,6 +72,18 @@ export const defaultDraftTemplate = {
   },
   branchPrefix: 'draft/',
   postDir: 'source/_posts'
+};
+
+export const defaultR2UploadTemplate = {
+  bucketBinding: 'ASSETS',
+  bucketName: 'xhalo-blog-assets',
+  keyPrefix: 'uploads',
+  publicBaseUrl: 'https://assets.example.com',
+  fields: ['filename', 'contentType', 'scope', 'postSlug'],
+  defaults: {
+    scope: 'uploads',
+    contentType: 'image/png'
+  }
 };
 
 export function createJsonResponse(data, init = {}) {
@@ -295,6 +311,85 @@ export function buildDraftTaskPrototype(input = {}, options = {}) {
   const createdAt = nowIso();
   const task = buildQueueTaskEnvelope({
     type: 'draft_preview',
+    stage: options.stage || '3-prototype',
+    created_at: createdAt,
+    idempotency_key: crypto.randomUUID(),
+    preview
+  });
+
+  return {
+    preview,
+    queuedTask: task,
+    taskRecord: {
+      id: task.idempotency_key,
+      type: task.type,
+      status: 'queued',
+      payload: task,
+      created_at: createdAt,
+      updated_at: createdAt
+    }
+  };
+}
+
+export function sanitizeAssetSegment(input = '') {
+  return String(input)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 80) || 'asset';
+}
+
+export function normalizeR2UploadInput(input = {}) {
+  const filename = sanitizeAssetSegment(input.filename || 'upload.png');
+  const contentType = String(input.contentType || defaultR2UploadTemplate.defaults.contentType).trim();
+  const scope = String(input.scope || defaultR2UploadTemplate.defaults.scope).trim() || defaultR2UploadTemplate.defaults.scope;
+  const postSlug = String(input.postSlug || '').trim();
+
+  return {
+    filename,
+    contentType,
+    scope,
+    postSlug: postSlug ? slugifyTitle(postSlug) : ''
+  };
+}
+
+export function buildR2ObjectKey(input = {}, options = {}) {
+  const normalized = normalizeR2UploadInput(input);
+  const date = options.date || new Date();
+  const yyyy = String(date.getUTCFullYear());
+  const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(date.getUTCDate()).padStart(2, '0');
+
+  if (normalized.postSlug) {
+    return `posts/${normalized.postSlug}/${yyyy}-${mm}-${dd}-${normalized.filename}`;
+  }
+
+  return `${normalized.scope}/${yyyy}/${mm}/${dd}/${normalized.filename}`;
+}
+
+export function buildR2UploadPreview(input = {}, options = {}) {
+  const normalized = normalizeR2UploadInput(input);
+  const objectKey = buildR2ObjectKey(normalized, options);
+  const publicBaseUrl = options.publicBaseUrl || defaultR2UploadTemplate.publicBaseUrl;
+
+  return {
+    bucketBinding: options.bucketBinding || defaultR2UploadTemplate.bucketBinding,
+    bucketName: options.bucketName || defaultR2UploadTemplate.bucketName,
+    objectKey,
+    publicUrl: `${publicBaseUrl.replace(/\/$/, '')}/${objectKey}`,
+    contentType: normalized.contentType,
+    scope: normalized.scope,
+    postSlug: normalized.postSlug || null,
+    filename: normalized.filename
+  };
+}
+
+export function buildR2UploadTaskPrototype(input = {}, options = {}) {
+  const preview = buildR2UploadPreview(input, options);
+  const createdAt = nowIso();
+  const task = buildQueueTaskEnvelope({
+    type: 'r2_upload_preview',
     stage: options.stage || '3-prototype',
     created_at: createdAt,
     idempotency_key: crypto.randomUUID(),

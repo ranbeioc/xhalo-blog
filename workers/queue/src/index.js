@@ -17,6 +17,14 @@ export default {
             repository: task.payload?.preview?.repository
           }));
           break;
+        case 'r2_upload_preview':
+          console.log('xhalo-blog queue r2 upload preview task', JSON.stringify({
+            idempotency_key: task.idempotency_key,
+            bucket: task.payload?.preview?.bucketName,
+            key: task.payload?.preview?.objectKey,
+            contentType: task.payload?.preview?.contentType
+          }));
+          break;
         default:
           console.warn('xhalo-blog queue unknown task type', JSON.stringify(task));
           break;

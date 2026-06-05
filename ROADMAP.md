@@ -27,6 +27,7 @@
 ## v0.3.0-alpha
 
 - R2 upload prototype.
+- R2 upload dry-run preview and queued task prototype.
 - Queue-based publish notification prototype.
 - Comment moderation design.
 

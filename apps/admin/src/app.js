@@ -13,6 +13,9 @@ const fallbackScaffold = {
     '/api/drafts/preview',
     '/api/drafts/tasks',
     '/api/drafts/github-plan',
+    '/api/assets/r2-template',
+    '/api/assets/r2-preview',
+    '/api/assets/r2-tasks',
     '/api/tasks/example'
   ]
 };
@@ -82,6 +85,32 @@ const fallbackDraftPlan = {
   ]
 };
 
+const fallbackR2Template = {
+  bucketBinding: 'ASSETS',
+  bucketName: 'xhalo-blog-assets',
+  keyPrefix: 'uploads',
+  publicBaseUrl: 'https://assets.example.com',
+  defaults: {
+    scope: 'uploads',
+    contentType: 'image/png'
+  },
+  fields: ['filename', 'contentType', 'scope', 'postSlug']
+};
+
+const fallbackR2Preview = {
+  bucketBinding: 'ASSETS',
+  bucketName: 'xhalo-blog-assets',
+  objectKey: 'uploads/2026/06/05/hero-image.png',
+  publicUrl: 'https://assets.example.com/uploads/2026/06/05/hero-image.png',
+  contentType: 'image/png',
+  scope: 'uploads'
+};
+
+const fallbackR2Task = {
+  status: 'not queued',
+  task_id: '-'
+};
+
 function setText(selector, value) {
   const element = document.querySelector(selector);
   if (element) element.textContent = value;
@@ -127,6 +156,13 @@ function renderHealth(ok, note) {
 
 function renderDraftPreviewStatus(state, note) {
   const badge = document.querySelector('[data-field="draft-preview-status"]');
+  if (!badge) return;
+  badge.textContent = note;
+  badge.dataset.state = state;
+}
+
+function renderR2PreviewStatus(state, note) {
+  const badge = document.querySelector('[data-field="r2-preview-status"]');
   if (!badge) return;
   badge.textContent = note;
   badge.dataset.state = state;
@@ -183,6 +219,25 @@ function renderDraftPlan(plan) {
   );
 }
 
+function renderR2Template(template) {
+  setText('[data-field="r2-bucket-binding"]', template.bucketBinding || fallbackR2Template.bucketBinding);
+  setText('[data-field="r2-bucket-name"]', template.bucketName || fallbackR2Template.bucketName);
+  setText('[data-field="r2-key-prefix"]', template.keyPrefix || fallbackR2Template.keyPrefix);
+  setText('[data-field="r2-public-base-url"]', template.publicBaseUrl || fallbackR2Template.publicBaseUrl);
+}
+
+function renderR2Preview(preview) {
+  setText('[data-field="r2-object-key"]', preview.objectKey || fallbackR2Preview.objectKey);
+  setText('[data-field="r2-public-url"]', preview.publicUrl || fallbackR2Preview.publicUrl);
+  setText('[data-field="r2-content-type"]', preview.contentType || fallbackR2Preview.contentType);
+  setText('[data-field="r2-scope"]', preview.scope || fallbackR2Preview.scope);
+}
+
+function renderR2TaskResult(task) {
+  setText('[data-field="r2-task-status"]', task.status || fallbackR2Task.status);
+  setText('[data-field="r2-task-id"]', task.task_id || fallbackR2Task.task_id);
+}
+
 function getDraftFormPayload(form) {
   const formData = new FormData(form);
   const tags = String(formData.get('tags') || '')
@@ -200,6 +255,16 @@ function getDraftFormPayload(form) {
   };
 }
 
+function getR2FormPayload(form) {
+  const formData = new FormData(form);
+  return {
+    filename: String(formData.get('filename') || '').trim(),
+    contentType: String(formData.get('contentType') || '').trim(),
+    scope: String(formData.get('scope') || '').trim(),
+    postSlug: String(formData.get('postSlug') || '').trim()
+  };
+}
+
 async function postDraftAction(form, endpoint) {
   if (window.location.protocol === 'file:') {
     return { mode: 'static' };
@@ -213,7 +278,23 @@ async function postDraftAction(form, endpoint) {
   });
 
   if (!response.ok) return { error: response.status };
-    return response.json();
+  return response.json();
+}
+
+async function postR2Action(form, endpoint) {
+  if (window.location.protocol === 'file:') {
+    return { mode: 'static' };
+  }
+
+  const payload = getR2FormPayload(form);
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) return { error: response.status };
+  return response.json();
 }
 
 function prependTask(task) {
@@ -285,6 +366,51 @@ async function handleDraftPreviewSubmit(event) {
   }
 }
 
+async function handleR2PreviewSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const action = event.submitter?.value || 'preview';
+  renderR2PreviewStatus('warning', action === 'queue' ? 'Queueing upload' : 'Generating upload preview');
+
+  try {
+    const endpoint = action === 'queue' ? '/api/assets/r2-tasks' : '/api/assets/r2-preview';
+    const result = await postR2Action(form, endpoint);
+
+    if (result?.mode === 'static') {
+      renderR2Preview(fallbackR2Preview);
+      renderR2TaskResult(fallbackR2Task);
+      renderR2PreviewStatus('warning', 'Static preview');
+      return;
+    }
+
+    if (result?.error) {
+      renderR2PreviewStatus('warning', `${action === 'queue' ? 'Upload queue failed' : 'Upload preview failed'} (${result.error})`);
+      return;
+    }
+
+    if (result.preview) {
+      renderR2Preview(result.preview);
+    }
+
+    if (action === 'queue') {
+      renderR2TaskResult({
+        status: result.queued ? 'queued' : 'queue failed',
+        task_id: result.task_id || '-'
+      });
+      prependTask({
+        type: result.task_type || 'r2_upload_preview',
+        status: result.queued ? 'queued' : 'unknown'
+      });
+      renderR2PreviewStatus('ok', 'Upload task queued');
+      return;
+    }
+
+    renderR2PreviewStatus('ok', 'Upload preview ready');
+  } catch {
+    renderR2PreviewStatus('warning', 'Static preview');
+  }
+}
+
 async function loadScaffoldData() {
   renderScaffold(fallbackScaffold);
   renderPosts(fallbackPosts);
@@ -293,12 +419,20 @@ async function loadScaffoldData() {
   renderDraftPreview(fallbackDraftPreview);
   renderDraftTaskResult(fallbackDraftTask);
   renderDraftPlan(fallbackDraftPlan);
+  renderR2Template(fallbackR2Template);
+  renderR2Preview(fallbackR2Preview);
+  renderR2TaskResult(fallbackR2Task);
   renderHealth(false, 'API not checked');
   renderDraftPreviewStatus('warning', 'Static preview');
+  renderR2PreviewStatus('warning', 'Static preview');
 
   const draftForm = document.querySelector('[data-role="draft-preview-form"]');
   if (draftForm) {
     draftForm.addEventListener('submit', handleDraftPreviewSubmit);
+  }
+  const r2Form = document.querySelector('[data-role="r2-preview-form"]');
+  if (r2Form) {
+    r2Form.addEventListener('submit', handleR2PreviewSubmit);
   }
 
   if (window.location.protocol === 'file:') {
@@ -316,6 +450,7 @@ async function loadScaffoldData() {
       fetch('/api/tasks')
     ]);
     const draftTemplateResponse = await fetch('/api/drafts/template');
+    const r2TemplateResponse = await fetch('/api/assets/r2-template');
 
     if (healthResponse.ok) {
       const health = await healthResponse.json();
@@ -346,9 +481,18 @@ async function loadScaffoldData() {
     } else {
       renderDraftPreviewStatus('warning', `Preview unavailable (${draftTemplateResponse.status})`);
     }
+
+    if (r2TemplateResponse.ok) {
+      const r2Template = await r2TemplateResponse.json();
+      if (r2Template.template) renderR2Template(r2Template.template);
+      renderR2PreviewStatus('ok', 'Upload preview ready');
+    } else {
+      renderR2PreviewStatus('warning', `Upload unavailable (${r2TemplateResponse.status})`);
+    }
   } catch {
     renderHealth(false, 'Static-only preview');
     renderDraftPreviewStatus('warning', 'Static preview');
+    renderR2PreviewStatus('warning', 'Static preview');
   }
 }
 

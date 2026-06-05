@@ -33,11 +33,20 @@ Pick one public asset path strategy and keep it stable:
 
 Do not switch URL shape later without a migration and redirect plan.
 
-## Stage 2.5 boundary
+## Stage 3 prototype
 
-This repository documents a bucket layout only. It does not yet provide:
+This repository now includes dry-run scaffold routes for upload planning:
+
+- `GET /api/assets/r2-template`
+- `POST /api/assets/r2-preview`
+- `POST /api/assets/r2-tasks`
+
+These routes only derive the bucket binding, object key, public URL, and queued task metadata.
+
+They do not yet provide:
 
 - production upload handlers
 - signed upload flows
+- direct browser-to-R2 uploads
 - asset lifecycle cleanup jobs
 - historical asset migration tooling
