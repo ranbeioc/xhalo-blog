@@ -41,6 +41,7 @@
             <li><code>POST /api/drafts/preview</code></li>
             <li><code>POST /api/drafts/tasks</code></li>
             <li><code>POST /api/drafts/github-plan</code></li>
+            <li><code>POST /api/drafts/publish</code></li>
             <li><code>GET /api/assets/r2-template</code></li>
             <li><code>POST /api/assets/r2-preview</code></li>
             <li><code>POST /api/assets/r2-tasks</code></li>
@@ -94,6 +95,7 @@
             <li><code>/api/drafts/preview</code></li>
             <li><code>/api/drafts/tasks</code></li>
             <li><code>/api/drafts/github-plan</code></li>
+            <li><code>/api/drafts/publish</code></li>
             <li><code>/api/assets/r2-template</code></li>
             <li><code>/api/assets/r2-preview</code></li>
             <li><code>/api/assets/r2-tasks</code></li>
@@ -193,6 +195,7 @@
               <button type="submit" name="action" value="preview">Generate preview</button>
               <button type="submit" name="action" value="queue" class="button-secondary">Queue dry-run task</button>
               <button type="submit" name="action" value="plan" class="button-secondary">Show GitHub plan</button>
+              <button type="submit" name="action" value="publish" class="button-secondary">Publish via GitHub</button>
             </div>
           </form>
 
@@ -237,6 +240,14 @@
               <div class="meta-row">
                 <span class="meta-label">Task id</span>
                 <strong data-field="draft-task-id">-</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Publish mode</span>
+                <strong data-field="draft-publish-mode">dry-run</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Pull request</span>
+                <strong data-field="draft-publish-pr">-</strong>
               </div>
             </div>
             <div class="meta-block">
