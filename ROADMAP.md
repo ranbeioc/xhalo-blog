@@ -42,3 +42,11 @@
 - Stable deployment guide.
 - Stable template layout.
 - Security review for default settings.
+
+## Current release line
+
+`v1.0.0` now represents the stable public scaffold contract:
+
+- root config files are frozen as the public baseline
+- deployment and template layout docs are frozen as the public baseline
+- provider integrations may still evolve behind the stable scaffold surface

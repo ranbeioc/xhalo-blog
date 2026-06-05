@@ -1,6 +1,6 @@
 # Getting Started
 
-`xhalo-blog` is still a Stage 2.5 scaffold. This repository is for template, example, and deployment baseline work. It is not the Stage 3 application yet.
+`xhalo-blog` now has a stable public scaffold contract. This repository still contains Stage 3 prototypes for provider integrations, but the template, config, and deployment baseline are no longer moving targets.
 
 ## Choose a starting point
 
@@ -108,6 +108,9 @@ Do not commit real account IDs, zone IDs, analytics IDs, private keys, comment e
 
 - `docs/cloudflare-pages.md`
 - `docs/deploy-cloudflare.md`
+- `docs/public-config-contract.md`
+- `docs/stable-deployment-guide.md`
+- `docs/stable-template-layout.md`
 - `docs/functions-workers.md`
 - `docs/theme-config.md`
 - `docs/security.md`
