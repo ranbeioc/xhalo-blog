@@ -102,7 +102,10 @@
       </section>
 
       <section class="panel">
-        <h2>Draft prototype</h2>
+        <div class="panel-header">
+          <h2>Draft prototype</h2>
+          <span class="status-badge" data-field="draft-preview-status" data-state="warning">Static preview</span>
+        </div>
         <div class="meta-grid">
           <div class="meta-row">
             <span class="meta-label">Branch prefix</span>
@@ -122,6 +125,72 @@
           <li><strong>slug</strong><span>draft field</span></li>
           <li><strong>summary</strong><span>draft field</span></li>
         </ul>
+        <div class="draft-workbench">
+          <form class="draft-form" data-role="draft-preview-form">
+            <label>
+              <span>Title</span>
+              <input name="title" type="text" value="Stage 3 Prototype Post" />
+            </label>
+            <label>
+              <span>Slug</span>
+              <input name="slug" type="text" value="" placeholder="auto-from-title" />
+            </label>
+            <label class="field-span-2">
+              <span>Summary</span>
+              <textarea name="summary" rows="3">Draft metadata preview</textarea>
+            </label>
+            <label>
+              <span>Tags</span>
+              <input name="tags" type="text" value="cloudflare, stage3" />
+            </label>
+            <label>
+              <span>Category</span>
+              <input name="category" type="text" value="notes" />
+            </label>
+            <label>
+              <span>Status</span>
+              <input name="status" type="text" value="draft" />
+            </label>
+            <div class="form-actions field-span-2">
+              <button type="submit">Generate preview</button>
+            </div>
+          </form>
+
+          <div class="draft-output">
+            <div class="meta-grid">
+              <div class="meta-row">
+                <span class="meta-label">Preview branch</span>
+                <strong data-field="draft-preview-branch">draft/stage-3-prototype-post</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Preview path</span>
+                <strong data-field="draft-preview-path">source/_posts/stage-3-prototype-post.md</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Repository</span>
+                <strong data-field="draft-preview-repo">example/xhalo-blog</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">PR title</span>
+                <strong data-field="draft-preview-pr-title">Add draft: Stage 3 Prototype Post</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Commit message</span>
+                <strong data-field="draft-preview-commit">feat(posts): add draft stage-3-prototype-post</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Base branch</span>
+                <strong data-field="draft-preview-base">main</strong>
+              </div>
+            </div>
+            <div class="meta-block">
+              <span class="meta-label">Front matter</span>
+              <pre class="preview-code" data-field="draft-preview-front-matter">{
+  "title": "Stage 3 Prototype Post"
+}</pre>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="panel">

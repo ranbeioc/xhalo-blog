@@ -18,6 +18,7 @@
 - Read-only posts index API prototype.
 - Read-only D1 task status integration prototype.
 - Draft metadata template and PR preview prototype.
+- Admin dry-run draft preview surface.
 - Draft metadata flow.
 - GitHub branch and PR creation design refined.
 

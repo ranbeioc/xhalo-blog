@@ -35,6 +35,7 @@ Stage 3 prototype additions:
 - `GET /api/drafts/template` exposes the current draft metadata contract and branch/file defaults
 - `POST /api/drafts/preview` returns a normalized draft payload, file path, branch name, and PR preview without creating anything remotely
 - `POST /api/tasks/example` now persists a queued task record when D1 is available before the queue consumer handles it
+- `apps/admin` now includes a dry-run draft form that calls `POST /api/drafts/preview` and renders the branch, file path, PR title, and front matter preview in the browser
 
 Recommended dynamic paths:
 
