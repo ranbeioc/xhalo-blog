@@ -29,7 +29,7 @@ This verifies the required scaffold files exist and that obvious production-only
 
 When the placeholder API is deployed on the same origin, you can also inspect `GET /api/readiness` to confirm whether GitHub, R2, queue, and Turnstile-related environment wiring looks ready before moving a dry-run prototype toward a real integration.
 
-For the first live GitHub draft publish prototype, set `GITHUB_TOKEN` in the worker environment. Keep `GITHUB_APP_*` placeholders for the later hardened path.
+For live GitHub draft publishing, prefer `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_INSTALLATION_ID`. The worker accepts the PEM you download from GitHub for the app key. `GITHUB_TOKEN` remains a fallback for the early prototype path.
 
 For the first live R2 upload prototype, bind `ASSETS` in Wrangler and set `ASSETS_PUBLIC_BASE_URL` so the worker can return a stable public URL after the object write completes.
 

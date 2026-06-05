@@ -40,10 +40,15 @@ Preview and draft workflows should stay on non-`main` branches until review is c
 
 ## Current live prototype boundary
 
-The current prototype can use `GITHUB_TOKEN` to create:
+The current prototype prefers a GitHub App installation token and falls back to `GITHUB_TOKEN` to create:
 
 - a non-`main` draft branch
 - one draft Markdown file commit
 - one pull request into `main`
 
-It still does not replace the target GitHub App model for production hardening.
+It is closer to the target GitHub App model, but it still does not include:
+
+- webhook verification
+- installation scoping audits
+- queue-backed retries for failed publish jobs
+- richer branch naming, dedupe, and conflict handling

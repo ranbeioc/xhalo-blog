@@ -121,6 +121,7 @@ const fallbackDraftTask = {
 
 const fallbackDraftPublish = {
   mode: 'dry-run',
+  auth_mode: 'token',
   pull_request: '-'
 };
 
@@ -347,6 +348,7 @@ function renderDraftTaskResult(task) {
 
 function renderDraftPublishResult(result) {
   setText('[data-field="draft-publish-mode"]', result.mode || fallbackDraftPublish.mode);
+  setText('[data-field="draft-publish-auth-mode"]', result.auth_mode || fallbackDraftPublish.auth_mode);
   setText('[data-field="draft-publish-pr"]', result.pull_request || fallbackDraftPublish.pull_request);
 }
 
@@ -600,6 +602,7 @@ async function handleDraftPreviewSubmit(event) {
       if (action === 'publish') {
         renderDraftPublishResult({
           mode: result.mode || 'live',
+          auth_mode: result.auth_mode || 'token',
           pull_request: result.pull_request?.url || '-'
         });
         renderDraftPreviewStatus('ok', result.mode === 'live' ? 'Publish request completed' : 'Publish dry-run ready');
