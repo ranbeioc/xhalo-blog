@@ -17,6 +17,7 @@ const fallbackScaffold = {
     '/api/drafts/publish',
     '/api/assets/r2-template',
     '/api/assets/r2-preview',
+    '/api/assets/r2-upload',
     '/api/assets/r2-tasks',
     '/api/publish/notifications/template',
     '/api/publish/notifications/preview',
@@ -140,9 +141,11 @@ const fallbackR2Template = {
   publicBaseUrl: 'https://assets.example.com',
   defaults: {
     scope: 'uploads',
-    contentType: 'image/png'
+    contentType: 'image/png',
+    encoding: 'utf-8',
+    cacheControl: 'public, max-age=31536000, immutable'
   },
-  fields: ['filename', 'contentType', 'scope', 'postSlug']
+  fields: ['filename', 'contentType', 'scope', 'postSlug', 'content', 'encoding', 'cacheControl']
 };
 
 const fallbackR2Preview = {
@@ -157,6 +160,12 @@ const fallbackR2Preview = {
 const fallbackR2Task = {
   status: 'not queued',
   task_id: '-'
+};
+
+const fallbackR2Upload = {
+  mode: 'dry-run',
+  etag: '-',
+  uploaded_bytes: 0
 };
 
 const fallbackPublishTemplate = {
@@ -368,6 +377,12 @@ function renderR2TaskResult(task) {
   setText('[data-field="r2-task-id"]', task.task_id || fallbackR2Task.task_id);
 }
 
+function renderR2UploadResult(result) {
+  setText('[data-field="r2-upload-mode"]', result.mode || fallbackR2Upload.mode);
+  setText('[data-field="r2-upload-etag"]', result.etag || fallbackR2Upload.etag);
+  setText('[data-field="r2-upload-bytes"]', String(result.uploaded_bytes ?? fallbackR2Upload.uploaded_bytes));
+}
+
 function renderPublishTemplate(template) {
   setText('[data-field="publish-queue-binding"]', template.queueBinding || fallbackPublishTemplate.queueBinding);
   setText('[data-field="publish-channel"]', template.defaults?.channel || fallbackPublishTemplate.defaults.channel);
@@ -433,7 +448,10 @@ function getR2FormPayload(form) {
     filename: String(formData.get('filename') || '').trim(),
     contentType: String(formData.get('contentType') || '').trim(),
     scope: String(formData.get('scope') || '').trim(),
-    postSlug: String(formData.get('postSlug') || '').trim()
+    postSlug: String(formData.get('postSlug') || '').trim(),
+    content: String(formData.get('content') || ''),
+    encoding: String(formData.get('encoding') || '').trim(),
+    cacheControl: String(formData.get('cacheControl') || '').trim()
   };
 }
 
@@ -458,12 +476,15 @@ function getModerationFormPayload(form) {
   };
 }
 
-async function postDraftAction(form, endpoint) {
+async function postDraftAction(form, endpoint, overrides = {}) {
   if (window.location.protocol === 'file:') {
     return { mode: 'static' };
   }
 
-  const payload = getDraftFormPayload(form);
+  const payload = {
+    ...getDraftFormPayload(form),
+    ...overrides
+  };
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -474,12 +495,15 @@ async function postDraftAction(form, endpoint) {
   return response.json();
 }
 
-async function postR2Action(form, endpoint) {
+async function postR2Action(form, endpoint, overrides = {}) {
   if (window.location.protocol === 'file:') {
     return { mode: 'static' };
   }
 
-  const payload = getR2FormPayload(form);
+  const payload = {
+    ...getR2FormPayload(form),
+    ...overrides
+  };
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -552,7 +576,7 @@ async function handleDraftPreviewSubmit(event) {
       : action === 'plan'
         ? '/api/drafts/github-plan'
         : '/api/drafts/preview';
-    const result = await postDraftAction(form, endpoint);
+    const result = await postDraftAction(form, endpoint, action === 'publish' ? { mode: 'live' } : {});
 
     if (result?.mode === 'static') {
       renderDraftPreview(fallbackDraftPreview);
@@ -608,26 +632,46 @@ async function handleR2PreviewSubmit(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const action = event.submitter?.value || 'preview';
-  renderR2PreviewStatus('warning', action === 'queue' ? 'Queueing upload' : 'Generating upload preview');
+  const statusText = action === 'queue'
+    ? 'Queueing upload'
+    : action === 'publish'
+      ? 'Uploading object to R2'
+      : 'Generating upload preview';
+  renderR2PreviewStatus('warning', statusText);
 
   try {
-    const endpoint = action === 'queue' ? '/api/assets/r2-tasks' : '/api/assets/r2-preview';
-    const result = await postR2Action(form, endpoint);
+    const endpoint = action === 'queue'
+      ? '/api/assets/r2-tasks'
+      : action === 'publish'
+        ? '/api/assets/r2-upload'
+        : '/api/assets/r2-preview';
+    const result = await postR2Action(form, endpoint, action === 'publish' ? { mode: 'live' } : {});
 
     if (result?.mode === 'static') {
       renderR2Preview(fallbackR2Preview);
       renderR2TaskResult(fallbackR2Task);
+      renderR2UploadResult(fallbackR2Upload);
       renderR2PreviewStatus('warning', 'Static preview');
       return;
     }
 
     if (result?.error) {
-      renderR2PreviewStatus('warning', `${action === 'queue' ? 'Upload queue failed' : 'Upload preview failed'} (${result.error})`);
+      renderR2PreviewStatus('warning', `${action === 'queue' ? 'Upload queue failed' : action === 'publish' ? 'Live upload failed' : 'Upload preview failed'} (${result.error})`);
       return;
     }
 
     if (result.preview) {
       renderR2Preview(result.preview);
+    }
+
+    if (action === 'publish') {
+      renderR2UploadResult({
+        mode: result.mode || 'live',
+        etag: result.etag || '-',
+        uploaded_bytes: result.uploaded_bytes ?? 0
+      });
+      renderR2PreviewStatus('ok', result.mode === 'live' ? 'Live upload completed' : 'Upload dry-run ready');
+      return;
     }
 
     if (action === 'queue') {
@@ -756,6 +800,7 @@ async function loadScaffoldData() {
   renderR2Template(fallbackR2Template);
   renderR2Preview(fallbackR2Preview);
   renderR2TaskResult(fallbackR2Task);
+  renderR2UploadResult(fallbackR2Upload);
   renderPublishTemplate(fallbackPublishTemplate);
   renderPublishPreview(fallbackPublishPreview);
   renderPublishTaskResult(fallbackPublishTask);

@@ -11,6 +11,7 @@ import {
   buildQueueTaskEnvelope,
   buildR2UploadPreview,
   buildR2UploadTaskPrototype,
+  buildR2UploadWritePlan,
   defaultDraftTemplate,
   defaultModerationTemplate,
   defaultPublishNotificationTemplate,
@@ -40,6 +41,40 @@ function encodeBase64Utf8(input) {
   for (const byte of bytes) binary += String.fromCharCode(byte);
   if (typeof btoa === 'function') return btoa(binary);
   return Buffer.from(bytes).toString('base64');
+}
+
+function decodeBase64ToBytes(input) {
+  const normalized = String(input || '').replace(/\s+/g, '');
+  if (typeof atob === 'function') {
+    const binary = atob(normalized);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return bytes;
+  }
+  return Uint8Array.from(Buffer.from(normalized, 'base64'));
+}
+
+function buildR2UploadBody(input = {}) {
+  const encoding = String(input.encoding || defaultR2UploadTemplate.defaults.encoding).trim().toLowerCase() === 'base64'
+    ? 'base64'
+    : defaultR2UploadTemplate.defaults.encoding;
+  const cacheControl = String(input.cacheControl || defaultR2UploadTemplate.defaults.cacheControl).trim()
+    || defaultR2UploadTemplate.defaults.cacheControl;
+  const rawContent = input.content == null || String(input.content).length === 0
+    ? `Prototype asset written at ${nowIso()}\n`
+    : String(input.content);
+  const body = encoding === 'base64'
+    ? decodeBase64ToBytes(rawContent)
+    : new TextEncoder().encode(rawContent);
+
+  return {
+    body,
+    encoding,
+    cacheControl,
+    byteLength: body.byteLength
+  };
 }
 
 async function githubApiRequest(env, path, init = {}) {
@@ -164,6 +199,22 @@ async function upsertPostIndexRecord(env, record) {
   ).run();
 
   return true;
+}
+
+async function putAssetObject(env, preview, uploadBody) {
+  if (!env.ASSETS || typeof env.ASSETS.put !== 'function') return null;
+
+  return env.ASSETS.put(preview.objectKey, uploadBody.body, {
+    httpMetadata: {
+      contentType: preview.contentType,
+      cacheControl: uploadBody.cacheControl
+    },
+    customMetadata: {
+      scope: preview.scope,
+      filename: preview.filename,
+      ...(preview.postSlug ? { postSlug: preview.postSlug } : {})
+    }
+  });
 }
 
 export default {
@@ -360,6 +411,80 @@ export default {
       return createJsonResponse({
         preview,
         note: 'Stage 3 R2 upload preview only. No object has been written.'
+      });
+    }
+
+    if (url.pathname === '/api/assets/r2-upload' && request.method === 'POST') {
+      const input = await request.json();
+      const mode = input.mode === 'live' ? 'live' : 'dry-run';
+      const preview = buildR2UploadPreview(input, {
+        bucketBinding: 'ASSETS',
+        bucketName: 'xhalo-blog-assets',
+        publicBaseUrl: env.ASSETS_PUBLIC_BASE_URL || defaultR2UploadTemplate.publicBaseUrl
+      });
+      const plan = buildR2UploadWritePlan(input, {
+        bucketBinding: 'ASSETS',
+        bucketName: 'xhalo-blog-assets',
+        publicBaseUrl: env.ASSETS_PUBLIC_BASE_URL || defaultR2UploadTemplate.publicBaseUrl
+      });
+
+      if (mode !== 'live') {
+        return createJsonResponse({
+          mode,
+          preview,
+          plan,
+          note: 'Dry-run R2 upload only. No object has been written.'
+        });
+      }
+
+      if (!env.ASSETS || typeof env.ASSETS.put !== 'function') {
+        return createJsonResponse({
+          error: 'ASSETS binding is required for the live R2 upload prototype.',
+          mode
+        }, { status: 503 });
+      }
+
+      if (!env.ASSETS_PUBLIC_BASE_URL) {
+        return createJsonResponse({
+          error: 'ASSETS_PUBLIC_BASE_URL is required for the live R2 upload prototype.',
+          mode
+        }, { status: 503 });
+      }
+
+      const uploadBody = buildR2UploadBody(input);
+      if (uploadBody.byteLength > 256 * 1024) {
+        return createJsonResponse({
+          error: 'Prototype uploads are limited to 256 KiB.',
+          mode,
+          uploaded_bytes: uploadBody.byteLength
+        }, { status: 413 });
+      }
+
+      const object = await putAssetObject(env, preview, uploadBody);
+      const recordedAt = nowIso();
+      const persisted = await insertTaskRecord(env, {
+        id: crypto.randomUUID(),
+        type: 'r2_upload_live',
+        status: 'completed',
+        payload: {
+          mode,
+          preview,
+          encoding: uploadBody.encoding,
+          cacheControl: uploadBody.cacheControl,
+          uploaded_bytes: uploadBody.byteLength
+        },
+        created_at: recordedAt,
+        updated_at: recordedAt
+      });
+
+      return createJsonResponse({
+        mode,
+        preview,
+        plan,
+        uploaded_bytes: uploadBody.byteLength,
+        etag: object?.etag || null,
+        version: object?.version || null,
+        persisted
       });
     }
 
