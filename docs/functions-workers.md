@@ -21,6 +21,8 @@ GET /api/health
 GET /api/scaffold
 GET /api/posts
 GET /api/tasks
+GET /api/drafts/template
+POST /api/drafts/preview
 POST /api/tasks/example
 ```
 
@@ -30,6 +32,8 @@ Stage 3 prototype additions:
 
 - `GET /api/posts` reads from `posts_index` when D1 is bound, otherwise falls back to example rows
 - `GET /api/tasks` reads from `tasks` when D1 is bound, otherwise falls back to example rows
+- `GET /api/drafts/template` exposes the current draft metadata contract and branch/file defaults
+- `POST /api/drafts/preview` returns a normalized draft payload, file path, branch name, and PR preview without creating anything remotely
 - `POST /api/tasks/example` now persists a queued task record when D1 is available before the queue consumer handles it
 
 Recommended dynamic paths:

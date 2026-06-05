@@ -1,5 +1,7 @@
 import {
   buildQueueTaskEnvelope,
+  buildPullRequestPreview,
+  defaultDraftTemplate,
   createFallbackPosts,
   createFallbackTasks,
   createJsonResponse,
@@ -67,6 +69,27 @@ export default {
         items: items ?? createFallbackTasks(),
         backend: items ? 'd1' : 'fallback',
         note: items ? 'Read-only tasks prototype.' : 'D1 task status integration pending; showing fallback examples.'
+      });
+    }
+
+    if (url.pathname === '/api/drafts/template') {
+      return createJsonResponse({
+        template: defaultDraftTemplate,
+        note: 'Stage 3 draft metadata prototype. No real GitHub write happens here.'
+      });
+    }
+
+    if (url.pathname === '/api/drafts/preview' && request.method === 'POST') {
+      const input = await request.json();
+      const preview = buildPullRequestPreview(input, {
+        repoOwner: env.GITHUB_OWNER || 'example',
+        repoName: env.GITHUB_REPO || 'xhalo-blog',
+        baseBranch: env.GITHUB_BRANCH || 'main'
+      });
+
+      return createJsonResponse({
+        preview,
+        note: 'Stage 3 draft and PR preview only. No branch or PR has been created.'
       });
     }
 

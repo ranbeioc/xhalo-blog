@@ -17,6 +17,7 @@
 - Admin panel scaffold with same-origin placeholder API wiring.
 - Read-only posts index API prototype.
 - Read-only D1 task status integration prototype.
+- Draft metadata template and PR preview prototype.
 - Draft metadata flow.
 - GitHub branch and PR creation design refined.
 

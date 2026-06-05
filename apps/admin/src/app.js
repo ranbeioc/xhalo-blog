@@ -31,6 +31,16 @@ const fallbackTasks = [
   }
 ];
 
+const fallbackDraftTemplate = {
+  branchPrefix: 'draft/',
+  postDir: 'source/_posts',
+  defaults: {
+    status: 'draft',
+    category: 'notes'
+  },
+  fields: ['title', 'slug', 'summary', 'tags', 'category', 'status']
+};
+
 function setText(selector, value) {
   const element = document.querySelector(selector);
   if (element) element.textContent = value;
@@ -86,10 +96,23 @@ function renderTasks(items) {
   ));
 }
 
+function renderDraftTemplate(template) {
+  setText('[data-field="draft-branch-prefix"]', template.branchPrefix || fallbackDraftTemplate.branchPrefix);
+  setText('[data-field="draft-post-dir"]', template.postDir || fallbackDraftTemplate.postDir);
+  setText('[data-field="draft-default-status"]', template.defaults?.status || fallbackDraftTemplate.defaults.status);
+
+  renderCollection(
+    '[data-field="draft-fields"]',
+    Array.isArray(template.fields) ? template.fields : fallbackDraftTemplate.fields,
+    (field) => `<strong>${field}</strong><span>draft field</span>`
+  );
+}
+
 async function loadScaffoldData() {
   renderScaffold(fallbackScaffold);
   renderPosts(fallbackPosts);
   renderTasks(fallbackTasks);
+  renderDraftTemplate(fallbackDraftTemplate);
   renderHealth(false, 'API not checked');
 
   if (window.location.protocol === 'file:') {
@@ -106,6 +129,7 @@ async function loadScaffoldData() {
       fetch('/api/posts'),
       fetch('/api/tasks')
     ]);
+    const draftTemplateResponse = await fetch('/api/drafts/template');
 
     if (healthResponse.ok) {
       const health = await healthResponse.json();
@@ -127,6 +151,11 @@ async function loadScaffoldData() {
     if (tasksResponse.ok) {
       const tasks = await tasksResponse.json();
       if (Array.isArray(tasks.items) && tasks.items.length > 0) renderTasks(tasks.items);
+    }
+
+    if (draftTemplateResponse.ok) {
+      const draftTemplate = await draftTemplateResponse.json();
+      if (draftTemplate.template) renderDraftTemplate(draftTemplate.template);
     }
   } catch {
     renderHealth(false, 'Static-only preview');
