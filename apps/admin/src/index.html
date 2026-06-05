@@ -46,6 +46,9 @@
             <li><code>GET /api/publish/notifications/template</code></li>
             <li><code>POST /api/publish/notifications/preview</code></li>
             <li><code>POST /api/publish/notifications/tasks</code></li>
+            <li><code>GET /api/moderation/template</code></li>
+            <li><code>POST /api/moderation/preview</code></li>
+            <li><code>POST /api/moderation/tasks</code></li>
             <li><code>POST /api/tasks/example</code></li>
           </ul>
         </article>
@@ -95,6 +98,9 @@
             <li><code>/api/publish/notifications/template</code></li>
             <li><code>/api/publish/notifications/preview</code></li>
             <li><code>/api/publish/notifications/tasks</code></li>
+            <li><code>/api/moderation/template</code></li>
+            <li><code>/api/moderation/preview</code></li>
+            <li><code>/api/moderation/tasks</code></li>
             <li><code>/api/tasks/example</code></li>
           </ul>
         </div>
@@ -413,6 +419,80 @@
           <li><a href="https://github.com/ranbeioc/xhalo-blog/blob/main/docs/functions-workers.md">docs/functions-workers.md</a></li>
           <li><a href="https://github.com/ranbeioc/xhalo-blog/blob/main/docs/security.md">docs/security.md</a></li>
         </ul>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Comment moderation prototype</h2>
+          <span class="status-badge" data-field="moderation-preview-status" data-state="warning">Static preview</span>
+        </div>
+        <div class="meta-grid">
+          <div class="meta-row">
+            <span class="meta-label">Queue binding</span>
+            <strong data-field="moderation-queue-binding">TASK_QUEUE</strong>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Provider</span>
+            <strong data-field="moderation-provider">waline</strong>
+          </div>
+        </div>
+        <div class="draft-workbench">
+          <form class="draft-form" data-role="moderation-preview-form">
+            <label>
+              <span>Comment id</span>
+              <input name="commentId" type="text" value="comment-demo-1" />
+            </label>
+            <label>
+              <span>Provider</span>
+              <input name="provider" type="text" value="waline" />
+            </label>
+            <label>
+              <span>Action</span>
+              <input name="action" type="text" value="flag" />
+            </label>
+            <label>
+              <span>Reason</span>
+              <input name="reason" type="text" value="manual-review" />
+            </label>
+            <div class="form-actions field-span-2">
+              <button type="submit" name="actionType" value="preview">Generate moderation preview</button>
+              <button type="submit" name="actionType" value="queue" class="button-secondary">Queue dry-run moderation</button>
+            </div>
+          </form>
+
+          <div class="draft-output">
+            <div class="meta-grid">
+              <div class="meta-row">
+                <span class="meta-label">Title</span>
+                <strong data-field="moderation-title">Moderation review for comment-demo-1</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Action</span>
+                <strong data-field="moderation-action">flag</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Comment id</span>
+                <strong data-field="moderation-comment-id">comment-demo-1</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Reason</span>
+                <strong data-field="moderation-reason">manual-review</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Moderation task status</span>
+                <strong data-field="moderation-task-status">not queued</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Moderation task id</span>
+                <strong data-field="moderation-task-id">-</strong>
+              </div>
+            </div>
+            <div class="meta-block">
+              <span class="meta-label">Message</span>
+              <pre class="preview-code" data-field="moderation-message">flag comment comment-demo-1 via waline</pre>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="panel panel-warning">

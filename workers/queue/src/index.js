@@ -33,6 +33,14 @@ export default {
             postSlug: task.payload?.preview?.postSlug
           }));
           break;
+        case 'moderation_preview':
+          console.log('xhalo-blog queue moderation preview task', JSON.stringify({
+            idempotency_key: task.idempotency_key,
+            provider: task.payload?.preview?.provider,
+            action: task.payload?.preview?.action,
+            commentId: task.payload?.preview?.commentId
+          }));
+          break;
         default:
           console.warn('xhalo-blog queue unknown task type', JSON.stringify(task));
           break;

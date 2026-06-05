@@ -21,6 +21,9 @@ export const defaultScaffoldMetadata = {
     '/api/publish/notifications/template',
     '/api/publish/notifications/preview',
     '/api/publish/notifications/tasks',
+    '/api/moderation/template',
+    '/api/moderation/preview',
+    '/api/moderation/tasks',
     '/api/tasks/example'
   ],
   notes: [
@@ -29,6 +32,7 @@ export const defaultScaffoldMetadata = {
     'Draft flows remain dry-run prototypes until GitHub branch and PR creation is implemented.',
     'R2 upload flows remain dry-run prototypes until signed upload handlers and lifecycle rules exist.',
     'Publish notification flows remain dry-run prototypes until downstream delivery targets are implemented.',
+    'Moderation flows remain dry-run prototypes until the real comment provider and anti-abuse controls are wired.',
     'Dynamic write flows should open pull requests rather than write to main directly.',
     'This API surface is placeholder-only and not a production admin implementation.'
   ]
@@ -98,6 +102,18 @@ export const defaultPublishNotificationTemplate = {
     status: 'preview-ready'
   },
   fields: ['postSlug', 'branchName', 'previewUrl', 'channel', 'status']
+};
+
+export const defaultModerationTemplate = {
+  queueBinding: 'TASK_QUEUE',
+  providers: ['waline'],
+  actions: ['approve', 'reject', 'flag'],
+  defaults: {
+    provider: 'waline',
+    action: 'flag',
+    reason: 'manual-review'
+  },
+  fields: ['commentId', 'provider', 'action', 'reason']
 };
 
 export function createJsonResponse(data, init = {}) {
@@ -459,6 +475,58 @@ export function buildPublishNotificationTaskPrototype(input = {}, options = {}) 
   const createdAt = nowIso();
   const task = buildQueueTaskEnvelope({
     type: 'publish_notification_preview',
+    stage: options.stage || '3-prototype',
+    created_at: createdAt,
+    idempotency_key: crypto.randomUUID(),
+    preview
+  });
+
+  return {
+    preview,
+    queuedTask: task,
+    taskRecord: {
+      id: task.idempotency_key,
+      type: task.type,
+      status: 'queued',
+      payload: task,
+      created_at: createdAt,
+      updated_at: createdAt
+    }
+  };
+}
+
+export function normalizeModerationInput(input = {}) {
+  const commentId = String(input.commentId || 'comment-demo-1').trim();
+  const provider = String(input.provider || defaultModerationTemplate.defaults.provider).trim();
+  const action = String(input.action || defaultModerationTemplate.defaults.action).trim();
+  const reason = String(input.reason || defaultModerationTemplate.defaults.reason).trim();
+
+  return {
+    commentId,
+    provider,
+    action,
+    reason
+  };
+}
+
+export function buildModerationPreview(input = {}, options = {}) {
+  const normalized = normalizeModerationInput(input);
+  return {
+    queueBinding: options.queueBinding || defaultModerationTemplate.queueBinding,
+    commentId: normalized.commentId,
+    provider: normalized.provider,
+    action: normalized.action,
+    reason: normalized.reason,
+    title: `Moderation review for ${normalized.commentId}`,
+    message: `${normalized.action} comment ${normalized.commentId} via ${normalized.provider}`
+  };
+}
+
+export function buildModerationTaskPrototype(input = {}, options = {}) {
+  const preview = buildModerationPreview(input, options);
+  const createdAt = nowIso();
+  const task = buildQueueTaskEnvelope({
+    type: 'moderation_preview',
     stage: options.stage || '3-prototype',
     created_at: createdAt,
     idempotency_key: crypto.randomUUID(),

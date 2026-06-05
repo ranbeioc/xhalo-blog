@@ -31,6 +31,9 @@ POST /api/assets/r2-tasks
 GET /api/publish/notifications/template
 POST /api/publish/notifications/preview
 POST /api/publish/notifications/tasks
+GET /api/moderation/template
+POST /api/moderation/preview
+POST /api/moderation/tasks
 POST /api/tasks/example
 ```
 
@@ -50,6 +53,9 @@ Stage 3 prototype additions:
 - `GET /api/publish/notifications/template` exposes the current publish notification contract for queue binding and delivery channels
 - `POST /api/publish/notifications/preview` returns the derived notification title, message, and delivery target without sending anything remotely
 - `POST /api/publish/notifications/tasks` queues a dry-run publish notification task and returns the preview plus task metadata without sending anything remotely
+- `GET /api/moderation/template` exposes the current moderation contract for provider, action, and queue binding
+- `POST /api/moderation/preview` returns the derived moderation title, action, and review message without updating anything remotely
+- `POST /api/moderation/tasks` queues a dry-run moderation task and returns the preview plus task metadata without updating anything remotely
 - `POST /api/tasks/example` now persists a queued task record when D1 is available before the queue consumer handles it
 - `apps/admin` now includes a dry-run draft form that can preview draft metadata, queue a dry-run task, and render the future GitHub operation plan in the browser
 
