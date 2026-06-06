@@ -78,6 +78,7 @@ http://localhost:4000
 - [`docs/getting-started.md`](./docs/getting-started.md)
 - [`docs/public-config-contract.md`](./docs/public-config-contract.md)
 - [`docs/compatibility-matrix.md`](./docs/compatibility-matrix.md)
+- [`docs/hexo-next-optional-plugins.md`](./docs/hexo-next-optional-plugins.md)
 - [`docs/hexo-blog-extraction-manifest.md`](./docs/hexo-blog-extraction-manifest.md)
 - [`docs/stable-deployment-guide.md`](./docs/stable-deployment-guide.md)
 - [`docs/stable-template-layout.md`](./docs/stable-template-layout.md)

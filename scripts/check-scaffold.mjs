@@ -20,17 +20,22 @@ const required = [
   'apps/admin/src/app.js',
   'examples/basic-blog/src/_headers',
   'templates/hexo-next/_config.yml',
+  'templates/hexo-next/scripts/hexo-asset-image.js',
   'examples/next-theme-blog/_config.yml',
+  'examples/next-theme-blog/scripts/hexo-asset-image.js',
   'docs/getting-started.md',
   'docs/architecture.md',
   'docs/compatibility-matrix.md',
+  'docs/hexo-next-optional-plugins.md',
   'docs/hexo-blog-extraction-manifest.md',
   'docs/public-config-contract.md',
   'docs/stable-deployment-guide.md',
   'docs/stable-template-layout.md',
   '.github/workflows/check.yml',
   'scripts/check-no-production-markers.mjs',
-  'tests/worker-security.test.mjs'
+  'tests/worker-security.test.mjs',
+  'tests/provider-readiness.test.mjs',
+  'tests/theme-adapter-compatibility.test.mjs'
 ];
 
 const missing = required.filter((file) => !fs.existsSync(file));

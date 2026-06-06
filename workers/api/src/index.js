@@ -494,6 +494,7 @@ function summarizeTaskRecord(item) {
     payload,
     detail_primary: summary.outcome || item.status || 'unknown',
     detail_secondary:
+      payload.reconciliation?.last_error ||
       summary.previewUrl ||
       summary.branch ||
       summary.key ||

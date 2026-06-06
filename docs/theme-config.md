@@ -38,6 +38,7 @@ Current default theme contract:
 
 - `theme.adapter: "hexo-next"`
 - `theme.name: "next"`
+- `scripts/hexo-asset-image.js` is the default compatibility helper for post asset rewriting in the Hexo paths
 
 ## Stage 2.5 defaults
 

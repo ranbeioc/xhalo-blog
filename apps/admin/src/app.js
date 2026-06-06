@@ -2,6 +2,8 @@ const fallbackScaffold = {
   repo: 'xhalo-blog',
   stage: '3-prototype',
   mode: 'scaffold',
+  release_line: '0.1.x-alpha',
+  contract_version: 'v1',
   static_site: 'Cloudflare Pages',
   queue_name: 'xhalo-blog-tasks',
   expected_paths: [
@@ -54,6 +56,18 @@ const fallbackPosts = [
 
 const fallbackReadiness = {
   items: [
+    {
+      key: 'admin_api',
+      label: 'Admin API request gate',
+      status: 'missing',
+      note: 'ADMIN_API_SHARED_SECRET is missing.'
+    },
+    {
+      key: 'live_writes',
+      label: 'Live write gate',
+      status: 'ready',
+      note: 'Live write routes remain disabled by default.'
+    },
     {
       key: 'github',
       label: 'GitHub PR publishing',
@@ -245,15 +259,75 @@ const fallbackModerationTask = {
   task_id: '-'
 };
 
+const state = {
+  adminSecret: '',
+  fileMode: window.location.protocol === 'file:'
+};
+
+function loadStoredAdminSecret() {
+  try {
+    return window.sessionStorage.getItem('xhalo-admin-secret') || '';
+  } catch {
+    return '';
+  }
+}
+
+function saveAdminSecret(secret) {
+  state.adminSecret = secret;
+  try {
+    if (secret) {
+      window.sessionStorage.setItem('xhalo-admin-secret', secret);
+    } else {
+      window.sessionStorage.removeItem('xhalo-admin-secret');
+    }
+  } catch {
+    // Ignore storage failures in scaffold mode.
+  }
+}
+
+function hasAdminSecret() {
+  return Boolean(state.adminSecret);
+}
+
+async function apiFetch(input, init = {}) {
+  const headers = new Headers(init.headers || {});
+  if (hasAdminSecret()) headers.set('x-xhalo-admin-secret', state.adminSecret);
+  return fetch(input, {
+    ...init,
+    headers
+  });
+}
+
 function setText(selector, value) {
   const element = document.querySelector(selector);
   if (element) element.textContent = value;
+}
+
+function syncProtectedActionState() {
+  const locked = !state.fileMode && !hasAdminSecret();
+  for (const button of document.querySelectorAll('[data-protected-action]')) {
+    button.disabled = locked;
+  }
+}
+
+function renderOperatorGuard(status, note, liveWrites = 'disabled by default') {
+  const badge = document.querySelector('[data-field="operator-guard-status"]');
+  if (badge) {
+    badge.textContent = status;
+    badge.dataset.state = hasAdminSecret() || state.fileMode ? 'ok' : 'warning';
+  }
+  setText('[data-field="operator-access-mode"]', hasAdminSecret() ? 'request secret present' : 'Cloudflare Access + request secret');
+  setText('[data-field="operator-live-writes"]', liveWrites);
+  setText('[data-field="operator-guard-note"]', note);
+  syncProtectedActionState();
 }
 
 function renderScaffold(data) {
   setText('[data-field="repo"]', data.repo || fallbackScaffold.repo);
   setText('[data-field="stage"]', data.stage || fallbackScaffold.stage);
   setText('[data-field="mode"]', data.mode || fallbackScaffold.mode);
+  setText('[data-field="release-line"]', data.release_line || fallbackScaffold.release_line);
+  setText('[data-field="contract-version"]', data.contract_version || fallbackScaffold.contract_version);
   setText('[data-field="static-site"]', data.static_site || fallbackScaffold.static_site);
   setText('[data-field="queue-name"]', data.queue_name || fallbackScaffold.queue_name);
 
@@ -524,15 +598,18 @@ function getModerationFormPayload(form) {
 }
 
 async function postDraftAction(form, endpoint, overrides = {}) {
-  if (window.location.protocol === 'file:') {
+  if (state.fileMode) {
     return { mode: 'static' };
+  }
+  if (!hasAdminSecret()) {
+    return { error: 401, locked: true };
   }
 
   const payload = {
     ...getDraftFormPayload(form),
     ...overrides
   };
-  const response = await fetch(endpoint, {
+  const response = await apiFetch(endpoint, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload)
@@ -543,15 +620,18 @@ async function postDraftAction(form, endpoint, overrides = {}) {
 }
 
 async function postR2Action(form, endpoint, overrides = {}) {
-  if (window.location.protocol === 'file:') {
+  if (state.fileMode) {
     return { mode: 'static' };
+  }
+  if (!hasAdminSecret()) {
+    return { error: 401, locked: true };
   }
 
   const payload = {
     ...getR2FormPayload(form),
     ...overrides
   };
-  const response = await fetch(endpoint, {
+  const response = await apiFetch(endpoint, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload)
@@ -562,12 +642,15 @@ async function postR2Action(form, endpoint, overrides = {}) {
 }
 
 async function postPublishAction(form, endpoint) {
-  if (window.location.protocol === 'file:') {
+  if (state.fileMode) {
     return { mode: 'static' };
+  }
+  if (!hasAdminSecret()) {
+    return { error: 401, locked: true };
   }
 
   const payload = getPublishFormPayload(form);
-  const response = await fetch(endpoint, {
+  const response = await apiFetch(endpoint, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload)
@@ -578,12 +661,15 @@ async function postPublishAction(form, endpoint) {
 }
 
 async function postModerationAction(form, endpoint) {
-  if (window.location.protocol === 'file:') {
+  if (state.fileMode) {
     return { mode: 'static' };
+  }
+  if (!hasAdminSecret()) {
+    return { error: 401, locked: true };
   }
 
   const payload = getModerationFormPayload(form);
-  const response = await fetch(endpoint, {
+  const response = await apiFetch(endpoint, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(payload)
@@ -600,6 +686,32 @@ function prependTask(task) {
   const node = document.createElement('li');
   node.innerHTML = `<strong>${task.type || 'unknown'}</strong><span>${task.status || 'queued'}</span>`;
   list.prepend(node);
+}
+
+function handleOperatorGuardSubmit(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const formData = new FormData(form);
+  const secret = String(formData.get('adminSecret') || '').trim();
+  saveAdminSecret(secret);
+  renderOperatorGuard(
+    secret ? 'Secret loaded' : 'Secret required',
+    secret
+      ? 'Protected routes can now be queried from this session. Keep Cloudflare Access enabled as the outer gate.'
+      : 'Protected routes stay locked until the admin secret is provided. This is still an inner gate, not a substitute for Cloudflare Access.'
+  );
+  loadScaffoldData();
+}
+
+function clearOperatorGuardSecret() {
+  saveAdminSecret('');
+  const input = document.querySelector('[data-role="operator-guard-form"] input[name="adminSecret"]');
+  if (input) input.value = '';
+  renderOperatorGuard(
+    'Secret required',
+    'Protected routes stay locked until the admin secret is provided. This is still an inner gate, not a substitute for Cloudflare Access.'
+  );
+  loadScaffoldData();
 }
 
 async function handleDraftPreviewSubmit(event) {
@@ -630,6 +742,11 @@ async function handleDraftPreviewSubmit(event) {
       renderDraftTaskResult(fallbackDraftTask);
       renderDraftPublishResult(fallbackDraftPublish);
       renderDraftPreviewStatus('warning', 'Static preview');
+      return;
+    }
+
+    if (result?.locked) {
+      renderDraftPreviewStatus('warning', 'Admin secret required');
       return;
     }
 
@@ -708,6 +825,11 @@ async function handleR2PreviewSubmit(event) {
       return;
     }
 
+    if (result?.locked) {
+      renderR2PreviewStatus('warning', 'Admin secret required');
+      return;
+    }
+
     if (result?.error) {
       renderR2PreviewStatus('warning', `${action === 'queue' ? 'Upload queue failed' : action === 'publish' ? 'Live upload failed' : action === 'signed' ? 'Signed upload failed' : 'Upload preview failed'} (${result.error})`);
       return;
@@ -724,7 +846,7 @@ async function handleR2PreviewSubmit(event) {
         expires_at: result.expires_at || '-'
       });
       const payload = getR2FormPayload(form);
-      const uploadResponse = await fetch(result.upload_url, {
+      const uploadResponse = await apiFetch(result.upload_url, {
         method: 'PUT',
         headers: {
           'content-type': payload.contentType || 'application/octet-stream'
@@ -797,6 +919,11 @@ async function handlePublishPreviewSubmit(event) {
       return;
     }
 
+    if (result?.locked) {
+      renderPublishPreviewStatus('warning', 'Admin secret required');
+      return;
+    }
+
     if (result?.error) {
       renderPublishPreviewStatus('warning', `${action === 'queue' ? 'Notification queue failed' : 'Notification preview failed'} (${result.error})`);
       return;
@@ -844,6 +971,11 @@ async function handleModerationPreviewSubmit(event) {
       return;
     }
 
+    if (result?.locked) {
+      renderModerationPreviewStatus('warning', 'Admin secret required');
+      return;
+    }
+
     if (result?.error) {
       renderModerationPreviewStatus('warning', `${action === 'queue' ? 'Moderation queue failed' : 'Moderation preview failed'} (${result.error})`);
       return;
@@ -873,6 +1005,8 @@ async function handleModerationPreviewSubmit(event) {
 }
 
 async function loadScaffoldData() {
+  const requestId = crypto.randomUUID();
+  state.lastRequestId = requestId;
   renderScaffold(fallbackScaffold);
   renderReadiness(fallbackReadiness.items);
   renderPosts(fallbackPosts);
@@ -893,6 +1027,12 @@ async function loadScaffoldData() {
   renderModerationTemplate(fallbackModerationTemplate);
   renderModerationPreview(fallbackModerationPreview);
   renderModerationTaskResult(fallbackModerationTask);
+  renderOperatorGuard(
+    hasAdminSecret() ? 'Secret loaded' : 'Secret required',
+    hasAdminSecret()
+      ? 'Protected routes can now be queried from this session. Keep Cloudflare Access enabled as the outer gate.'
+      : 'Protected routes stay locked until the admin secret is provided. This is still an inner gate, not a substitute for Cloudflare Access.'
+  );
   renderHealth(false, 'API not checked');
   renderReadinessStatus('warning', 'Static defaults');
   renderDraftPreviewStatus('warning', 'Static preview');
@@ -900,24 +1040,43 @@ async function loadScaffoldData() {
   renderPublishPreviewStatus('warning', 'Static preview');
   renderModerationPreviewStatus('warning', 'Static preview');
 
-  const draftForm = document.querySelector('[data-role="draft-preview-form"]');
-  if (draftForm) {
-    draftForm.addEventListener('submit', handleDraftPreviewSubmit);
+  const operatorForm = document.querySelector('[data-role="operator-guard-form"]');
+  if (operatorForm && !operatorForm.dataset.bound) {
+    operatorForm.addEventListener('submit', handleOperatorGuardSubmit);
+    operatorForm.dataset.bound = 'true';
   }
-  const r2Form = document.querySelector('[data-role="r2-preview-form"]');
-  if (r2Form) {
-    r2Form.addEventListener('submit', handleR2PreviewSubmit);
+  const clearButton = document.querySelector('[data-role="clear-admin-secret"]');
+  if (clearButton && !clearButton.dataset.bound) {
+    clearButton.addEventListener('click', clearOperatorGuardSecret);
+    clearButton.dataset.bound = 'true';
   }
-  const publishForm = document.querySelector('[data-role="publish-preview-form"]');
-  if (publishForm) {
-    publishForm.addEventListener('submit', handlePublishPreviewSubmit);
-  }
-  const moderationForm = document.querySelector('[data-role="moderation-preview-form"]');
-  if (moderationForm) {
-    moderationForm.addEventListener('submit', handleModerationPreviewSubmit);
+  const secretInput = document.querySelector('[data-role="operator-guard-form"] input[name="adminSecret"]');
+  if (secretInput && secretInput.value !== state.adminSecret) {
+    secretInput.value = state.adminSecret;
   }
 
-  if (window.location.protocol === 'file:') {
+  const draftForm = document.querySelector('[data-role="draft-preview-form"]');
+  if (draftForm && !draftForm.dataset.bound) {
+    draftForm.addEventListener('submit', handleDraftPreviewSubmit);
+    draftForm.dataset.bound = 'true';
+  }
+  const r2Form = document.querySelector('[data-role="r2-preview-form"]');
+  if (r2Form && !r2Form.dataset.bound) {
+    r2Form.addEventListener('submit', handleR2PreviewSubmit);
+    r2Form.dataset.bound = 'true';
+  }
+  const publishForm = document.querySelector('[data-role="publish-preview-form"]');
+  if (publishForm && !publishForm.dataset.bound) {
+    publishForm.addEventListener('submit', handlePublishPreviewSubmit);
+    publishForm.dataset.bound = 'true';
+  }
+  const moderationForm = document.querySelector('[data-role="moderation-preview-form"]');
+  if (moderationForm && !moderationForm.dataset.bound) {
+    moderationForm.addEventListener('submit', handleModerationPreviewSubmit);
+    moderationForm.dataset.bound = 'true';
+  }
+
+  if (state.fileMode) {
     renderHealth(false, 'Static-only preview');
     return;
   }
@@ -927,15 +1086,6 @@ async function loadScaffoldData() {
       fetch('/api/health'),
       fetch('/api/scaffold')
     ]);
-    const readinessResponse = await fetch('/api/readiness');
-    const [postsResponse, tasksResponse] = await Promise.all([
-      fetch('/api/posts'),
-      fetch('/api/tasks')
-    ]);
-    const draftTemplateResponse = await fetch('/api/drafts/template');
-    const r2TemplateResponse = await fetch('/api/assets/r2-template');
-    const publishTemplateResponse = await fetch('/api/publish/notifications/template');
-    const moderationTemplateResponse = await fetch('/api/moderation/template');
 
     if (healthResponse.ok) {
       const health = await healthResponse.json();
@@ -949,6 +1099,27 @@ async function loadScaffoldData() {
       renderScaffold(scaffold);
     }
 
+    if (!hasAdminSecret()) {
+      renderReadinessStatus('warning', 'Admin secret required');
+      renderDraftPreviewStatus('warning', 'Admin secret required');
+      renderR2PreviewStatus('warning', 'Admin secret required');
+      renderPublishPreviewStatus('warning', 'Admin secret required');
+      renderModerationPreviewStatus('warning', 'Admin secret required');
+      return;
+    }
+
+    const readinessResponse = await apiFetch('/api/readiness');
+    const [postsResponse, tasksResponse] = await Promise.all([
+      apiFetch('/api/posts'),
+      apiFetch('/api/tasks')
+    ]);
+    const draftTemplateResponse = await apiFetch('/api/drafts/template');
+    const r2TemplateResponse = await apiFetch('/api/assets/r2-template');
+    const publishTemplateResponse = await apiFetch('/api/publish/notifications/template');
+    const moderationTemplateResponse = await apiFetch('/api/moderation/template');
+
+    if (state.lastRequestId !== requestId) return;
+
     if (readinessResponse.ok) {
       const readiness = await readinessResponse.json();
       renderReadiness(readiness.items);
@@ -957,6 +1128,8 @@ async function loadScaffoldData() {
       const ready = readiness.summary?.ready || 0;
       const badgeState = missing > 0 ? 'warning' : 'ok';
       renderReadinessStatus(badgeState, `${ready} ready / ${partial} partial / ${missing} missing`);
+      const liveWrites = readiness.items?.find((item) => item.key === 'live_writes')?.note || 'disabled by default';
+      renderOperatorGuard('Secret loaded', 'Protected routes can now be queried from this session. Keep Cloudflare Access enabled as the outer gate.', liveWrites);
     } else {
       renderReadinessStatus('warning', `Readiness unavailable (${readinessResponse.status})`);
     }

@@ -2,6 +2,8 @@ export const defaultScaffoldMetadata = {
   repo: 'xhalo-blog',
   stage: '3-prototype',
   mode: 'scaffold',
+  release_line: '0.1.x-alpha',
+  contract_version: 'v1',
   static_site: 'Cloudflare Pages',
   worker_entry: 'workers/api/src/index.js',
   queue_binding: 'TASK_QUEUE',
@@ -139,6 +141,8 @@ export function buildProviderReadinessSnapshot(env = {}) {
   const hasGitHubApp = Boolean(env.GITHUB_APP_ID) && Boolean(env.GITHUB_APP_PRIVATE_KEY) && Boolean(env.GITHUB_INSTALLATION_ID);
   const hasGitHubToken = Boolean(env.GITHUB_TOKEN);
   const hasGitHubWebhookSecret = Boolean(env.GITHUB_WEBHOOK_SECRET);
+  const hasAdminSecret = Boolean(env.ADMIN_API_SHARED_SECRET);
+  const liveWritesEnabled = String(env.LIVE_WRITES_ENABLED || '').toLowerCase() === 'true';
   const hasR2Binding = Boolean(env.ASSETS) && typeof env.ASSETS === 'object';
   const hasR2PublicBaseUrl = Boolean(env.ASSETS_PUBLIC_BASE_URL);
   const hasR2SigningSecret = Boolean(env.ASSETS_SIGNING_SECRET);
@@ -147,6 +151,22 @@ export function buildProviderReadinessSnapshot(env = {}) {
   const hasTurnstile = Boolean(env.TURNSTILE_SITE_KEY) && Boolean(env.TURNSTILE_SECRET_KEY);
 
   const items = [
+    {
+      key: 'admin_api',
+      label: 'Admin API request gate',
+      status: hasAdminSecret ? 'ready' : 'missing',
+      note: hasAdminSecret
+        ? 'ADMIN_API_SHARED_SECRET is present for protected admin-facing routes.'
+        : 'ADMIN_API_SHARED_SECRET is missing, so protected admin-facing routes should stay unavailable.'
+    },
+    {
+      key: 'live_writes',
+      label: 'Live write gate',
+      status: liveWritesEnabled ? 'partial' : 'ready',
+      note: liveWritesEnabled
+        ? 'LIVE_WRITES_ENABLED=true. Keep Cloudflare Access, request verification, and route tests in place.'
+        : 'Live write routes remain disabled by default.'
+    },
     {
       key: 'github',
       label: 'GitHub PR publishing',
@@ -162,8 +182,8 @@ export function buildProviderReadinessSnapshot(env = {}) {
             : hasGitHubToken
               ? (
                 hasGitHubWebhookSecret
-                  ? 'Repository env, prototype GitHub token, and webhook secret are present.'
-                  : 'Repository env and prototype GitHub token are present, but the webhook secret is missing.'
+                  ? 'Repository env, fallback GitHub token, and webhook secret are present.'
+                  : 'Repository env and fallback GitHub token are present, but the webhook secret is missing.'
               )
               : 'Repository env is present but GitHub App or prototype GitHub token is missing.'
         )

@@ -9,6 +9,9 @@ Current implementation line:
 - Worker API, queue worker, and admin scaffold
 - prototype GitHub publishing, R2 upload, webhook reconciliation, and execution views
 - Stage 3.1 hardening for security boundaries, tests, compatibility notes, and release governance
+- Stage 3.2 admin UX hardening for protected-route operation and safer scaffold controls
+- Stage 3.3 provider hardening for readiness, live-write gating, and operator visibility
+- Stage 3.4 theme and plugin compatibility expansion for the `hexo-next` path
 
 ## Contract v1
 

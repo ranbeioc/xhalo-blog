@@ -64,5 +64,6 @@ Current placeholder consumer behavior:
 - logs known example tasks
 - logs known draft preview, R2 upload preview, publish notification preview, and moderation preview tasks
 - stores a small reconciliation summary inside the task payload for later inspection
+- stores minimal `retry_count` and `last_error` metadata inside reconciliation payloads
 - warns on unknown task types
 - acknowledges the message to avoid retry loops in the bare scaffold

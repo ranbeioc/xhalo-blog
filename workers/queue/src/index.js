@@ -72,6 +72,7 @@ export default {
     for (const message of batch.messages) {
       const task = buildQueueTaskEnvelope(message.body);
       const taskId = task.idempotency_key || task.payload?.idempotency_key || null;
+      const retryCount = Math.max((message.attempts || 1) - 1, 0);
 
       try {
         await updateTaskStatus(env, taskId, {
@@ -79,7 +80,8 @@ export default {
           payload: {
             ...task,
             reconciliation: {
-              phase: 'processing'
+              phase: 'processing',
+              retry_count: retryCount
             }
           }
         });
@@ -98,6 +100,7 @@ export default {
             ...task,
             reconciliation: {
               phase: 'completed',
+              retry_count: retryCount,
               summary
             }
           }
@@ -105,20 +108,23 @@ export default {
 
         message.ack();
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
         await updateTaskStatus(env, taskId, {
           status: 'failed',
-          error: error instanceof Error ? error.message : String(error),
+          error: errorMessage,
           payload: {
             ...task,
             reconciliation: {
-              phase: 'failed'
+              phase: 'failed',
+              retry_count: retryCount,
+              last_error: errorMessage
             }
           }
         });
         console.error('xhalo-blog queue task failed', JSON.stringify({
           taskId,
           type: task.type,
-          error: error instanceof Error ? error.message : String(error)
+          error: errorMessage
         }));
         message.ack();
       }

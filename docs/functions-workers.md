@@ -51,7 +51,7 @@ POST /api/moderation/preview
 POST /api/moderation/tasks
 ```
 
-This request secret is a prototype-grade inner gate. It does not replace Cloudflare Access.
+This request secret is a prototype-grade inner gate. It does not replace Cloudflare Access. The admin scaffold now stores the secret in session scope and only enables protected actions after it is provided.
 
 ## Live write gate
 
@@ -71,10 +71,11 @@ Dry-run behavior remains available when the admin secret is configured.
 - `GET /api/tasks` reads from `tasks` when D1 is bound, otherwise falls back to example rows
 - `POST /api/drafts/publish` supports `dry-run` and a prototype `live` path; the live path prefers GitHub App env, falls back to `GITHUB_TOKEN`, and opens a PR without writing directly to `main`
 - `POST /api/assets/r2-signed-upload` supports `dry-run` and a prototype `live` path that issues a short-lived signed worker upload URL
-- `PUT /api/assets/r2-upload/:token` validates the HMAC token and expiry, then writes uploaded bytes to R2
+- `PUT /api/assets/r2-upload/:token` validates the HMAC token and expiry, expects the admin request secret header, then writes uploaded bytes to R2
 - `POST /api/assets/r2-upload` supports `dry-run` and a bounded prototype `live` path that writes one object to R2
 - `POST /webhooks/github` verifies `x-hub-signature-256` with `GITHUB_WEBHOOK_SECRET`
 - `POST /webhooks/deployments/preview` verifies `x-preview-webhook-secret` with `PREVIEW_WEBHOOK_SECRET`
+- `workers/queue` now writes minimal retry metadata and `last_error` back into task reconciliation payloads for failed jobs
 
 ## Recommended dynamic paths
 

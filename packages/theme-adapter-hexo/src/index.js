@@ -6,6 +6,15 @@ const defaultMenu = [
   { key: 'archives', path: '/archives/', icon: 'archive' }
 ];
 
+const optionalCompatibilityPlugins = [
+  { packageName: 'cheerio', purpose: 'asset path rewrite helper' },
+  { packageName: '@waline/hexo-next', purpose: 'Waline placeholder integration' },
+  { packageName: 'hexo-generator-searchdb', purpose: 'local search index generation' },
+  { packageName: 'hexo-generator-baidu-sitemap', purpose: 'baidusitemap generation' },
+  { packageName: 'hexo-tag-chart', purpose: 'chart tag compatibility' },
+  { packageName: 'hexo-tag-mmedia', purpose: 'mmedia tag compatibility', status: 'planned' }
+];
+
 function normalizeMenuItem(item) {
   return {
     key: item?.key || 'custom',
@@ -63,5 +72,17 @@ export function mapThemeConfigToNext(config) {
       cloudflareAnalyticsToken: config.analytics?.cloudflareAnalyticsToken || '',
       clarityProjectId: config.analytics?.clarityProjectId || ''
     }
+  };
+}
+
+export function buildHexoCompatibilityProfile() {
+  return {
+    adapter: 'hexo-next',
+    theme: 'next',
+    permalink: ':year/:month/:day/:title/',
+    postAssetFolder: true,
+    headersFile: 'source/_headers',
+    assetRewriteHelper: 'scripts/hexo-asset-image.js',
+    optionalPlugins: optionalCompatibilityPlugins
   };
 }
