@@ -1,10 +1,12 @@
 # Public Configuration Contract
 
-This document freezes the public scaffold contract that downstream `xhalo-blog` repositories are expected to start from.
+This document tracks `Contract v1`, the public scaffold baseline for downstream `xhalo-blog` repositories.
+
+`Contract v1` documents file names, top-level sections, and default binding names. It does not mean the runtime API or provider integrations are production-ready.
 
 ## Contract files
 
-The stable public contract is defined by these root files:
+The public contract is defined by these root files:
 
 ```text
 rb-blog.config.example.json
@@ -12,11 +14,9 @@ rb-blog.config.example.json
 wrangler.toml.example
 ```
 
-These files are the supported handoff surface for users adopting the scaffold.
-
 ## `rb-blog.config.example.json`
 
-The stable top-level sections are:
+Stable top-level sections:
 
 - `site`
 - `theme`
@@ -29,19 +29,20 @@ The stable top-level sections are:
 Required expectations:
 
 - `site.url` must be an `https://` URL
-- `theme.name` stays `next`
-- `theme.menu` stays an array of public navigation items
+- `theme.adapter` must be present and currently defaults to `hexo-next`
+- `theme.name` currently defaults to `next`
+- `theme.menu` remains an array of public navigation items
 - `comments.serverUrl` remains the public comment endpoint field
 - `features.postAssetFolder` remains a boolean
 - `security.turnstile` and `security.access` remain booleans
 
-The stable contract does not guarantee that every future field is required, but it does guarantee that these sections and core field names remain the compatibility baseline for the scaffold.
+`Contract v1` stabilizes the default `hexo-next` adapter, not a permanent one-theme limit.
 
 ## `.env.example`
 
 Stable environment groups:
 
-- site and comment placeholders
+- site and request-gating placeholders
 - analytics placeholders
 - Firebase / Firestore placeholders
 - Cloudflare resource placeholders
@@ -49,10 +50,12 @@ Stable environment groups:
 - preview deployment reconciliation placeholders
 - Turnstile placeholders
 
-Current stable placeholder keys:
+Current baseline keys:
 
 ```text
 SITE_URL
+LIVE_WRITES_ENABLED
+ADMIN_API_SHARED_SECRET
 WALINE_SERVER_URL
 GOOGLE_ANALYTICS_ID
 BAIDU_ANALYTICS_ID
@@ -79,11 +82,9 @@ TURNSTILE_SITE_KEY
 TURNSTILE_SECRET_KEY
 ```
 
-The scaffold may add optional placeholders later, but these names are the stable baseline for current docs, checks, and examples.
-
 ## `wrangler.toml.example`
 
-The stable infrastructure bindings are:
+Stable infrastructure bindings:
 
 - worker entry: `workers/api/src/index.js`
 - D1 binding: `DB`
@@ -91,19 +92,18 @@ The stable infrastructure bindings are:
 - queue binding: `TASK_QUEUE`
 - queue name: `xhalo-blog-tasks`
 
-These names are now part of the stable public scaffold contract.
-
 ## Compatibility boundary
 
-What this contract guarantees:
+What `Contract v1` guarantees:
 
-- documented field names stay stable
+- documented file names stay stable
+- documented top-level config sections stay stable
+- default Worker entry and binding names stay documented
 - the NexT-compatible template remains the first-class example path
-- Pages + Worker + D1 + R2 + Queue placeholders remain aligned with the published docs
 
-What this contract does not guarantee:
+What `Contract v1` does not guarantee:
 
-- every provider integration is production-ready
-- every queue task type has a full retry pipeline
-- every future Hexo theme is supported
-- the placeholder admin API is a finished product
+- production-ready admin API
+- stable runtime API semantics
+- production-ready provider integrations
+- complete auth, abuse protection, and retry pipelines

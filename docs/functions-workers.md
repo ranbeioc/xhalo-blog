@@ -1,6 +1,6 @@
 # Pages Functions and Workers
 
-Dynamic routes should be isolated from the public static site.
+Dynamic routes should stay isolated from the public static site.
 
 Current scaffold entry:
 
@@ -8,20 +8,30 @@ Current scaffold entry:
 workers/api/src/index.js
 ```
 
-Current queue binding used by the API example:
+Current queue binding:
 
 ```text
 TASK_QUEUE
 ```
 
-Current read-only scaffold routes:
+## Public routes
 
 ```text
 GET /api/health
-GET /api/readiness
 GET /api/scaffold
+POST /webhooks/github
+POST /webhooks/deployments/preview
+```
+
+## Protected admin-facing routes
+
+These routes require `ADMIN_API_SHARED_SECRET` and the `x-xhalo-admin-secret` header:
+
+```text
+GET /api/readiness
 GET /api/posts
 GET /api/tasks
+POST /api/tasks/example
 GET /api/drafts/template
 POST /api/drafts/preview
 POST /api/drafts/tasks
@@ -30,76 +40,49 @@ POST /api/drafts/publish
 GET /api/assets/r2-template
 POST /api/assets/r2-preview
 POST /api/assets/r2-signed-upload
+PUT /api/assets/r2-upload/:token
 POST /api/assets/r2-upload
 POST /api/assets/r2-tasks
-POST /webhooks/github
-POST /webhooks/deployments/preview
 GET /api/publish/notifications/template
 POST /api/publish/notifications/preview
 POST /api/publish/notifications/tasks
 GET /api/moderation/template
 POST /api/moderation/preview
 POST /api/moderation/tasks
-POST /api/tasks/example
 ```
 
-The admin scaffold can read `GET /api/health` and `GET /api/scaffold` when it is deployed on the same origin as the placeholder API. If those routes are not reachable, it falls back to static scaffold defaults.
+This request secret is a prototype-grade inner gate. It does not replace Cloudflare Access. The admin scaffold now stores the secret in session scope and only enables protected actions after it is provided.
 
-`GET /api/readiness` summarizes whether the current worker environment looks ready for GitHub PR publishing, R2 assets, queue tasks, Turnstile, and Access-adjacent rollout checks. It does not validate external dashboards or perform write operations.
+## Live write gate
 
-Stage 3 prototype additions:
+These live write paths are disabled unless `LIVE_WRITES_ENABLED=true`:
 
+- `POST /api/drafts/publish`
+- `POST /api/assets/r2-signed-upload`
+- `PUT /api/assets/r2-upload/:token`
+- `POST /api/assets/r2-upload`
+
+Dry-run behavior remains available when the admin secret is configured.
+
+## Current prototype behavior
+
+- `GET /api/readiness` summarizes whether the current worker environment looks ready for GitHub PR publishing, R2 assets, queue tasks, Turnstile, and Access-adjacent checks
 - `GET /api/posts` reads from `posts_index` when D1 is bound, otherwise falls back to example rows
 - `GET /api/tasks` reads from `tasks` when D1 is bound, otherwise falls back to example rows
-- `GET /api/drafts/template` exposes the current draft metadata contract and branch/file defaults
-- `POST /api/drafts/preview` returns a normalized draft payload, file path, branch name, and PR preview without creating anything remotely
-- `POST /api/drafts/tasks` queues a dry-run draft task and returns the preview plus task metadata without creating anything remotely
-- `POST /api/drafts/github-plan` returns the ordered GitHub operations plan for the current draft without creating anything remotely
-- `POST /api/drafts/publish` supports `dry-run` and a prototype `live` path. The live path prefers `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_INSTALLATION_ID`, accepts the downloaded GitHub App PEM, falls back to `GITHUB_TOKEN`, and creates a branch, commits a draft file, and opens a pull request without writing directly to `main`
-- `GET /api/assets/r2-template` exposes the current R2 upload contract for bucket binding, key prefix, and public URL shape
-- `POST /api/assets/r2-preview` returns the derived bucket/key/url tuple for a future upload without writing anything remotely
-- `POST /api/assets/r2-signed-upload` supports `dry-run` and a prototype `live` path. The live path requires `ASSETS`, `ASSETS_PUBLIC_BASE_URL`, and `ASSETS_SIGNING_SECRET`, then issues a one-time signed worker upload URL
-- `POST /api/assets/r2-upload` supports `dry-run` and a bounded prototype `live` path. The live path requires the `ASSETS` binding plus `ASSETS_PUBLIC_BASE_URL`, writes one object to R2, and returns the derived public URL without introducing signed upload handlers yet
-- `PUT /api/assets/r2-upload/:token` consumes the one-time signed worker upload URL, validates the HMAC token and expiry, and writes the uploaded bytes to R2
-- `POST /api/assets/r2-tasks` queues a dry-run upload task and returns the preview plus task metadata without writing anything remotely
-- `GET /api/publish/notifications/template` exposes the current publish notification contract for queue binding and delivery channels
-- `POST /api/publish/notifications/preview` returns the derived notification title, message, and delivery target without sending anything remotely
-- `POST /api/publish/notifications/tasks` queues a dry-run publish notification task and returns the preview plus task metadata without sending anything remotely
-- `GET /api/moderation/template` exposes the current moderation contract for provider, action, and queue binding
-- `POST /api/moderation/preview` returns the derived moderation title, action, and review message without updating anything remotely
-- `POST /api/moderation/tasks` queues a dry-run moderation task and returns the preview plus task metadata without updating anything remotely
-- `POST /api/tasks/example` now persists a queued task record when D1 is available before the queue consumer handles it
-- `apps/admin` now includes a dry-run draft form that can preview draft metadata, queue a dry-run task, and render the future GitHub operation plan in the browser
-- `workers/queue` now performs minimal D1-backed reconciliation for known preview tasks, moving task rows through `processing` and `completed` with a small typed summary
-- `POST /webhooks/github` verifies `x-hub-signature-256` with `GITHUB_WEBHOOK_SECRET` and reconciles pull request status back into `posts_index` and `tasks`
-- `POST /webhooks/deployments/preview` verifies `x-preview-webhook-secret` with `PREVIEW_WEBHOOK_SECRET` and reconciles preview deployment status back into `posts_index` and `tasks`
+- `POST /api/drafts/publish` supports `dry-run` and a prototype `live` path; the live path prefers GitHub App env, falls back to `GITHUB_TOKEN`, and opens a PR without writing directly to `main`
+- `POST /api/assets/r2-signed-upload` supports `dry-run` and a prototype `live` path that issues a short-lived signed worker upload URL
+- `PUT /api/assets/r2-upload/:token` validates the HMAC token and expiry, expects the admin request secret header, then writes uploaded bytes to R2
+- `POST /api/assets/r2-upload` supports `dry-run` and a bounded prototype `live` path that writes one object to R2
+- `POST /webhooks/github` verifies `x-hub-signature-256` with `GITHUB_WEBHOOK_SECRET`
+- `POST /webhooks/deployments/preview` verifies `x-preview-webhook-secret` with `PREVIEW_WEBHOOK_SECRET`
+- `workers/queue` now writes minimal retry metadata and `last_error` back into task reconciliation payloads for failed jobs
 
-Recommended dynamic paths:
+## Recommended dynamic paths
 
 ```text
 /api/*
 /admin/*
 /webhooks/*
-/bot/*
 ```
 
-Do not intercept all HTML routes in early versions.
-
-## Suggested responsibility split
-
-- Cloudflare Pages:
-  - public static HTML
-  - CSS, JS, images, feeds, and search files
-- Worker API:
-  - admin-facing write endpoints
-  - webhook handlers
-  - background task coordination
-  - optional authenticated internal APIs
-
-## Early routing rule
-
-Keep the public blog render path static first. Add dynamic routes only under explicit prefixes such as `/api/*` and `/admin/*`.
-
-## Stage 2.5 boundary
-
-The current repository includes placeholder worker structure and route boundaries. It does not yet provide a production-grade admin API or full request validation pipeline.
+Keep the public blog render path static first. Do not treat this scaffold as a production admin API yet.

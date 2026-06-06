@@ -1,6 +1,6 @@
 # Theme Configuration
 
-`xhalo-blog` starts with Hexo theme compatibility. The first template targets NexT-style configuration.
+`xhalo-blog` starts with Hexo theme compatibility. The first template targets NexT-style configuration through the default `hexo-next` adapter.
 
 The public configuration contract starts from `rb-blog.config.example.json` and maps to:
 
@@ -34,6 +34,12 @@ The scaffold treats `rb-blog.config.example.json` as the public-facing config co
 - public feature toggles
 - optional comment and analytics providers
 
+Current default theme contract:
+
+- `theme.adapter: "hexo-next"`
+- `theme.name: "next"`
+- `scripts/hexo-asset-image.js` is the default compatibility helper for post asset rewriting in the Hexo paths
+
 ## Stage 2.5 defaults
 
 Current defaults are intentionally conservative:
@@ -45,4 +51,4 @@ Current defaults are intentionally conservative:
 
 ## Boundary
 
-This repository does not promise compatibility with every Hexo theme. The first stable target is the NexT-compatible path already included in the examples and template.
+This repository does not promise compatibility with every Hexo theme. `Contract v1` stabilizes the default `hexo-next` adapter, not a permanent one-theme limit.

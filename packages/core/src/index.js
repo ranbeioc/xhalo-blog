@@ -2,6 +2,8 @@ export const defaultScaffoldMetadata = {
   repo: 'xhalo-blog',
   stage: '3-prototype',
   mode: 'scaffold',
+  release_line: '0.1.x-alpha',
+  contract_version: 'v1',
   static_site: 'Cloudflare Pages',
   worker_entry: 'workers/api/src/index.js',
   queue_binding: 'TASK_QUEUE',
@@ -38,6 +40,8 @@ export const defaultScaffoldMetadata = {
     'Read-only D1-backed posts and task status routes are the first Stage 3 prototype slice.',
     'Draft flows now include a token-gated live GitHub branch and PR prototype.',
     'R2 upload flows now include a bounded live object write prototype and a worker-signed upload prototype.',
+    'Protected admin-facing routes expect an application-level admin secret in addition to outer Access controls.',
+    'Live write routes stay disabled by default until LIVE_WRITES_ENABLED=true is set explicitly.',
     'Publish notification flows remain dry-run prototypes until downstream delivery targets are implemented.',
     'Moderation flows remain dry-run prototypes until the real comment provider and anti-abuse controls are wired.',
     'Dynamic write flows should open pull requests rather than write to main directly.',
@@ -57,6 +61,8 @@ export const requiredConfigSections = [
 
 export const requiredEnvKeys = [
   'SITE_URL',
+  'LIVE_WRITES_ENABLED',
+  'ADMIN_API_SHARED_SECRET',
   'WALINE_SERVER_URL',
   'GOOGLE_ANALYTICS_ID',
   'BAIDU_ANALYTICS_ID',
@@ -135,6 +141,8 @@ export function buildProviderReadinessSnapshot(env = {}) {
   const hasGitHubApp = Boolean(env.GITHUB_APP_ID) && Boolean(env.GITHUB_APP_PRIVATE_KEY) && Boolean(env.GITHUB_INSTALLATION_ID);
   const hasGitHubToken = Boolean(env.GITHUB_TOKEN);
   const hasGitHubWebhookSecret = Boolean(env.GITHUB_WEBHOOK_SECRET);
+  const hasAdminSecret = Boolean(env.ADMIN_API_SHARED_SECRET);
+  const liveWritesEnabled = String(env.LIVE_WRITES_ENABLED || '').toLowerCase() === 'true';
   const hasR2Binding = Boolean(env.ASSETS) && typeof env.ASSETS === 'object';
   const hasR2PublicBaseUrl = Boolean(env.ASSETS_PUBLIC_BASE_URL);
   const hasR2SigningSecret = Boolean(env.ASSETS_SIGNING_SECRET);
@@ -143,6 +151,22 @@ export function buildProviderReadinessSnapshot(env = {}) {
   const hasTurnstile = Boolean(env.TURNSTILE_SITE_KEY) && Boolean(env.TURNSTILE_SECRET_KEY);
 
   const items = [
+    {
+      key: 'admin_api',
+      label: 'Admin API request gate',
+      status: hasAdminSecret ? 'ready' : 'missing',
+      note: hasAdminSecret
+        ? 'ADMIN_API_SHARED_SECRET is present for protected admin-facing routes.'
+        : 'ADMIN_API_SHARED_SECRET is missing, so protected admin-facing routes should stay unavailable.'
+    },
+    {
+      key: 'live_writes',
+      label: 'Live write gate',
+      status: liveWritesEnabled ? 'partial' : 'ready',
+      note: liveWritesEnabled
+        ? 'LIVE_WRITES_ENABLED=true. Keep Cloudflare Access, request verification, and route tests in place.'
+        : 'Live write routes remain disabled by default.'
+    },
     {
       key: 'github',
       label: 'GitHub PR publishing',
@@ -158,8 +182,8 @@ export function buildProviderReadinessSnapshot(env = {}) {
             : hasGitHubToken
               ? (
                 hasGitHubWebhookSecret
-                  ? 'Repository env, prototype GitHub token, and webhook secret are present.'
-                  : 'Repository env and prototype GitHub token are present, but the webhook secret is missing.'
+                  ? 'Repository env, fallback GitHub token, and webhook secret are present.'
+                  : 'Repository env and fallback GitHub token are present, but the webhook secret is missing.'
               )
               : 'Repository env is present but GitHub App or prototype GitHub token is missing.'
         )
@@ -256,7 +280,11 @@ export function validateScaffoldConfig(config) {
   }
 
   if (config.theme?.name !== 'next') {
-    issues.push('theme.name must stay aligned to next in the Stage 2.5 scaffold');
+    issues.push('theme.name must be present as a non-empty string');
+  }
+
+  if (config.theme?.adapter !== 'hexo-next') {
+    issues.push('theme.adapter must default to hexo-next in the current scaffold');
   }
 
   if (!Array.isArray(config.theme?.menu) || config.theme.menu.length === 0) {
@@ -312,6 +340,10 @@ export function validateEnvExample(content) {
 
   if (env.GITHUB_BRANCH && env.GITHUB_BRANCH !== 'main') {
     issues.push('GITHUB_BRANCH must default to main');
+  }
+
+  if ('LIVE_WRITES_ENABLED' in env && !['', 'false', 'true'].includes(String(env.LIVE_WRITES_ENABLED).toLowerCase())) {
+    issues.push('LIVE_WRITES_ENABLED must be blank, false, or true');
   }
 
   return issues;
@@ -629,7 +661,7 @@ export function buildR2SignedUploadPlan(input = {}, options = {}) {
       },
       {
         type: 'sign_upload_url',
-        summary: `Issue a one-time signed worker upload URL for ${preview.objectKey}`,
+        summary: `Issue a short-lived signed worker upload URL for ${preview.objectKey}`,
         payload: {
           ttlSeconds,
           method: 'PUT',
@@ -641,7 +673,8 @@ export function buildR2SignedUploadPlan(input = {}, options = {}) {
         summary: `PUT the asset bytes to the signed upload URL with ${preview.contentType}`,
         payload: {
           contentType: preview.contentType,
-          publicUrl: preview.publicUrl
+          publicUrl: preview.publicUrl,
+          adminHeader: 'x-xhalo-admin-secret'
         }
       },
       {

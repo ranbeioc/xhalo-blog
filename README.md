@@ -4,7 +4,11 @@
 
 It starts as a clean community edition template, not as a copy of any production blog. The repository contains example content, placeholder configuration, and a minimal Cloudflare platform skeleton for Pages, Workers, D1, R2, Queues, Turnstile, Access, and GitHub PR-based publishing workflows.
 
-> Status: `v1.0.0` stable scaffold contract. The public configuration surface, deployment baseline, and template layout are now frozen, while some provider integrations remain prototype-grade.
+> Status: `0.1.x alpha / Stage 3 prototype`. The public scaffold contract is tracked as `Contract v1`, but runtime APIs and provider integrations are not production-ready.
+
+## Production warning
+
+Do not expose live write routes on a public domain until Cloudflare Access, request authentication, Turnstile, rate limiting, and route-level tests are configured and verified.
 
 ## Goals
 
@@ -73,6 +77,9 @@ http://localhost:4000
 
 - [`docs/getting-started.md`](./docs/getting-started.md)
 - [`docs/public-config-contract.md`](./docs/public-config-contract.md)
+- [`docs/compatibility-matrix.md`](./docs/compatibility-matrix.md)
+- [`docs/hexo-next-optional-plugins.md`](./docs/hexo-next-optional-plugins.md)
+- [`docs/hexo-blog-extraction-manifest.md`](./docs/hexo-blog-extraction-manifest.md)
 - [`docs/stable-deployment-guide.md`](./docs/stable-deployment-guide.md)
 - [`docs/stable-template-layout.md`](./docs/stable-template-layout.md)
 - [`docs/cloudflare-pages.md`](./docs/cloudflare-pages.md)
@@ -124,7 +131,7 @@ Current scaffold defaults are aligned around:
 - `DB` -> `xhalo-blog`
 - a normalized `rb-blog.config.example.json` contract for site, theme, comments, analytics, features, and security
 
-The stable public scaffold contract is documented in [`docs/public-config-contract.md`](./docs/public-config-contract.md).
+The public scaffold contract is documented in [`docs/public-config-contract.md`](./docs/public-config-contract.md).
 
 Never commit real API tokens, account IDs, zone IDs, analytics IDs, private keys, or production secrets.
 

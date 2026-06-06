@@ -18,6 +18,36 @@
         </p>
       </header>
 
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Operator guard</h2>
+          <span class="status-badge" data-field="operator-guard-status" data-state="warning">Secret required</span>
+        </div>
+        <div class="meta-grid">
+          <div class="meta-row">
+            <span class="meta-label">Admin route access</span>
+            <strong data-field="operator-access-mode">Cloudflare Access + request secret</strong>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Live writes</span>
+            <strong data-field="operator-live-writes">disabled by default</strong>
+          </div>
+        </div>
+        <form class="operator-form" data-role="operator-guard-form">
+          <label class="field-span-2">
+            <span>Admin API shared secret</span>
+            <input name="adminSecret" type="password" autocomplete="off" placeholder="x-xhalo-admin-secret" />
+          </label>
+          <div class="form-actions field-span-2">
+            <button type="submit">Save for this session</button>
+            <button type="button" class="button-secondary" data-role="clear-admin-secret">Clear</button>
+          </div>
+        </form>
+        <p class="operator-note" data-field="operator-guard-note">
+          Protected routes stay locked until the admin secret is provided. This is still an inner gate, not a substitute for Cloudflare Access.
+        </p>
+      </section>
+
       <section class="panel-grid" aria-label="Scaffold status">
         <article class="panel">
           <h2>Current shape</h2>
@@ -77,6 +107,14 @@
           <div class="meta-row">
             <span class="meta-label">Mode</span>
             <strong data-field="mode">scaffold</strong>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Release line</span>
+            <strong data-field="release-line">0.1.x-alpha</strong>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Contract</span>
+            <strong data-field="contract-version">v1</strong>
           </div>
           <div class="meta-row">
             <span class="meta-label">Static site</span>
@@ -202,10 +240,10 @@
               <input name="status" type="text" value="draft" />
             </label>
             <div class="form-actions field-span-2">
-              <button type="submit" name="action" value="preview">Generate preview</button>
-              <button type="submit" name="action" value="queue" class="button-secondary">Queue dry-run task</button>
-              <button type="submit" name="action" value="plan" class="button-secondary">Show GitHub plan</button>
-              <button type="submit" name="action" value="publish" class="button-secondary">Publish via GitHub</button>
+              <button type="submit" name="action" value="preview" data-protected-action>Generate preview</button>
+              <button type="submit" name="action" value="queue" class="button-secondary" data-protected-action>Queue dry-run task</button>
+              <button type="submit" name="action" value="plan" class="button-secondary" data-protected-action>Show GitHub plan</button>
+              <button type="submit" name="action" value="publish" class="button-secondary" data-protected-action>Publish via GitHub</button>
             </div>
           </form>
 
@@ -328,10 +366,10 @@
               <input name="cacheControl" type="text" value="public, max-age=31536000, immutable" />
             </label>
             <div class="form-actions field-span-2">
-              <button type="submit" name="action" value="preview">Generate upload preview</button>
-              <button type="submit" name="action" value="queue" class="button-secondary">Queue dry-run upload</button>
-              <button type="submit" name="action" value="signed" class="button-secondary">Upload via signed URL</button>
-              <button type="submit" name="action" value="publish" class="button-secondary">Upload to R2</button>
+              <button type="submit" name="action" value="preview" data-protected-action>Generate upload preview</button>
+              <button type="submit" name="action" value="queue" class="button-secondary" data-protected-action>Queue dry-run upload</button>
+              <button type="submit" name="action" value="signed" class="button-secondary" data-protected-action>Upload via signed URL</button>
+              <button type="submit" name="action" value="publish" class="button-secondary" data-protected-action>Upload to R2</button>
             </div>
           </form>
 
@@ -450,8 +488,8 @@
               <input name="status" type="text" value="preview-ready" />
             </label>
             <div class="form-actions field-span-2">
-              <button type="submit" name="action" value="preview">Generate notification preview</button>
-              <button type="submit" name="action" value="queue" class="button-secondary">Queue dry-run notification</button>
+              <button type="submit" name="action" value="preview" data-protected-action>Generate notification preview</button>
+              <button type="submit" name="action" value="queue" class="button-secondary" data-protected-action>Queue dry-run notification</button>
             </div>
           </form>
 
@@ -534,8 +572,8 @@
               <input name="reason" type="text" value="manual-review" />
             </label>
             <div class="form-actions field-span-2">
-              <button type="submit" name="actionType" value="preview">Generate moderation preview</button>
-              <button type="submit" name="actionType" value="queue" class="button-secondary">Queue dry-run moderation</button>
+              <button type="submit" name="actionType" value="preview" data-protected-action>Generate moderation preview</button>
+              <button type="submit" name="actionType" value="queue" class="button-secondary" data-protected-action>Queue dry-run moderation</button>
             </div>
           </form>
 

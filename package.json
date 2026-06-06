@@ -5,8 +5,14 @@
   "description": "Open-source Cloudflare-native Hexo blog framework scaffold.",
   "scripts": {
     "check": "node scripts/check-scaffold.mjs",
+    "check:syntax": "node --check workers/api/src/index.js && node --check workers/queue/src/index.js",
+    "check:secrets": "node scripts/check-no-production-markers.mjs",
     "build:admin": "npm --workspace apps/admin run build",
-    "build:basic": "npm --workspace examples/basic-blog run build"
+    "build:basic": "npm --workspace examples/basic-blog run build",
+    "build:next-example": "npm --prefix examples/next-theme-blog install --no-package-lock && npm --prefix examples/next-theme-blog run build",
+    "build:next-template": "npm --prefix templates/hexo-next install --no-package-lock && npm --prefix templates/hexo-next run build",
+    "test": "node --test tests/*.test.mjs",
+    "check:all": "npm run check && npm run build:admin && npm run build:basic && npm run build:next-example && npm run build:next-template && npm test && npm run check:syntax && npm run check:secrets"
   },
   "workspaces": [
     "apps/*",
