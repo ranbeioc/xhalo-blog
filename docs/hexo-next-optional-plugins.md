@@ -34,6 +34,8 @@ These packages expand compatibility, but they do not imply that every capability
 
 `hexo-tag-mmedia` remains a pending compatibility item. The current upstream plugin shape throws a load error under the current Hexo 6.2 baseline, so it is documented in the compatibility matrix but not included by default in the runnable template and example.
 
+Stage 3.5 adds built compatibility fixtures for PDF, Chart, searchdb, and baidusitemap output so the supported plugin set is now checked against generated artifacts rather than only package presence.
+
 ## What this means
 
 - searchdb and baidusitemap packages are available for downstream enablement

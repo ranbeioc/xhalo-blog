@@ -22,6 +22,5 @@ Open-source repository: `ranbeioc/xhalo-blog`
 
 ## Pending
 
-- asset path regression fixture coverage beyond the current helper
-- sample content fixtures for PDF, Chart, mmedia, searchdb, and baidusitemap output
+- `mmedia` compatibility beyond documentation-only status
 - theme adapter generalization beyond the default `hexo-next` path
