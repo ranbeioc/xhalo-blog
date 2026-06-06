@@ -23,10 +23,14 @@ const required = [
   'examples/next-theme-blog/_config.yml',
   'docs/getting-started.md',
   'docs/architecture.md',
+  'docs/compatibility-matrix.md',
+  'docs/hexo-blog-extraction-manifest.md',
   'docs/public-config-contract.md',
   'docs/stable-deployment-guide.md',
   'docs/stable-template-layout.md',
-  '.github/workflows/check.yml'
+  '.github/workflows/check.yml',
+  'scripts/check-no-production-markers.mjs',
+  'tests/worker-security.test.mjs'
 ];
 
 const missing = required.filter((file) => !fs.existsSync(file));
@@ -34,30 +38,6 @@ const missing = required.filter((file) => !fs.existsSync(file));
 if (missing.length > 0) {
   console.error('Missing required scaffold files:');
   for (const file of missing) console.error(`- ${file}`);
-  process.exit(1);
-}
-
-const forbidden = [
-  'ranbeis.com',
-  'wae.xhalo.co',
-  'G-FKQJFY0RNS',
-  'gju8jhwyfo',
-  '56a7d794be9249a2bb752e3a953c9183'
-];
-
-const scanTargets = required.filter((file) => fs.existsSync(file));
-const hits = [];
-
-for (const file of scanTargets) {
-  const content = fs.readFileSync(file, 'utf8');
-  for (const token of forbidden) {
-    if (content.includes(token)) hits.push(`${file}: ${token}`);
-  }
-}
-
-if (hits.length > 0) {
-  console.error('Forbidden production-specific values found:');
-  for (const hit of hits) console.error(`- ${hit}`);
   process.exit(1);
 }
 

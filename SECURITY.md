@@ -1,13 +1,13 @@
 # Security Policy
 
-`xhalo-blog` now has a stable public scaffold contract, but production deployments are still self-managed. Treat every provider integration beyond the published baseline docs as requiring operator review.
+`xhalo-blog` is still a `0.1.x alpha` runtime with prototype-grade provider integrations. Treat `Contract v1` as a documentation and scaffold baseline, not as proof of production runtime stability.
 
 ## Supported versions
 
 | Version | Supported |
 |---|---|
-| 1.x stable scaffold contract | Supported baseline docs and examples |
-| pre-1.0 alpha snapshots | Best-effort only |
+| 0.1.x alpha | Best-effort security fixes for scaffold and prototype code |
+| Contract v1 docs | Supported as documentation baseline only |
 
 ## Reporting a vulnerability
 
@@ -22,27 +22,32 @@ Never commit:
 - Cloudflare zone IDs
 - GitHub personal access tokens
 - OAuth client secrets
-- Private keys
-- Real analytics IDs
-- Real comment service secrets
-- Real production database credentials
+- private keys
+- real analytics IDs
+- real comment service secrets
+- real production database credentials
 
 Use `.env.example` and platform environment variables instead.
 
 ## Default settings review
 
-The current stable defaults are intentionally conservative:
+The current defaults are intentionally conservative:
 
 - comments are disabled by default
 - analytics IDs are blank by default
 - Turnstile and Access toggles default to `false`
+- live write routes stay disabled unless `LIVE_WRITES_ENABLED=true`
+- admin-facing routes require `ADMIN_API_SHARED_SECRET` when deployed
 - GitHub publish flows default to PR-based writes instead of direct `main` updates
 - Cloudflare resource IDs are placeholders only
+
+Live write APIs must remain disabled or protected by Access plus application-level request verification before deployment.
 
 Review required before production use:
 
 - replace every placeholder secret
+- verify `ADMIN_API_SHARED_SECRET` distribution and rotation
 - verify webhook secrets before exposing webhook endpoints
-- verify Access policy rules in Cloudflare dashboard
+- verify Access policy rules in the Cloudflare dashboard
 - review R2 URL strategy before publishing user-uploaded assets
 - review queue retry and failure handling if the scaffold is extended beyond the current prototype behavior

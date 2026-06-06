@@ -38,6 +38,8 @@ export const defaultScaffoldMetadata = {
     'Read-only D1-backed posts and task status routes are the first Stage 3 prototype slice.',
     'Draft flows now include a token-gated live GitHub branch and PR prototype.',
     'R2 upload flows now include a bounded live object write prototype and a worker-signed upload prototype.',
+    'Protected admin-facing routes expect an application-level admin secret in addition to outer Access controls.',
+    'Live write routes stay disabled by default until LIVE_WRITES_ENABLED=true is set explicitly.',
     'Publish notification flows remain dry-run prototypes until downstream delivery targets are implemented.',
     'Moderation flows remain dry-run prototypes until the real comment provider and anti-abuse controls are wired.',
     'Dynamic write flows should open pull requests rather than write to main directly.',
@@ -57,6 +59,8 @@ export const requiredConfigSections = [
 
 export const requiredEnvKeys = [
   'SITE_URL',
+  'LIVE_WRITES_ENABLED',
+  'ADMIN_API_SHARED_SECRET',
   'WALINE_SERVER_URL',
   'GOOGLE_ANALYTICS_ID',
   'BAIDU_ANALYTICS_ID',
@@ -256,7 +260,11 @@ export function validateScaffoldConfig(config) {
   }
 
   if (config.theme?.name !== 'next') {
-    issues.push('theme.name must stay aligned to next in the Stage 2.5 scaffold');
+    issues.push('theme.name must be present as a non-empty string');
+  }
+
+  if (config.theme?.adapter !== 'hexo-next') {
+    issues.push('theme.adapter must default to hexo-next in the current scaffold');
   }
 
   if (!Array.isArray(config.theme?.menu) || config.theme.menu.length === 0) {
@@ -312,6 +320,10 @@ export function validateEnvExample(content) {
 
   if (env.GITHUB_BRANCH && env.GITHUB_BRANCH !== 'main') {
     issues.push('GITHUB_BRANCH must default to main');
+  }
+
+  if ('LIVE_WRITES_ENABLED' in env && !['', 'false', 'true'].includes(String(env.LIVE_WRITES_ENABLED).toLowerCase())) {
+    issues.push('LIVE_WRITES_ENABLED must be blank, false, or true');
   }
 
   return issues;
@@ -629,7 +641,7 @@ export function buildR2SignedUploadPlan(input = {}, options = {}) {
       },
       {
         type: 'sign_upload_url',
-        summary: `Issue a one-time signed worker upload URL for ${preview.objectKey}`,
+        summary: `Issue a short-lived signed worker upload URL for ${preview.objectKey}`,
         payload: {
           ttlSeconds,
           method: 'PUT',
@@ -641,7 +653,8 @@ export function buildR2SignedUploadPlan(input = {}, options = {}) {
         summary: `PUT the asset bytes to the signed upload URL with ${preview.contentType}`,
         payload: {
           contentType: preview.contentType,
-          publicUrl: preview.publicUrl
+          publicUrl: preview.publicUrl,
+          adminHeader: 'x-xhalo-admin-secret'
         }
       },
       {

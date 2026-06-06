@@ -52,6 +52,13 @@ It is closer to the target GitHub App model, but it still does not include:
 - queue-backed retries for failed publish jobs
 - richer branch naming, dedupe, and conflict handling
 
+The live publish path should remain disabled unless:
+
+- `ADMIN_API_SHARED_SECRET` is configured
+- `LIVE_WRITES_ENABLED=true` is set explicitly
+- Cloudflare Access is enforcing outer access control
+- route-level tests have been verified by the operator
+
 ## Current reconciliation additions
 
 The scaffold now includes:

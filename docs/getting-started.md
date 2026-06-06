@@ -1,6 +1,6 @@
 # Getting Started
 
-`xhalo-blog` now has a stable public scaffold contract. This repository still contains Stage 3 prototypes for provider integrations, but the template, config, and deployment baseline are no longer moving targets.
+`xhalo-blog` is currently `0.1.x alpha / Stage 3 prototype`. `Contract v1` documents the scaffold baseline, but provider integrations and runtime APIs remain prototype-grade.
 
 ## Choose a starting point
 
@@ -22,16 +22,18 @@ From the repository root:
 
 ```bash
 npm install
-npm run check
+npm run check:all
 ```
 
-This verifies the required scaffold files exist and that obvious production-only values are not present in the checked baseline files.
+This verifies the scaffold baseline, production-marker scan, admin build, basic example build, Worker syntax checks, and minimal security tests.
 
-When the placeholder API is deployed on the same origin, you can also inspect `GET /api/readiness` to confirm whether GitHub, R2, queue, and Turnstile-related environment wiring looks ready before moving a dry-run prototype toward a real integration.
+When the placeholder API is deployed on the same origin, protect it first with Cloudflare Access and `ADMIN_API_SHARED_SECRET`. Only then should you inspect `GET /api/readiness` to confirm whether GitHub, R2, queue, and Turnstile-related environment wiring looks ready.
 
 For live GitHub draft publishing, prefer `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_INSTALLATION_ID`. The worker accepts the PEM you download from GitHub for the app key. `GITHUB_TOKEN` remains a fallback for the early prototype path.
 
-For the first live R2 upload prototype, bind `ASSETS` in Wrangler and set both `ASSETS_PUBLIC_BASE_URL` and `ASSETS_SIGNING_SECRET`. The direct live upload path uses the public base URL, and the signed upload path also uses the signing secret to mint one-time worker upload URLs.
+For the first live R2 upload prototype, bind `ASSETS` in Wrangler and set both `ASSETS_PUBLIC_BASE_URL` and `ASSETS_SIGNING_SECRET`. The direct live upload path uses the public base URL, and the signed upload path uses the signing secret to mint short-lived worker upload URLs.
+
+Keep `LIVE_WRITES_ENABLED` blank or `false` by default. Only set `LIVE_WRITES_ENABLED=true` after Access, request verification, and route-level tests are in place.
 
 For webhook reconciliation, also set `GITHUB_WEBHOOK_SECRET` and `PREVIEW_WEBHOOK_SECRET` before exposing `/webhooks/github` or `/webhooks/deployments/preview`.
 

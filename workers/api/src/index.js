@@ -567,12 +567,58 @@ async function verifyPreviewWebhookSecret(env, request) {
   }
 }
 
+function isLiveWritesEnabled(env) {
+  return String(env.LIVE_WRITES_ENABLED || '').toLowerCase() === 'true';
+}
+
+function rejectLiveWriteDisabled() {
+  return createJsonResponse({
+    error: 'Live writes are disabled by default.',
+    required_env: 'LIVE_WRITES_ENABLED=true',
+    note: 'Enable only behind Cloudflare Access and application-level request verification.'
+  }, { status: 403 });
+}
+
+function hasAdminRequestSecret(env) {
+  return Boolean(env.ADMIN_API_SHARED_SECRET);
+}
+
+function verifyAdminRequest(request, env) {
+  if (!hasAdminRequestSecret(env)) return false;
+  const provided = request.headers.get('x-xhalo-admin-secret') || '';
+  return Boolean(provided) && provided === env.ADMIN_API_SHARED_SECRET;
+}
+
+function rejectUnauthorized() {
+  return createJsonResponse({
+    error: 'Unauthorized admin API request.',
+    note: 'Protect this route with Cloudflare Access and an application-level admin secret before production use.'
+  }, { status: 401 });
+}
+
+function isProtectedAdminRoute(pathname) {
+  if (pathname === '/api/readiness' || pathname === '/api/posts' || pathname === '/api/tasks' || pathname === '/api/tasks/example') {
+    return true;
+  }
+
+  return [
+    '/api/drafts/',
+    '/api/assets/',
+    '/api/publish/',
+    '/api/moderation/'
+  ].some((prefix) => pathname.startsWith(prefix));
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
     if (url.pathname === '/api/health') {
       return createJsonResponse({ ok: true, service: 'xhalo-blog-api', stage: '3-prototype', mode: 'scaffold' });
+    }
+
+    if (url.pathname === '/api/scaffold') {
+      return createJsonResponse(getScaffoldMetadata());
     }
 
     if (url.pathname === '/webhooks/github' && request.method === 'POST') {
@@ -697,12 +743,12 @@ export default {
       });
     }
 
-    if (url.pathname === '/api/readiness') {
-      return createJsonResponse(buildProviderReadinessSnapshot(env));
+    if (isProtectedAdminRoute(url.pathname) && !verifyAdminRequest(request, env)) {
+      return rejectUnauthorized();
     }
 
-    if (url.pathname === '/api/scaffold') {
-      return createJsonResponse(getScaffoldMetadata());
+    if (url.pathname === '/api/readiness') {
+      return createJsonResponse(buildProviderReadinessSnapshot(env));
     }
 
     if (url.pathname === '/api/posts') {
@@ -821,6 +867,10 @@ export default {
         });
       }
 
+      if (!isLiveWritesEnabled(env)) {
+        return rejectLiveWriteDisabled();
+      }
+
       const authorization = await getGitHubAuthorization(env);
       if (!authorization.header) {
         return createJsonResponse({
@@ -914,6 +964,10 @@ export default {
         });
       }
 
+      if (!isLiveWritesEnabled(env)) {
+        return rejectLiveWriteDisabled();
+      }
+
       if (!env.ASSETS || typeof env.ASSETS.put !== 'function') {
         return createJsonResponse({
           error: 'ASSETS binding is required for the live signed upload prototype.',
@@ -966,16 +1020,21 @@ export default {
         upload_url: uploadUrl,
         upload_method: 'PUT',
         upload_headers: {
-          'content-type': preview.contentType
+          'content-type': preview.contentType,
+          'x-xhalo-admin-secret': '<ADMIN_API_SHARED_SECRET>'
         },
         expires_at: new Date(expiresAt).toISOString(),
         uploaded_bytes: uploadBody.byteLength,
-        note: 'Signed worker upload URL issued. Upload bytes with PUT before it expires.'
+        note: 'Short-lived signed worker upload URL issued. Send x-xhalo-admin-secret with the PUT request. It is not one-time unless a nonce store is added.'
       });
     }
 
     if (url.pathname.startsWith('/api/assets/r2-upload/') && request.method === 'PUT') {
       const token = decodeURIComponent(url.pathname.slice('/api/assets/r2-upload/'.length));
+
+      if (!isLiveWritesEnabled(env)) {
+        return rejectLiveWriteDisabled();
+      }
 
       if (!env.ASSETS || typeof env.ASSETS.put !== 'function') {
         return createJsonResponse({ error: 'ASSETS binding is required for signed uploads.' }, { status: 503 });
@@ -1064,6 +1123,10 @@ export default {
           plan,
           note: 'Dry-run R2 upload only. No object has been written.'
         });
+      }
+
+      if (!isLiveWritesEnabled(env)) {
+        return rejectLiveWriteDisabled();
       }
 
       if (!env.ASSETS || typeof env.ASSETS.put !== 'function') {

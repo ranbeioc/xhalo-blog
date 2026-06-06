@@ -1,52 +1,41 @@
 # Roadmap
 
-## v0.1.0-alpha
+## 0.1.x alpha
 
-- Initial open-source scaffold.
-- Hexo + NexT example template.
-- Cloudflare Pages deployment docs.
-- Worker API skeleton.
-- Queue consumer skeleton.
-- D1 schema example.
-- R2 asset path convention.
-- Turnstile and Access documentation.
-- GitHub PR publishing design.
+Current implementation line:
 
-## v0.2.0-alpha
+- open-source scaffold for Cloudflare-native Hexo publishing
+- Hexo + NexT example and reusable template
+- Worker API, queue worker, and admin scaffold
+- prototype GitHub publishing, R2 upload, webhook reconciliation, and execution views
+- Stage 3.1 hardening for security boundaries, tests, compatibility notes, and release governance
 
-- Admin panel scaffold with same-origin placeholder API wiring.
-- Read-only posts index API prototype.
-- Read-only D1 task status integration prototype.
-- Draft metadata template and PR preview prototype.
-- Admin dry-run draft preview surface.
-- Draft metadata flow.
-- Queue-backed draft task prototype.
-- GitHub branch and PR creation design refined.
-- GitHub operation plan prototype.
+## Contract v1
 
-## v0.3.0-alpha
+Contract v1 means:
 
-- R2 upload prototype.
-- R2 upload dry-run preview and queued task prototype.
-- Queue-based publish notification prototype.
-- Queue-based publish notification dry-run preview and queued task prototype.
-- Comment moderation design.
-- Comment moderation dry-run preview and queued task prototype.
-- Minimal D1-backed queue task reconciliation for known preview jobs.
-- GitHub webhook and preview deployment reconciliation prototype.
-- Richer read-only execution view for posts and tasks.
+- config file names and top-level sections are documented
+- default Worker entry and Cloudflare binding names are documented
+- template layout is intended to remain stable where practical
 
-## v1.0.0
+Contract v1 does not mean:
 
-- Stable public configuration contract.
-- Stable deployment guide.
-- Stable template layout.
-- Security review for default settings.
+- production-ready admin API
+- production-ready provider integrations
+- complete auth and abuse protection
+- stable runtime API semantics
+
+## Future target: v1.0.0
+
+`v1.0.0` remains a future goal, not the current release line.
+
+Target requirements include:
+
+- hardened live-write auth and abuse controls
+- provider integrations that have moved beyond prototype-grade behavior
+- broader route-level and integration test coverage
+- clearer operator runbooks for deployment, rollback, and incident handling
 
 ## Current release line
 
-`v1.0.0` now represents the stable public scaffold contract:
-
-- root config files are frozen as the public baseline
-- deployment and template layout docs are frozen as the public baseline
-- provider integrations may still evolve behind the stable scaffold surface
+`0.1.x alpha` is the current implementation line.

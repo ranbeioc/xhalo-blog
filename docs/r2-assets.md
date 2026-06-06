@@ -47,7 +47,7 @@ This repository now also includes two bounded live prototypes:
 - `POST /api/assets/r2-upload`
 - `PUT /api/assets/r2-upload/:token`
 
-The signed route mints a one-time worker upload URL. The token route consumes that URL and writes the bytes to R2.
+The signed route mints a short-lived worker upload URL. The token route consumes that URL, expects the admin request secret header, and writes the bytes to R2. It is not one-time unless nonce consumption is added.
 
 They do not yet provide:
 
