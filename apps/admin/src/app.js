@@ -261,7 +261,8 @@ const fallbackModerationTask = {
 
 const state = {
   adminSecret: '',
-  fileMode: window.location.protocol === 'file:'
+  fileMode: window.location.protocol === 'file:',
+  posts: fallbackPosts
 };
 
 function loadStoredAdminSecret() {
@@ -469,7 +470,13 @@ function renderModerationPreviewStatus(state, note) {
 
 function renderPosts(items) {
   renderCollection('[data-field="posts-preview"]', items, (item) => (
-    `<div class="preview-stack"><strong>${item.title || item.slug || 'Untitled'}</strong><span>${item.status || 'unknown'} · ${item.slug || '-'}</span><small class="preview-meta">${[item.path, item.detail_primary, item.detail_secondary].filter(Boolean).join(' · ')}</small></div>`
+    `<a href="#" class="post-preview-item" data-slug="${item.slug}" style="text-decoration: none; color: inherit; display: block; cursor: pointer;">
+      <div class="preview-stack">
+        <strong>${item.title || item.slug || 'Untitled'}</strong>
+        <span>${item.status || 'unknown'} · ${item.slug || '-'}</span>
+        <small class="preview-meta">${[item.path, item.detail_primary, item.detail_secondary].filter(Boolean).join(' · ')}</small>
+      </div>
+    </a>`
   ));
 }
 
@@ -782,6 +789,36 @@ function clearOperatorGuardSecret() {
     'Protected routes stay locked until the admin secret is provided. This is still an inner gate, not a substitute for Cloudflare Access.'
   );
   loadScaffoldData();
+}
+
+function handlePostClick(event) {
+  const itemLink = event.target.closest('.post-preview-item');
+  if (!itemLink) return;
+  event.preventDefault();
+
+  const slug = itemLink.dataset.slug;
+  if (!slug || !state.posts) return;
+
+  const post = state.posts.find(p => p.slug === slug);
+  if (!post) return;
+
+  const form = document.querySelector('[data-role="draft-preview-form"]');
+  if (form) {
+    const titleInput = form.querySelector('input[name="title"]');
+    const slugInput = form.querySelector('input[name="slug"]');
+    const summaryText = form.querySelector('textarea[name="summary"]');
+    const statusInput = form.querySelector('input[name="status"]');
+
+    if (titleInput) titleInput.value = post.title || '';
+    if (slugInput) slugInput.value = post.slug || '';
+    if (statusInput) statusInput.value = post.status || '';
+    if (summaryText) summaryText.value = `Front matter loaded for ${post.slug}. Click Generate Preview to sync plan actions.`;
+
+    const submitter = form.querySelector('button[value="preview"]');
+    if (submitter) {
+      submitter.click();
+    }
+  }
 }
 
 async function handleDraftPreviewSubmit(event) {
@@ -1146,6 +1183,12 @@ async function loadScaffoldData() {
     moderationForm.dataset.bound = 'true';
   }
 
+  const postsPreviewList = document.querySelector('[data-field="posts-preview"]');
+  if (postsPreviewList && !postsPreviewList.dataset.bound) {
+    postsPreviewList.addEventListener('click', handlePostClick);
+    postsPreviewList.dataset.bound = 'true';
+  }
+
   if (state.fileMode) {
     renderHealth(false, 'Static-only preview');
     return;
@@ -1213,6 +1256,7 @@ async function loadScaffoldData() {
 
     if (postsResponse.ok) {
       const posts = await postsResponse.json();
+      state.posts = posts.items || [];
       if (Array.isArray(posts.items) && posts.items.length > 0) renderPosts(posts.items);
     }
 
