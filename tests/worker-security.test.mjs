@@ -578,3 +578,196 @@ test('Schema Validation: valid inputs pass validation with 200', async () => {
   assert.equal(json.persisted, undefined); // dry-run doesn't persist
 });
 
+test('Schema Validation: invalid JSON request body is rejected with 400', async () => {
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: '{invalid json'
+  }, validationEnv);
+
+  assert.equal(response.status, 400);
+  assert.equal(json.error, 'Invalid JSON request body.');
+});
+
+test('Schema Validation: invalid mode value is rejected with 400', async () => {
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: 'valid-slug',
+      mode: 'invalid-mode'
+    })
+  }, validationEnv);
+
+  assert.equal(response.status, 400);
+  assert.equal(json.error, 'Validation failed.');
+  assert.ok(json.details.includes('mode must be either "dry-run" or "live"'));
+});
+
+test('Schema Validation: invalid publish_target is rejected with 400', async () => {
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: 'valid-slug',
+      publish_target: 'invalid-target'
+    })
+  }, validationEnv);
+
+  assert.equal(response.status, 400);
+  assert.equal(json.error, 'Validation failed.');
+  assert.ok(json.details.includes('publish_target must be either "github" or "d1"'));
+});
+
+test('Schema Validation: body content too large is rejected with 400', async () => {
+  const largeBody = 'a'.repeat(200 * 1024 + 1);
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: 'valid-slug',
+      body: largeBody
+    })
+  }, validationEnv);
+
+  assert.equal(response.status, 400);
+  assert.equal(json.error, 'Validation failed.');
+  assert.ok(json.details.includes('body content size cannot exceed 200 KiB'));
+});
+
+test('Schema Validation: summary too long is rejected with 400', async () => {
+  const longSummary = 'a'.repeat(501);
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: 'valid-slug',
+      summary: longSummary
+    })
+  }, validationEnv);
+
+  assert.equal(response.status, 400);
+  assert.equal(json.error, 'Validation failed.');
+  assert.ok(json.details.includes('summary cannot be longer than 500 characters'));
+});
+
+test('Schema Validation: category too long is rejected with 400', async () => {
+  const longCategory = 'a'.repeat(101);
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: 'valid-slug',
+      category: longCategory
+    })
+  }, validationEnv);
+
+  assert.equal(response.status, 400);
+  assert.equal(json.error, 'Validation failed.');
+  assert.ok(json.details.includes('category cannot be longer than 100 characters'));
+});
+
+test('Schema Validation: too many tags are rejected with 400', async () => {
+  const manyTags = Array(21).fill('tag');
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: 'valid-slug',
+      tags: manyTags
+    })
+  }, validationEnv);
+
+  assert.equal(response.status, 400);
+  assert.equal(json.error, 'Validation failed.');
+  assert.ok(json.details.includes('tags list cannot contain more than 20 items'));
+});
+
+test('Schema Validation: tag too long is rejected with 400', async () => {
+  const longTag = 'a'.repeat(51);
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: 'valid-slug',
+      tags: [longTag]
+    })
+  }, validationEnv);
+
+  assert.equal(response.status, 400);
+  assert.equal(json.error, 'Validation failed.');
+  assert.ok(json.details.some(d => d.includes('cannot be longer than 50 characters')));
+});
+
+test('Schema Validation: slug with underscore is rejected with 400', async () => {
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: 'slug_with_underscore',
+      mode: 'dry-run'
+    })
+  }, validationEnv);
+
+  assert.equal(response.status, 400);
+  assert.equal(json.error, 'Validation failed.');
+  assert.ok(json.details.some(d => d.includes('slug contains invalid characters')));
+});
+
+test('Schema Validation: optional fields summary, category, tags are validated successfully', async () => {
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: 'valid-slug',
+      summary: 'A brief summary of the post.',
+      category: 'Technology',
+      tags: ['cloudflare', 'workers', 'sqlite'],
+      mode: 'dry-run'
+    })
+  }, validationEnv);
+
+  assert.equal(response.status, 200);
+  assert.equal(json.mode, 'dry-run');
+});
+
+

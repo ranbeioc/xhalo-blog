@@ -738,8 +738,25 @@ async function verifyTurnstileToken(request, env) {
   }
 }
 
+async function readJsonBody(request) {
+  try {
+    const input = await request.json();
+    if (input === null || typeof input !== 'object') {
+      return { input: null, error: 'Invalid JSON request body.' };
+    }
+    return { input, error: null };
+  } catch {
+    return { input: null, error: 'Invalid JSON request body.' };
+  }
+}
+
 function validatePublishInput(input) {
   const errors = [];
+
+  if (!input || typeof input !== 'object') {
+    errors.push('Request body must be a JSON object');
+    return errors;
+  }
 
   // Title validation
   if (input.title === undefined || input.title === null) {
@@ -762,8 +779,8 @@ function validatePublishInput(input) {
       errors.push('slug cannot be empty');
     } else if (slug.length > 100) {
       errors.push('slug cannot be longer than 100 characters');
-    } else if (!/^[a-z0-9-_]+$/.test(slug)) {
-      errors.push('slug contains invalid characters. Only lowercase alphanumeric, hyphens, and underscores are allowed.');
+    } else if (!/^[a-z0-9-]+$/.test(slug)) {
+      errors.push('slug contains invalid characters. Only lowercase alphanumeric and hyphens are allowed.');
     }
   }
 
@@ -775,9 +792,84 @@ function validatePublishInput(input) {
     }
   }
 
+  // Mode validation
+  if (input.mode !== undefined && input.mode !== null) {
+    const mode = String(input.mode).trim();
+    if (mode !== 'dry-run' && mode !== 'live') {
+      errors.push('mode must be either "dry-run" or "live"');
+    }
+  }
+
+  // Publish target validation
+  if (input.publish_target !== undefined && input.publish_target !== null) {
+    const publishTarget = String(input.publish_target).trim();
+    if (publishTarget !== 'github' && publishTarget !== 'd1') {
+      errors.push('publish_target must be either "github" or "d1"');
+    }
+  }
+
+  // Summary validation
+  if (input.summary !== undefined && input.summary !== null) {
+    if (typeof input.summary !== 'string') {
+      errors.push('summary must be a string');
+    } else {
+      const summary = input.summary.trim();
+      if (summary.length > 500) {
+        errors.push('summary cannot be longer than 500 characters');
+      }
+    }
+  }
+
+  // Category validation
+  if (input.category !== undefined && input.category !== null) {
+    if (typeof input.category !== 'string') {
+      errors.push('category must be a string');
+    } else {
+      const category = input.category.trim();
+      if (category.length > 100) {
+        errors.push('category cannot be longer than 100 characters');
+      }
+    }
+  }
+
   // Content/Body validation
-  if (input.body !== undefined && input.body !== null && typeof input.body !== 'string') {
-    errors.push('body must be a string');
+  if (input.body !== undefined && input.body !== null) {
+    if (typeof input.body !== 'string') {
+      errors.push('body must be a string');
+    } else {
+      const bodyBytes = new TextEncoder().encode(input.body).byteLength;
+      if (bodyBytes > 200 * 1024) {
+        errors.push('body content size cannot exceed 200 KiB');
+      }
+    }
+  }
+
+  // Tags validation
+  if (input.tags !== undefined && input.tags !== null) {
+    let parsedTags = [];
+    if (Array.isArray(input.tags)) {
+      for (let index = 0; index < input.tags.length; index += 1) {
+        const tag = input.tags[index];
+        if (typeof tag !== 'string') {
+          errors.push(`tags at index ${index} must be a string`);
+        } else {
+          parsedTags.push(tag.trim());
+        }
+      }
+    } else if (typeof input.tags === 'string') {
+      parsedTags = input.tags.split(',').map((t) => t.trim()).filter(Boolean);
+    } else {
+      errors.push('tags must be a string or an array of strings');
+    }
+
+    if (parsedTags.length > 20) {
+      errors.push('tags list cannot contain more than 20 items');
+    }
+    for (const tag of parsedTags) {
+      if (tag.length > 50) {
+        errors.push(`tag "${tag.slice(0, 10)}..." cannot be longer than 50 characters`);
+      }
+    }
   }
 
   return errors;
@@ -991,7 +1083,10 @@ export default {
     }
 
     if (url.pathname === '/api/drafts/preview' && request.method === 'POST') {
-      const input = await request.json();
+      const { input, error: jsonError } = await readJsonBody(request);
+      if (jsonError) {
+        return createJsonResponse({ error: jsonError }, { status: 400 });
+      }
       const validationErrors = validatePublishInput(input);
       if (validationErrors.length > 0) {
         return createJsonResponse({ error: 'Validation failed.', details: validationErrors }, { status: 400 });
@@ -1011,7 +1106,10 @@ export default {
     if (url.pathname === '/api/drafts/tasks' && request.method === 'POST') {
       if (!env.TASK_QUEUE) return createJsonResponse({ error: 'TASK_QUEUE is not bound' }, { status: 500 });
 
-      const input = await request.json();
+      const { input, error: jsonError } = await readJsonBody(request);
+      if (jsonError) {
+        return createJsonResponse({ error: jsonError }, { status: 400 });
+      }
       const validationErrors = validatePublishInput(input);
       if (validationErrors.length > 0) {
         return createJsonResponse({ error: 'Validation failed.', details: validationErrors }, { status: 400 });
@@ -1037,7 +1135,10 @@ export default {
     }
 
     if (url.pathname === '/api/drafts/github-plan' && request.method === 'POST') {
-      const input = await request.json();
+      const { input, error: jsonError } = await readJsonBody(request);
+      if (jsonError) {
+        return createJsonResponse({ error: jsonError }, { status: 400 });
+      }
       const validationErrors = validatePublishInput(input);
       if (validationErrors.length > 0) {
         return createJsonResponse({ error: 'Validation failed.', details: validationErrors }, { status: 400 });
@@ -1060,7 +1161,10 @@ export default {
     }
 
     if (url.pathname === '/api/drafts/publish' && request.method === 'POST') {
-      const input = await request.json();
+      const { input, error: jsonError } = await readJsonBody(request);
+      if (jsonError) {
+        return createJsonResponse({ error: jsonError }, { status: 400 });
+      }
       const validationErrors = validatePublishInput(input);
       if (validationErrors.length > 0) {
         return createJsonResponse({ error: 'Validation failed.', details: validationErrors }, { status: 400 });
@@ -1070,7 +1174,6 @@ export default {
       const preview = buildPullRequestPreview(input, {
         repoOwner: repository.owner,
         repoName: repository.repo,
-
         baseBranch: repository.baseBranch
       });
       const plan = buildGitHubWritePlan(input, {

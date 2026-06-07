@@ -1113,5 +1113,57 @@ Enforce SQLite constraints (slug uniqueness, indexes) and implement API-layer pa
 | `npm test` | Passed | 52/52 tests pass successfully |
 | `npm run check:all` | Passed | Full monorepo check passes |
 
+---
+
+## Step 027 - Document D1 unique index migration preflight checks
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Migration hardening / Documentation / Check script
+
+### Goal
+Document D1 unique index migration preflight checks for duplicate slugs and add a static checks script to enforce migration integrity.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| docs/d1-migrations.md | Document preflight check query and rollback query | Instruct operators on checking duplicate slugs |
+| package.json | Register "check:migrations" script | Integration with the build validation pipeline |
+| scripts/check-d1-migration-readiness.mjs [NEW] | Create migration preflight validation checks script | Automate verification of migration statements and docs |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm run check:migrations` | Passed | Script successfully validates 0003 statement and docs |
+| `npm run check:all` | Passed | Preflight script executes properly in check pipeline |
+
+---
+
+## Step 028 - Harden draft publish request validation
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Security hardening / API validation / Tests
+
+### Goal
+Introduce safe JSON body parsing to prevent crashing worker, validate mode, publish_target, summary, category, tags constraints, reject underscore in slugs, and expand unit tests.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| workers/api/src/index.js | Implement readJsonBody helper, validate mode/publish_target/body size/summary/category/tags, and disallow underscore in slug regex | Robust error response for malformed or oversized payloads |
+| tests/worker-security.test.mjs | Add 10 new test cases covering invalid JSON, invalid fields, and constraints | Verification of security bounds |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm test` | Passed | 62/62 tests pass successfully |
+| `npm run check:all` | Passed | Monorepo check passes |
+
+
 
 
