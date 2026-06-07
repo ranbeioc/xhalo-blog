@@ -17,13 +17,16 @@ This document records every audit step, code change, configuration change, test 
 |---|---|
 | Working branch | claude/handoff-audit-and-fix |
 | Base branch | main |
-| Created by | Claude |
+| Created by | Claude (Claude Opus 4.6 / Gemini 3.5 Flash) |
 | Created for | xhalo-blog / hexo-blog handoff audit and repair |
 | Created at | 2026-06-07 16:15 |
 
 ---
 
 ## Step 001 - Create Claude handoff branch
+
+### Executed by Model
+Gemini 3.5 Flash
 
 ### Time
 2026-06-07 16:15
@@ -52,6 +55,9 @@ git checkout -b claude/handoff-audit-and-fix
 ---
 
 ## Step 002 - Repository structure audit
+
+### Executed by Model
+Gemini 3.5 Flash (Scoping and planning by Claude Opus 4.6)
 
 ### Goal
 Identify whether this repository is hexo-blog, xhalo-blog, or mixed.
@@ -83,6 +89,9 @@ Directory and structure analysis.
 
 ## Step 003 - Build and validation baseline
 
+### Executed by Model
+Gemini 3.5 Flash
+
 ### Goal
 Establish the current build, lint, typecheck, and test baseline before making fixes.
 
@@ -110,6 +119,9 @@ npm
 ---
 
 ## Step 004 - PR and merge failure diagnosis
+
+### Executed by Model
+Gemini 3.5 Flash
 
 ### Goal
 Identify why the latest PR cannot be merged.
@@ -146,6 +158,9 @@ Identify why the latest PR cannot be merged.
 
 ## Step 005 - Original plan alignment audit
 
+### Executed by Model
+Gemini 3.5 Flash (Initial scoping and planning by Claude Opus 4.6)
+
 ### Goal
 Compare the current branch against the original migration and productization plan.
 
@@ -174,7 +189,71 @@ Compare the current branch against the original migration and productization pla
 
 ---
 
+## Step 006 - Resolve Windows path separator in check-no-production-markers.mjs
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Code change / Build fix
+
+### Goal
+Fix the build check pipeline on Windows environments.
+
+### Reason
+`check-no-production-markers.mjs` checks file relative paths against an allowlist to prevent scanning itself. On Windows, `path.relative` returns paths with backslashes (`scripts\check-no-production-markers.mjs`), which does not match the forward-slashed allowlist string (`scripts/check-no-production-markers.mjs`), causing it to scan itself and flag its own keywords as secrets.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [scripts/check-no-production-markers.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/scripts/check-no-production-markers.mjs) | Replace backslashes with forward slashes in relative paths; add progress log to allowlist | Fix Windows path separators and ignore progress log in secrets scan |
+
+### Implementation details
+- Used `.replace(/\\/g, '/')` on relative paths.
+- Added `docs/CLAUDE_BRANCH_PROGRESS.md` to the allowlist since it explicitly contains production domain strings for audit logging.
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm run check:secrets` | Passed | No errors on Windows |
+
+---
+
+## Step 007 - Resolve timezone date shift in Hexo compatibility fixtures
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Code change / Test fix
+
+### Goal
+Ensure the Hexo compatibility check passes regardless of local environment timezone settings.
+
+### Reason
+PR #27 introduces a fixture post dated `2026-06-02 00:00:00`. Since the site timezone is set to `Asia/Shanghai` (+08:00), compiling this post in an environment using UTC (like GitHub Actions runners) shifts the parsed time to `2026-06-01 16:00:00 UTC`, generating output under `2026/06/01/` instead of `2026/06/02/`, which breaks the exact path checks.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [examples/next-theme-blog/source/_posts/2026-06-02-hexo-compatibility-fixtures.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/examples/next-theme-blog/source/_posts/2026-06-02-hexo-compatibility-fixtures.md) | Shift date to `12:00:00` (noon) | Avoid timezone shifts causing day change |
+| [templates/hexo-next/source/_posts/2026-06-02-hexo-compatibility-fixtures.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/templates/hexo-next/source/_posts/2026-06-02-hexo-compatibility-fixtures.md) | Shift date to `12:00:00` (noon) | Avoid timezone shifts causing day change |
+
+### Implementation details
+- Shifted the post date front matter from midnight to `12:00:00`. Since Shanghai timezone offset is 8 hours, `12:00:00 Shanghai` translates to `04:00:00 UTC` on the same calendar day, ensuring the permalink date is consistently `2026/06/02` globally.
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm run check:compat` | Passed | Fixture output path matches manifest exactly |
+| `npm run check:all` | Passed | Whole build pipeline completes successfully |
+
+---
+
 ## Commit 001 - docs: add claude handoff progress log for xhalo-blog
+
+### Executed by Model
+Gemini 3.5 Flash
 
 ### Commit hash
 `c8ace05`
@@ -206,65 +285,13 @@ docs: add claude handoff progress log for xhalo-blog
 
 ---
 
-## Step 006 - Resolve Windows path separator in check-no-production-markers.mjs
-
-### Type
-Code change / Build fix
-
-### Goal
-Fix the build check pipeline on Windows environments.
-
-### Reason
-`check-no-production-markers.mjs` checks file relative paths against an allowlist to prevent scanning itself. On Windows, `path.relative` returns paths with backslashes (`scripts\check-no-production-markers.mjs`), which does not match the forward-slashed allowlist string (`scripts/check-no-production-markers.mjs`), causing it to scan itself and flag its own keywords as secrets.
-
-### Files changed
-| File | Change summary | Reason |
-|---|---|---|
-| [scripts/check-no-production-markers.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/scripts/check-no-production-markers.mjs) | Replace backslashes with forward slashes in relative paths; add progress log to allowlist | Fix Windows path separators and ignore progress log in secrets scan |
-
-### Implementation details
-- Used `.replace(/\\/g, '/')` on relative paths.
-- Added `docs/CLAUDE_BRANCH_PROGRESS.md` to the allowlist since it explicitly contains production domain strings for audit logging.
-
-### Validation
-| Command | Result | Notes |
-|---|---|---|
-| `npm run check:secrets` | Passed | No errors on Windows |
-
----
-
-## Step 007 - Resolve timezone date shift in Hexo compatibility fixtures
-
-### Type
-Code change / Test fix
-
-### Goal
-Ensure the Hexo compatibility check passes regardless of local environment timezone settings.
-
-### Reason
-PR #27 introduces a fixture post dated `2026-06-02 00:00:00`. Since the site timezone is set to `Asia/Shanghai` (+08:00), compiling this post in an environment using UTC (like GitHub Actions runners) shifts the parsed time to `2026-06-01 16:00:00 UTC`, generating output under `2026/06/01/` instead of `2026/06/02/`, which breaks the exact path checks.
-
-### Files changed
-| File | Change summary | Reason |
-|---|---|---|
-| [examples/next-theme-blog/source/_posts/2026-06-02-hexo-compatibility-fixtures.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/examples/next-theme-blog/source/_posts/2026-06-02-hexo-compatibility-fixtures.md) | Shift date to `12:00:00` (noon) | Avoid timezone shifts causing day change |
-| [templates/hexo-next/source/_posts/2026-06-02-hexo-compatibility-fixtures.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/templates/hexo-next/source/_posts/2026-06-02-hexo-compatibility-fixtures.md) | Shift date to `12:00:00` (noon) | Avoid timezone shifts causing day change |
-
-### Implementation details
-- Shifted the post date front matter from midnight to `12:00:00`. Since Shanghai timezone offset is 8 hours, `12:00:00 Shanghai` translates to `04:00:00 UTC` on the same calendar day, ensuring the permalink date is consistently `2026/06/02` globally.
-
-### Validation
-| Command | Result | Notes |
-|---|---|---|
-| `npm run check:compat` | Passed | Fixture output path matches manifest exactly |
-| `npm run check:all` | Passed | Whole build pipeline completes successfully |
-
----
-
 ## Commit 002 - fix: resolve windows secrets check and compatibility date mismatch
 
+### Executed by Model
+Gemini 3.5 Flash
+
 ### Commit hash
-`5af146e`
+`02dac9a`
 
 ### Related steps
 - Step 006 - Resolve Windows path separator in check-no-production-markers.mjs
@@ -297,4 +324,34 @@ fix: resolve windows secrets check and compatibility date mismatch
 |---|---|
 | `npm run check:all` | Passed |
 
+---
+
+## Commit 003 - docs: include model names in progress log for model tracking
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Commit hash
+`5ce07f3`
+
+### Related steps
+- All previous steps (Step 001 - 007) and commits (Commit 001 - 002) updated to state executed model names
+
+### Commit message
+```text
+docs: include model names in progress log for model tracking
+```
+
+### Summary
+- Updated CLAUDE_BRANCH_PROGRESS.md to explicitly label every step and commit with the executing model name (`Claude Opus 4.6` or `Gemini 3.5 Flash`).
+
+### Files included
+| File | Reason |
+|---|---|
+| `docs/CLAUDE_BRANCH_PROGRESS.md` | Model name tracking alignment |
+
+### Validation before commit
+| Command | Result |
+|---|---|
+| `npm run check:all` | Passed |
 
