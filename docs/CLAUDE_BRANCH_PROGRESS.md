@@ -1081,9 +1081,31 @@ Submit the completed Phase A hardening changes for review and merge via GitHub P
 No code files changed in this step (progress log updated and PR created).
 
 ### Validation
+| `gh pr create` | Passed | Created PR on GitHub |
+
+---
+
+## Step 025 - Create Stage 4 Production Hardening Roadmap
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Documentation / Planning
+
+### Goal
+Provide a comprehensive Stage 4 roadmap for production readiness assessment, stabilization of prototype features, CI/CD pipeline verification, and logging/observability guidelines.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| docs/stage4-roadmap.md | New document detailing Stage 4 roadmap | Documentation for production readiness and hardening |
+| docs/CLAUDE_BRANCH_PROGRESS.md | Document Step 025 progress | Tracking development steps |
+
+### Validation
 | Command | Result | Notes |
 |---|---|---|
-| `gh pr create` | Passed | Created PR on GitHub |
+| `npm run check:all` | Passed | Full validation suite passes |
 
 ---
 
