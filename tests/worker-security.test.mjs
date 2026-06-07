@@ -352,5 +352,99 @@ test('GET /api/readiness with expired or mismatching Access JWT is rejected with
   assert.equal(resBadAud.response.status, 401);
 });
 
+// ─── JWT Hardening Tests (Claude Opus 4) ────────────────────────────────
 
+const jwtEnv = {
+  ADMIN_API_SHARED_SECRET: adminSecret,
+  ACCESS_TEAM_DOMAIN: 'test-team',
+  ACCESS_AUDIENCE_TAG: 'test-audience-tag',
+  ACCESS_BYPASS_SIGNATURE_FOR_TESTING: 'true'
+};
 
+test('JWT hardening: missing exp is rejected', async () => {
+  const jwt = makeMockJwt(
+    { alg: 'RS256', kid: 'test-kid' },
+    { iss: 'https://test-team.cloudflareaccess.com', aud: 'test-audience-tag' }
+  );
+  const { response } = await requestJson('/api/readiness', {
+    headers: { 'cf-access-jwt-assertion': jwt }
+  }, jwtEnv);
+  assert.equal(response.status, 401);
+});
+
+test('JWT hardening: non-numeric exp is rejected', async () => {
+  const jwt = makeMockJwt(
+    { alg: 'RS256', kid: 'test-kid' },
+    { exp: 'never', iss: 'https://test-team.cloudflareaccess.com', aud: 'test-audience-tag' }
+  );
+  const { response } = await requestJson('/api/readiness', {
+    headers: { 'cf-access-jwt-assertion': jwt }
+  }, jwtEnv);
+  assert.equal(response.status, 401);
+});
+
+test('JWT hardening: wrong alg is rejected', async () => {
+  const jwt = makeMockJwt(
+    { alg: 'HS256', kid: 'test-kid' },
+    { exp: Math.floor(Date.now() / 1000) + 3600, iss: 'https://test-team.cloudflareaccess.com', aud: 'test-audience-tag' }
+  );
+  const { response } = await requestJson('/api/readiness', {
+    headers: { 'cf-access-jwt-assertion': jwt }
+  }, jwtEnv);
+  assert.equal(response.status, 401);
+});
+
+test('JWT hardening: missing kid is rejected', async () => {
+  const jwt = makeMockJwt(
+    { alg: 'RS256' },
+    { exp: Math.floor(Date.now() / 1000) + 3600, iss: 'https://test-team.cloudflareaccess.com', aud: 'test-audience-tag' }
+  );
+  const { response } = await requestJson('/api/readiness', {
+    headers: { 'cf-access-jwt-assertion': jwt }
+  }, jwtEnv);
+  assert.equal(response.status, 401);
+});
+
+test('JWT hardening: wrong issuer is rejected', async () => {
+  const jwt = makeMockJwt(
+    { alg: 'RS256', kid: 'test-kid' },
+    { exp: Math.floor(Date.now() / 1000) + 3600, iss: 'https://evil-team.cloudflareaccess.com', aud: 'test-audience-tag' }
+  );
+  const { response } = await requestJson('/api/readiness', {
+    headers: { 'cf-access-jwt-assertion': jwt }
+  }, jwtEnv);
+  assert.equal(response.status, 401);
+});
+
+test('JWT hardening: missing iss is rejected', async () => {
+  const jwt = makeMockJwt(
+    { alg: 'RS256', kid: 'test-kid' },
+    { exp: Math.floor(Date.now() / 1000) + 3600, aud: 'test-audience-tag' }
+  );
+  const { response } = await requestJson('/api/readiness', {
+    headers: { 'cf-access-jwt-assertion': jwt }
+  }, jwtEnv);
+  assert.equal(response.status, 401);
+});
+
+test('JWT hardening: aud array containing tag is accepted', async () => {
+  const jwt = makeMockJwt(
+    { alg: 'RS256', kid: 'test-kid' },
+    { exp: Math.floor(Date.now() / 1000) + 3600, iss: 'https://test-team.cloudflareaccess.com', aud: ['other-tag', 'test-audience-tag'] }
+  );
+  const { response } = await requestJson('/api/readiness', {
+    headers: { 'cf-access-jwt-assertion': jwt }
+  }, jwtEnv);
+  assert.equal(response.status, 200);
+});
+
+test('JWT hardening: aud array missing tag is rejected', async () => {
+  const jwt = makeMockJwt(
+    { alg: 'RS256', kid: 'test-kid' },
+    { exp: Math.floor(Date.now() / 1000) + 3600, iss: 'https://test-team.cloudflareaccess.com', aud: ['wrong-tag-1', 'wrong-tag-2'] }
+  );
+  const { response } = await requestJson('/api/readiness', {
+    headers: { 'cf-access-jwt-assertion': jwt }
+  }, jwtEnv);
+  assert.equal(response.status, 401);
+});
