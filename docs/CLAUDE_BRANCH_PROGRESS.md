@@ -1254,3 +1254,34 @@ Harden R2 asset uploads (MIME whitelist, path traversal prevention, extension va
 - **High**: GitHub PR creation is idempotent — duplicate calls return existing PR instead of erroring
 - **High**: File commits use SHA-based conflict detection — stale updates return 409 instead of silently overwriting
 - **Medium**: preview_url column enables deployment URL tracking in D1
+
+---
+
+## Step 031 - Stage 4-C: Audit Logs & Observability
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Security Hardening / Observability / D1 Migration / API
+
+### Goal
+Implement structured logging, audit log D1 persistence, top-level try/catch error boundary middleware for the fetch handler, security event logging, and a protected read-only `/api/audit-logs` endpoint.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| workers/api/migrations/0005_create_audit_logs.sql | New migration creating audit_logs table | Database persistence for mutations and security events |
+| workers/api/src/index.js | Add structured logging helpers (logInfo, logWarn, logError, logSecurity, extractRequestMeta), insertAuditLog persistence, error boundary try/catch, mutation auditing, security failures auditing, and read-only /api/audit-logs admin route | Centralize logs, secure worker from uncaught exception leakage, capture security events and mutations |
+| scripts/check-d1-migration-readiness.mjs | Add 0005 migration validation | Verify 0005 migration file and documentation presence |
+| docs/d1-migrations.md | Register 0005 migration and rollback query | Migration documentation |
+| docs/observability.md | New observability policy document | Document structured log schema, audit logs, error boundary, and audit endpoints |
+| tests/worker-security.test.mjs | Update test case mock DB to track multiple SQL statements | Support verification of both posts_index and audit_logs inserts |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm test` | Passed | 72/72 tests pass successfully |
+| `npm run check:all` | Passed | All builds, checks, migration preflights, tests, and syntax validations succeed |
+| `npm run check:migrations` | Passed | Migration 0005 validated |
+

@@ -226,16 +226,18 @@ test('POST /api/drafts/publish with valid Turnstile token passes verification', 
 });
 
 test('POST /api/drafts/publish with direct D1 target successfully persists and returns D1 metadata', async () => {
-  let prepSql = '';
+  let allSql = [];
   let prepBind = [];
   let prepRunCalled = false;
 
   const mockDb = {
     prepare: (sql) => {
-      prepSql = sql;
+      allSql.push(sql);
       return {
         bind: (...args) => {
-          prepBind = args;
+          if (sql.includes('INSERT INTO posts_index')) {
+            prepBind = args;
+          }
           return {
             run: async () => {
               prepRunCalled = true;
@@ -272,7 +274,7 @@ test('POST /api/drafts/publish with direct D1 target successfully persists and r
   assert.equal(json.pull_request, null);
   assert.equal(json.persisted, true);
   assert.ok(prepRunCalled);
-  assert.ok(prepSql.includes('INSERT INTO posts_index'));
+  assert.ok(allSql.some(sql => sql.includes('INSERT INTO posts_index')));
   assert.equal(prepBind[1], 'd1-only-post'); // slug
   assert.equal(prepBind[2], 'D1 Only Post'); // title
   assert.ok(prepBind[11].includes('This post is stored directly in D1.')); // content

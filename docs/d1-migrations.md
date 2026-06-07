@@ -10,6 +10,7 @@ This document describes the Cloudflare D1 migration strategy for xhalo-blog.
 | `0002_add_posts_content.sql` | Add `content TEXT` column to `posts_index` | Hardening phase |
 | `0003_harden_posts_index_constraints.sql` | Create unique index on slug and performance indexes | Stage 4 hardening |
 | `0004_add_posts_index_preview_url.sql` | Add `preview_url TEXT` column to `posts_index` table | Stage 4 hardening |
+| `0005_create_audit_logs.sql` | Create `audit_logs` table with indexes for observability | Stage 4-C observability |
 
 
 ## New Environment Setup
@@ -91,6 +92,12 @@ If you need to roll back the preview URL column changes introduced in 0004:
 
 ```sql
 ALTER TABLE posts_index DROP COLUMN preview_url;
+```
+
+If you need to roll back the audit logs table introduced in 0005:
+
+```sql
+DROP TABLE IF EXISTS audit_logs;
 ```
 
 ## Local Development
