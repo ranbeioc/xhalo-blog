@@ -9,6 +9,7 @@
     "check:secrets": "node scripts/check-no-production-markers.mjs",
     "check:compat": "node scripts/check-hexo-compat-fixtures.mjs",
     "check:migrations": "node scripts/check-d1-migration-readiness.mjs",
+    "test:smoke": "node scripts/smoke-worker-routes.mjs",
     "build:admin": "npm --workspace apps/admin run build",
     "build:landing": "npm --workspace apps/landing run build",
     "build:basic": "npm --workspace examples/basic-blog run build",
