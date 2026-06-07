@@ -1186,6 +1186,32 @@ Introduce safe JSON body parsing to prevent crashing worker, validate mode, publ
 | `npm test` | Passed | 62/62 tests pass successfully |
 | `npm run check:all` | Passed | Monorepo check passes |
 
+---
 
+## Step 029 - Create Cloudflare deployment verification checklists
 
+### Executed by Model
+Gemini 3.5 Flash
 
+### Type
+Documentation / Checklists
+
+### Goal
+Provide a complete suite of verification checklists for Cloudflare services (Pages, Workers, D1, R2, Queues), environment variables/secrets matrix, local and remote D1 migrations, and API runtime verification.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| docs/cloudflare-deployment-verification.md | New document | Provisioning and configuration verification checklist |
+| docs/cloudflare-env-matrix.md | New document | Variables, secrets matrix, and registration guide |
+| docs/d1-local-remote-verification.md | New document | Local/remote migrations and DB backup instructions |
+| docs/worker-smoke-tests.md | New document | Testing cURL commands and expected JSON formats |
+| scripts/smoke-worker-routes.mjs | New script | Automate routing smoke testing assertions against Worker instances |
+| package.json | Register test:smoke script | Allow operators to run the smoke tests utility |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm run check:all` | Passed | All builds, checks, migration preflights, tests, and syntax validations succeed. |
+| `npm test` | Passed | 62/62 unit tests pass successfully. |
+| `npm run test:smoke` | Verified | Smoke test utility executes and fails/passes as expected |
