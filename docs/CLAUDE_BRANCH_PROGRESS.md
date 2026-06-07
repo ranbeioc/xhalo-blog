@@ -616,7 +616,285 @@ feat: improve Admin UI with dynamic post selection and editing
 | `apps/admin/src/app.js` | Logic update |
 | `docs/CLAUDE_BRANCH_PROGRESS.md` | Handoff log update |
 
+---
 
+## Step 012 - Create Gemini feature integration branch
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Time
+2026-06-07 16:55
+
+### Branch
+`gemini/feature-integration`
+
+### Goal
+Create a new development branch for the second phase of Cloudflare-native features (D1 Write, Markdown Preview, and Cloudflare Access JWT validation).
+
+### Commands
+```bash
+git checkout -b gemini/feature-integration
+```
+
+### Result
+- Created new branch: `gemini/feature-integration`
+- Base branch: `main`
+- Latest base commit: `950b479` (merge: merge claude/admin-ui-dynamic-posting into main)
+
+### Notes
+- None
+
+---
+
+## Step 013 - Implement D1 persistent write integration and unit tests
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Code change / Database schema update / Test suite update
+
+### Goal
+Extend the `/api/drafts/publish` endpoint to support persistent D1 SQLite database writes, supporting both direct D1 writes and GitHub PR writes, and write unit tests to verify behavior.
+
+### Reason
+- The framework previously only wrote metadata to D1 (id, slug, etc.) but discarded the actual Markdown document content. It also required GitHub authentication to write, making it impossible to perform local or D1-only publishing.
+- Adding a `content` column to the `posts_index` D1 table and updating the publish logic enables full, persistent database-backed article creation.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [workers/api/migrations/0001_initial.sql](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/workers/api/migrations/0001_initial.sql) | Add `content TEXT` column | Persist full Markdown document in database schema |
+| [workers/api/src/index.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/workers/api/src/index.js) | Update `upsertPostIndexRecord` and `/api/drafts/publish` router, add `content` to `/api/posts` query | Save and retrieve content from D1 database |
+| [tests/worker-security.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/worker-security.test.mjs) | Add `POST /api/drafts/publish with direct D1 target...` test case | Verify correct routing, query generation, and metadata mapping |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm test` | Passed | All 20 tests passed successfully |
+
+---
+
+## Commit 008 - feat: implement D1 persistent write integration and unit tests
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Commit hash
+`8d70e70`
+
+### Related step
+Step 013 - Implement D1 persistent write integration and unit tests
+
+### Commit message
+```text
+feat: implement D1 persistent write integration and unit tests (Gemini 3.5 Flash)
+
+1. Append content TEXT column to posts_index table definition in migrations.
+2. Update upsertPostIndexRecord and SELECT query to fetch and store content.
+3. Allow direct D1 writes on /api/drafts/publish using publish_target: 'd1'.
+4. Add unit test asserting D1 direct write database query and response schema.
+```
+
+### Summary
+- Configured D1 schema to store article body content.
+- Enabled D1 fallback write when GITHUB app credentials are not configured.
+- Added verification test asserting mock DB bindings.
+
+### Files included
+| File | Reason |
+|---|---|
+| `workers/api/migrations/0001_initial.sql` | Schema update |
+| `workers/api/src/index.js` | Logic update |
+| `tests/worker-security.test.mjs` | Test addition |
+| `docs/CLAUDE_BRANCH_PROGRESS.md` | Log update |
+
+---
+
+## Step 014 - Integrate marked Markdown rendering and Admin UI real-time preview
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Feature / Front-end integration
+
+### Goal
+Integrate a Markdown parser into the Admin UI, support inputting article body content in real-time, render parsed HTML live in the workbench, and add a button to trigger D1 direct publishing.
+
+### Reason
+- The Admin UI previously lacked a textarea for post body content (making it impossible to draft actual articles) and could not display live HTML rendering of Markdown syntax.
+- Resolving this completes the frontend editing loop and lets operators verify their content formatting before committing the draft.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [apps/admin/src/index.html](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/index.html) | Inject `marked` library script tag, add body textarea, Publish to D1 action button, and live preview container | HTML elements expansion |
+| [apps/admin/src/style.css](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/style.css) | Add styling for `.post-preview-html` container and nested element tag behaviors | Visual alignment |
+| [apps/admin/src/app.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/app.js) | Bind `input` listener to body textarea, map `post.content` to body, and route `publish-d1` actions | Client logic update |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm run build:admin` | Passed | Admin panel placeholder successfully built |
+| `npm run check:all` | Passed | Entire validation suite compiles cleanly |
+
+---
+
+## Commit 009 - feat: integrate marked Markdown rendering and Admin UI real-time preview
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Commit hash
+`dac0df5`
+
+### Related step
+Step 014 - Integrate marked Markdown rendering and Admin UI real-time preview
+
+### Commit message
+```text
+feat: integrate marked Markdown rendering and Admin UI real-time preview (Gemini 3.5 Flash)
+
+1. Load marked JS library from CDN in Admin Panel HTML.
+2. Add body textarea input and dynamic HTML post preview container to workbench.
+3. Style preview container to match the premium dark theme grid layout.
+4. Extract body field from form data, map it to state, and enable input event listeners.
+5. Add Publish to D1 button in Admin Panel forms and route live D1 write actions.
+```
+
+### Summary
+- Configured markdown rendering and live preview update loops.
+- Integrated D1 direct publish button mapping.
+- Staged all files.
+
+### Files included
+| File | Reason |
+|---|---|
+| `apps/admin/src/index.html` | Layout updates |
+| `apps/admin/src/style.css` | Styling additions |
+| `apps/admin/src/app.js` | Logic updates |
+| `docs/CLAUDE_BRANCH_PROGRESS.md` | Log update |
+
+---
+
+## Step 015 - Implement Cloudflare Access JWT validation middleware and unit tests
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Code change / Security configuration / Test suite update
+
+### Goal
+Implement JWT signature verification logic inside the Worker's `verifyAdminRequest` gate using the Web Crypto API, validating expiration (`exp`), issuer (`iss`), and audience (`aud`) claims, and write unit tests for claim validation.
+
+### Reason
+- The API Worker previously only verified requests using a shared secret token. Leveraging Cloudflare Access's signed JWT assertions adds edge-level role-based identity validation.
+- Constructing claims validation logic securely using native `crypto.subtle` APIs keeps the Worker lightweight and dependency-free.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [workers/api/src/index.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/workers/api/src/index.js) | Add `verifyAccessJwt` helper and update `verifyAdminRequest` to support JWT checking | Core middleware security enforcement |
+| [tests/worker-security.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/worker-security.test.mjs) | Add mock JWT signature bypass tests and claims mismatch validation assertions | Verification coverage |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm test` | Passed | 22/22 unit tests passed successfully |
+
+---
+
+## Step 016 - Add Cloudflare Access verification setup guide
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Documentation change
+
+### Goal
+Create a comprehensive setup guide detailing how Cloudflare Access assertion JWT verification works and its required environmental parameters.
+
+### Reason
+Provide developers with guidance on configuring Access Team Domains, Audience Tags, and the local testing bypass configuration.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [docs/cloudflare-access-jwt.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/cloudflare-access-jwt.md) [NEW] | Create Cloudflare Access JWT documentation | Setup guidelines |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| Read file | Passed | Documentation formatting is correct |
+
+---
+
+## Commit 010 - feat: implement Cloudflare Access JWT validation middleware and unit tests
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Commit hash
+`56ce159`
+
+### Related step
+Step 015 - Implement Cloudflare Access JWT validation middleware and unit tests
+
+### Commit message
+```text
+feat: implement Cloudflare Access JWT validation middleware and unit tests (Gemini 3.5 Flash)
+
+1. Add verifyAccessJwt helper to parse, decode, and validate Access JWTs.
+2. Verify exp, iss, and aud claims using native Web Crypto subtle.verify signatures.
+3. Allow bypassing JWKS signature verification in testing using ACCESS_BYPASS_SIGNATURE_FOR_TESTING=true.
+4. Update verifyAdminRequest to be async and support hybrid assertion + secret headers.
+5. Add unit tests for successful and rejected JWT claims verification.
+```
+
+### Summary
+- Patched API worker request verification pipeline.
+- Implemented JWT parsing and claim assertions.
+- Added verification tests.
+
+### Files included
+| File | Reason |
+|---|---|
+| `workers/api/src/index.js` | Logic update |
+| `tests/worker-security.test.mjs` | Test additions |
+| `docs/CLAUDE_BRANCH_PROGRESS.md` | Log update |
+
+---
+
+## Commit 011 - docs: add Cloudflare Access verification setup guide
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Commit hash
+`d6d5438`
+
+### Related step
+Step 016 - Add Cloudflare Access verification setup guide
+
+### Commit message
+```text
+docs: add Cloudflare Access verification setup guide (Gemini 3.5 Flash)
+
+1. Create docs/cloudflare-access-jwt.md explaining Team domains, Audience tags, and testing bypass flags.
+```
+
+### Summary
+- Added Access setup documentation.
+
+### Files included
+| File | Reason |
+|---|---|
+| `docs/cloudflare-access-jwt.md` | Document addition |
+| `docs/CLAUDE_BRANCH_PROGRESS.md` | Log update |
 
 
 

@@ -8,7 +8,8 @@ CREATE TABLE IF NOT EXISTS posts_index (
   updated_at TEXT,
   published_at TEXT,
   github_branch TEXT,
-  github_pr_url TEXT
+  github_pr_url TEXT,
+  content TEXT
 );
 
 CREATE TABLE IF NOT EXISTS site_settings (

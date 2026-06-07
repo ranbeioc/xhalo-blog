@@ -221,3 +221,136 @@ test('POST /api/drafts/publish with valid Turnstile token passes verification', 
   assert.ok(fetchedBody.includes('remoteip=1.2.3.4'));
 });
 
+test('POST /api/drafts/publish with direct D1 target successfully persists and returns D1 metadata', async () => {
+  let prepSql = '';
+  let prepBind = [];
+  let prepRunCalled = false;
+
+  const mockDb = {
+    prepare: (sql) => {
+      prepSql = sql;
+      return {
+        bind: (...args) => {
+          prepBind = args;
+          return {
+            run: async () => {
+              prepRunCalled = true;
+              return { success: true };
+            }
+          };
+        }
+      };
+    }
+  };
+
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'D1 Only Post',
+      body: 'This post is stored directly in D1.',
+      publish_target: 'd1',
+      mode: 'live'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    LIVE_WRITES_ENABLED: 'true',
+    DB: mockDb
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(json.mode, 'live');
+  assert.equal(json.auth_mode, 'd1');
+  assert.equal(json.pull_request, null);
+  assert.equal(json.persisted, true);
+  assert.ok(prepRunCalled);
+  assert.ok(prepSql.includes('INSERT OR REPLACE INTO posts_index'));
+  assert.equal(prepBind[1], 'd1-only-post'); // slug
+  assert.equal(prepBind[2], 'D1 Only Post'); // title
+  assert.ok(prepBind[10].includes('This post is stored directly in D1.')); // content
+});
+
+function makeMockJwt(header, payload) {
+  const encode = (str) => {
+    let base64 = btoa(str);
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+  };
+  return encode(JSON.stringify(header)) + '.' + encode(JSON.stringify(payload)) + '.mock-signature';
+}
+
+test('GET /api/readiness with valid Cloudflare Access JWT authorizes successfully', async () => {
+  const jwt = makeMockJwt(
+    { alg: 'RS256', kid: 'test-kid' },
+    {
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      iss: 'https://test-team.cloudflareaccess.com',
+      aud: 'test-audience-tag'
+    }
+  );
+
+  const { response, json } = await requestJson('/api/readiness', {
+    headers: {
+      'cf-access-jwt-assertion': jwt
+    }
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    ACCESS_TEAM_DOMAIN: 'test-team',
+    ACCESS_AUDIENCE_TAG: 'test-audience-tag',
+    ACCESS_BYPASS_SIGNATURE_FOR_TESTING: 'true'
+  });
+
+  assert.equal(response.status, 200);
+  assert.ok(json.summary);
+});
+
+test('GET /api/readiness with expired or mismatching Access JWT is rejected with 401', async () => {
+  const jwtExpired = makeMockJwt(
+    { alg: 'RS256', kid: 'test-kid' },
+    {
+      exp: Math.floor(Date.now() / 1000) - 10, // expired 10s ago
+      iss: 'https://test-team.cloudflareaccess.com',
+      aud: 'test-audience-tag'
+    }
+  );
+
+  const resExpired = await requestJson('/api/readiness', {
+    headers: {
+      'cf-access-jwt-assertion': jwtExpired
+    }
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    ACCESS_TEAM_DOMAIN: 'test-team',
+    ACCESS_AUDIENCE_TAG: 'test-audience-tag',
+    ACCESS_BYPASS_SIGNATURE_FOR_TESTING: 'true'
+  });
+
+  assert.equal(resExpired.response.status, 401);
+
+  const jwtBadAud = makeMockJwt(
+    { alg: 'RS256', kid: 'test-kid' },
+    {
+      exp: Math.floor(Date.now() / 1000) + 3600,
+      iss: 'https://test-team.cloudflareaccess.com',
+      aud: 'wrong-audience-tag'
+    }
+  );
+
+  const resBadAud = await requestJson('/api/readiness', {
+    headers: {
+      'cf-access-jwt-assertion': jwtBadAud
+    }
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    ACCESS_TEAM_DOMAIN: 'test-team',
+    ACCESS_AUDIENCE_TAG: 'test-audience-tag',
+    ACCESS_BYPASS_SIGNATURE_FOR_TESTING: 'true'
+  });
+
+  assert.equal(resBadAud.response.status, 401);
+});
+
+
+

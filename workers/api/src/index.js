@@ -388,8 +388,8 @@ async function upsertPostIndexRecord(env, record) {
 
   await env.DB.prepare(
     `INSERT OR REPLACE INTO posts_index
-    (id, slug, title, path, status, created_at, updated_at, published_at, github_branch, github_pr_url)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    (id, slug, title, path, status, created_at, updated_at, published_at, github_branch, github_pr_url, content)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     record.id,
     record.slug,
@@ -400,7 +400,8 @@ async function upsertPostIndexRecord(env, record) {
     record.updated_at,
     record.published_at || null,
     record.github_branch || null,
-    record.github_pr_url || null
+    record.github_pr_url || null,
+    record.content || null
   ).run();
 
   return true;
@@ -584,7 +585,94 @@ function hasAdminRequestSecret(env) {
   return Boolean(env.ADMIN_API_SHARED_SECRET);
 }
 
-function verifyAdminRequest(request, env) {
+async function verifyAccessJwt(request, env) {
+  const token = request.headers.get('cf-access-jwt-assertion');
+  if (!token) return false;
+
+  const parts = token.split('.');
+  if (parts.length !== 3) return false;
+
+  try {
+    const base64UrlDecode = (str) => {
+      let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+      while (base64.length % 4) base64 += '=';
+      return atob(base64);
+    };
+
+    const header = JSON.parse(base64UrlDecode(parts[0]));
+    const payload = JSON.parse(base64UrlDecode(parts[1]));
+
+    // 1. Verify expiration
+    const nowSec = Date.now() / 1000;
+    if (payload.exp && nowSec >= payload.exp) {
+      return false;
+    }
+
+    // 2. Verify issuer
+    if (env.ACCESS_TEAM_DOMAIN) {
+      const expectedIss = `https://${env.ACCESS_TEAM_DOMAIN}.cloudflareaccess.com`;
+      if (payload.iss !== expectedIss) {
+        return false;
+      }
+    }
+
+    // 3. Verify audience
+    if (env.ACCESS_AUDIENCE_TAG) {
+      if (payload.aud !== env.ACCESS_AUDIENCE_TAG) {
+        return false;
+      }
+    }
+
+    // 4. Verify signature
+    if (env.ACCESS_BYPASS_SIGNATURE_FOR_TESTING === 'true') {
+      return true;
+    }
+
+    const teamDomain = env.ACCESS_TEAM_DOMAIN;
+    if (!teamDomain) {
+      return false;
+    }
+
+    const certsUrl = `https://${teamDomain}.cloudflareaccess.com/cdn-cgi/access/certs`;
+    const fetchFn = env.ACCESS_FETCH || fetch;
+    const res = await fetchFn(certsUrl);
+    if (!res.ok) return false;
+
+    const jwks = await res.json();
+    const jwk = jwks.keys.find(key => key.kid === header.kid);
+    if (!jwk) return false;
+
+    const publicKey = await crypto.subtle.importKey(
+      'jwk',
+      jwk,
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+
+    const encoder = new TextEncoder();
+    const data = encoder.encode(parts[0] + '.' + parts[1]);
+    const signatureBytes = new Uint8Array(
+      Array.from(base64UrlDecode(parts[2]), c => c.charCodeAt(0))
+    );
+
+    return await crypto.subtle.verify(
+      'RSASSA-PKCS1-v1_5',
+      publicKey,
+      signatureBytes,
+      data
+    );
+  } catch (error) {
+    return false;
+  }
+}
+
+async function verifyAdminRequest(request, env) {
+  if (request.headers.has('cf-access-jwt-assertion')) {
+    const isJwtValid = await verifyAccessJwt(request, env);
+    if (isJwtValid) return true;
+  }
+
   if (!hasAdminRequestSecret(env)) return false;
   const provided = request.headers.get('x-xhalo-admin-secret') || '';
   return Boolean(provided) && provided === env.ADMIN_API_SHARED_SECRET;
@@ -783,7 +871,7 @@ export default {
     }
 
     if (isProtectedAdminRoute(url.pathname)) {
-      if (!verifyAdminRequest(request, env)) {
+      if (!(await verifyAdminRequest(request, env))) {
         return rejectUnauthorized();
       }
       if (request.method === 'POST' || request.method === 'PUT') {
@@ -804,7 +892,7 @@ export default {
     if (url.pathname === '/api/posts') {
       const items = await selectRows(
         env,
-        'SELECT id, slug, title, path, status, created_at, updated_at, published_at, github_branch, github_pr_url FROM posts_index ORDER BY COALESCE(updated_at, created_at) DESC LIMIT 10'
+        'SELECT id, slug, title, path, status, created_at, updated_at, published_at, github_branch, github_pr_url, content FROM posts_index ORDER BY COALESCE(updated_at, created_at) DESC LIMIT 10'
       );
 
       return createJsonResponse({
@@ -921,49 +1009,61 @@ export default {
         return rejectLiveWriteDisabled();
       }
 
-      const authorization = await getGitHubAuthorization(env);
-      if (!authorization.header) {
-        return createJsonResponse({
-          error: 'GitHub App env or GITHUB_TOKEN is required for the live draft publish prototype.',
-          mode
-        }, { status: 503 });
+      const markdown = buildDraftMarkdownDocument(input);
+      let pullRequest = null;
+      let branchResult = { created: false };
+      let commitResult = null;
+      let authMode = 'd1';
+
+      const hasGitHub = hasGitHubAppConfig(env) || Boolean(env.GITHUB_TOKEN);
+      const useGitHub = hasGitHub && input.publish_target !== 'd1';
+
+      if (useGitHub) {
+        const authorization = await getGitHubAuthorization(env);
+        if (!authorization.header) {
+          return createJsonResponse({
+            error: 'GitHub App env or GITHUB_TOKEN is required for the live draft publish prototype.',
+            mode
+          }, { status: 503 });
+        }
+        authMode = authorization.mode;
+        const baseSha = await getBranchHeadSha(env, preview.baseBranch);
+        branchResult = await createBranchIfMissing(env, preview.branchName, baseSha);
+        commitResult = await createDraftFileCommit(
+          env,
+          preview.filePath,
+          preview.branchName,
+          markdown,
+          preview.commitMessage
+        );
+        pullRequest = await createPullRequest(env, preview);
       }
 
-      const markdown = buildDraftMarkdownDocument(input);
-      const baseSha = await getBranchHeadSha(env, preview.baseBranch);
-      const branchResult = await createBranchIfMissing(env, preview.branchName, baseSha);
-      const commitResult = await createDraftFileCommit(
-        env,
-        preview.filePath,
-        preview.branchName,
-        markdown,
-        preview.commitMessage
-      );
-      const pullRequest = await createPullRequest(env, preview);
       const persisted = await upsertPostIndexRecord(env, {
         id: preview.draft.slug,
         slug: preview.draft.slug,
         title: preview.draft.title || preview.draft.slug,
         path: preview.filePath,
-        status: 'draft',
+        status: preview.draft.status || 'draft',
         created_at: nowIso(),
         updated_at: nowIso(),
-        github_branch: preview.branchName,
-        github_pr_url: pullRequest.html_url
+        github_branch: pullRequest ? preview.branchName : null,
+        github_pr_url: pullRequest ? pullRequest.html_url : null,
+        content: markdown
       });
 
       return createJsonResponse({
         mode,
-        auth_mode: authorization.mode,
+        auth_mode: authMode,
         preview,
         plan,
         branch_created: branchResult.created,
         content_path: commitResult?.content?.path || preview.filePath,
         commit_sha: commitResult?.commit?.sha || null,
-        pull_request: {
+        pull_request: pullRequest ? {
           number: pullRequest.number,
           url: pullRequest.html_url
-        },
+        } : null,
         persisted
       });
     }
