@@ -839,7 +839,7 @@ Provide developers with guidance on configuring Access Team Domains, Audience Ta
 Gemini 3.5 Flash
 
 ### Commit hash
-`PENDING_COMMIT_HASH_010`
+`56ce159`
 
 ### Related step
 Step 015 - Implement Cloudflare Access JWT validation middleware and unit tests
@@ -875,7 +875,7 @@ feat: implement Cloudflare Access JWT validation middleware and unit tests (Gemi
 Gemini 3.5 Flash
 
 ### Commit hash
-`PENDING_COMMIT_HASH_011`
+`d6d5438`
 
 ### Related step
 Step 016 - Add Cloudflare Access verification setup guide
