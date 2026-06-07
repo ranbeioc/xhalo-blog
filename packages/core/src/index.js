@@ -240,7 +240,7 @@ export function buildProviderReadinessSnapshot(env = {}) {
     manual: items.filter((item) => item.status === 'manual').length
   };
 
-  return { items, summary };
+  return { items, summary, turnstileSiteKey: env.TURNSTILE_SITE_KEY || null };
 }
 
 export function createJsonResponse(data, init = {}) {
