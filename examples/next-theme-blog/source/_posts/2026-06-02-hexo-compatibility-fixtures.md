@@ -1,6 +1,6 @@
 ---
 title: Hexo Compatibility Fixtures
-date: 2026-06-02 00:00:00
+date: 2026-06-02 12:00:00
 tags:
   - xhalo-blog
   - compatibility
