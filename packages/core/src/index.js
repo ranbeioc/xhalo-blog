@@ -538,7 +538,7 @@ export function sanitizeAssetSegment(input = '') {
 export function normalizeR2UploadInput(input = {}) {
   const filename = sanitizeAssetSegment(input.filename || 'upload.png');
   const contentType = String(input.contentType || defaultR2UploadTemplate.defaults.contentType).trim();
-  const scope = String(input.scope || defaultR2UploadTemplate.defaults.scope).trim() || defaultR2UploadTemplate.defaults.scope;
+  const scope = sanitizeAssetSegment(input.scope || defaultR2UploadTemplate.defaults.scope);
   const postSlug = String(input.postSlug || '').trim();
 
   return {

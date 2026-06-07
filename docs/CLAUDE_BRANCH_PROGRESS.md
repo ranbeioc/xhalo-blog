@@ -1215,3 +1215,42 @@ Provide a complete suite of verification checklists for Cloudflare services (Pag
 | `npm run check:all` | Passed | All builds, checks, migration preflights, tests, and syntax validations succeed. |
 | `npm test` | Passed | 62/62 unit tests pass successfully. |
 | `npm run test:smoke` | Verified | Smoke test utility executes and fails/passes as expected |
+
+---
+
+## Step 030 - Stage 4-B: R2 & GitHub Publishing Hardening
+
+### Executed by Model
+Gemini 2.5 Pro
+
+### Type
+Security hardening / Database migration / API idempotency / Tests
+
+### Goal
+Harden R2 asset uploads (MIME whitelist, path traversal prevention, extension validation), GitHub publishing workflow (branch/PR idempotency, commit conflict handling via SHA checks), and D1 schema evolution (preview_url column).
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| workers/api/migrations/0004_add_posts_index_preview_url.sql | New migration adding preview_url column | Persist preview deployment URLs in posts_index |
+| workers/api/src/index.js | Add ALLOWED_MIME_TYPES, validateR2UploadInput, R2 route validation, GitHub idempotency (createPullRequest 422 fallback, createDraftFileCommit SHA check), preview_url in upsert/select | Core security and idempotency enforcement |
+| packages/core/src/index.js | Sanitize scope in normalizeR2UploadInput | Prevent directory traversal in R2 scopes |
+| scripts/check-d1-migration-readiness.mjs | Add 0004 migration validation | Ensure migration file exists and contains ALTER TABLE |
+| docs/d1-migrations.md | Register 0004 migration and rollback query | Migration documentation |
+| docs/r2-upload-security.md | New R2 security policy document | MIME allowlist, traversal prevention, signed upload protocol |
+| docs/github-publish-workflow.md | New GitHub publishing workflow document | Auth modes, idempotency guarantees, conflict handling, preview URL flow |
+| tests/worker-security.test.mjs | Add 10 new test cases: R2 traversal (5), GitHub idempotency (3), R2 MIME/scope (2) | Security boundary verification |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm test` | Passed | 72/72 tests pass successfully |
+| `npm run check:all` | Passed | All builds, checks, migration preflights, tests, and syntax validations succeed |
+| `npm run check:migrations` | Passed | Migration 0004 validated |
+
+### Security Impact
+- **Critical**: R2 path traversal prevention blocks `..`, `/`, `\` in filenames, scopes, and postSlugs
+- **Critical**: MIME allowlist prevents uploading executable content (HTML, JS, etc.)
+- **High**: GitHub PR creation is idempotent — duplicate calls return existing PR instead of erroring
+- **High**: File commits use SHA-based conflict detection — stale updates return 409 instead of silently overwriting
+- **Medium**: preview_url column enables deployment URL tracking in D1
