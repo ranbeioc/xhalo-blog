@@ -987,3 +987,80 @@ Document the admin preview security model, explaining why raw HTML and CDN depen
 |---|---|---|
 | `npm run check:all` | Passed | All checks pass |
 
+---
+
+## Step 021 - Cloudflare Access JWT claim hardening
+
+### Executed by Model
+Claude Opus 4 (Thinking)
+
+### Type
+Security fix
+
+### Goal
+Harden JWT verification to mandate all claims: `exp` must exist and be numeric, `iss` must exist, `alg` must be RS256, `kid` must exist, `aud` supports array format.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| workers/api/src/index.js | Strengthen verifyAccessJwt() with mandatory claim checks | Prevent JWT bypass vectors |
+| tests/worker-security.test.mjs | Add 8 JWT hardening tests | Boundary coverage for all new checks |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm test` | Passed | 46/46 tests (22 original + 16 XSS + 8 JWT) |
+| `npm run check:all` | Passed | All checks pass |
+
+### Security Impact
+- **High**: Prevents alg confusion (HS256 substitution), missing exp bypass, missing iss bypass
+- **Medium**: aud array support prevents multi-audience misrouting
+
+---
+
+## Step 022 - CI reproducibility and lockfile
+
+### Executed by Model
+Claude Opus 4 (Thinking)
+
+### Type
+CI hardening
+
+### Goal
+Switch CI from `npm install` to `npm ci` for reproducible builds. Track `package-lock.json` in git. Add `npm test` to CI pipeline.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| .github/workflows/check.yml | npm install → npm ci + add npm test | Reproducible CI builds |
+| package-lock.json | Track lockfile in git | Required for npm ci |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm run check:all` | Passed | All checks pass |
+
+---
+
+## Step 023 - PR process documentation and templates
+
+### Executed by Model
+Claude Opus 4 (Thinking)
+
+### Type
+Documentation
+
+### Goal
+Comprehensive contributing guide and PR template with security/migration impact sections.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| CONTRIBUTING.md | Expanded with validation checklist, branch policy, security/migration PR guidelines | PR workflow documentation |
+| .github/pull_request_template.md | Enhanced with security/migration impact sections | Structured PR submissions |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm run check:all` | Passed | All checks pass |
+
