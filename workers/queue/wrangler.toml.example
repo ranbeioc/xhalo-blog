@@ -1,0 +1,13 @@
+name = "xhalo-blog-queue"
+main = "src/index.js"
+compatibility_date = "2026-06-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "xhalo-blog"
+database_id = "00000000-0000-0000-0000-000000000000"
+
+[[queues.consumers]]
+queue = "xhalo-blog-tasks"
+max_batch_size = 10
+max_batch_timeout = 30
