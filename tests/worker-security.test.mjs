@@ -221,3 +221,56 @@ test('POST /api/drafts/publish with valid Turnstile token passes verification', 
   assert.ok(fetchedBody.includes('remoteip=1.2.3.4'));
 });
 
+test('POST /api/drafts/publish with direct D1 target successfully persists and returns D1 metadata', async () => {
+  let prepSql = '';
+  let prepBind = [];
+  let prepRunCalled = false;
+
+  const mockDb = {
+    prepare: (sql) => {
+      prepSql = sql;
+      return {
+        bind: (...args) => {
+          prepBind = args;
+          return {
+            run: async () => {
+              prepRunCalled = true;
+              return { success: true };
+            }
+          };
+        }
+      };
+    }
+  };
+
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'D1 Only Post',
+      body: 'This post is stored directly in D1.',
+      publish_target: 'd1',
+      mode: 'live'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    LIVE_WRITES_ENABLED: 'true',
+    DB: mockDb
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(json.mode, 'live');
+  assert.equal(json.auth_mode, 'd1');
+  assert.equal(json.pull_request, null);
+  assert.equal(json.persisted, true);
+  assert.ok(prepRunCalled);
+  assert.ok(prepSql.includes('INSERT OR REPLACE INTO posts_index'));
+  assert.equal(prepBind[1], 'd1-only-post'); // slug
+  assert.equal(prepBind[2], 'D1 Only Post'); // title
+  assert.ok(prepBind[10].includes('This post is stored directly in D1.')); // content
+});
+
+

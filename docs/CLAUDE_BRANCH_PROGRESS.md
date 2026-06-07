@@ -616,7 +616,97 @@ feat: improve Admin UI with dynamic post selection and editing
 | `apps/admin/src/app.js` | Logic update |
 | `docs/CLAUDE_BRANCH_PROGRESS.md` | Handoff log update |
 
+---
 
+## Step 012 - Create Gemini feature integration branch
 
+### Executed by Model
+Gemini 3.5 Flash
 
+### Time
+2026-06-07 16:55
+
+### Branch
+`gemini/feature-integration`
+
+### Goal
+Create a new development branch for the second phase of Cloudflare-native features (D1 Write, Markdown Preview, and Cloudflare Access JWT validation).
+
+### Commands
+```bash
+git checkout -b gemini/feature-integration
+```
+
+### Result
+- Created new branch: `gemini/feature-integration`
+- Base branch: `main`
+- Latest base commit: `950b479` (merge: merge claude/admin-ui-dynamic-posting into main)
+
+### Notes
+- None
+
+---
+
+## Step 013 - Implement D1 persistent write integration and unit tests
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Code change / Database schema update / Test suite update
+
+### Goal
+Extend the `/api/drafts/publish` endpoint to support persistent D1 SQLite database writes, supporting both direct D1 writes and GitHub PR writes, and write unit tests to verify behavior.
+
+### Reason
+- The framework previously only wrote metadata to D1 (id, slug, etc.) but discarded the actual Markdown document content. It also required GitHub authentication to write, making it impossible to perform local or D1-only publishing.
+- Adding a `content` column to the `posts_index` D1 table and updating the publish logic enables full, persistent database-backed article creation.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [workers/api/migrations/0001_initial.sql](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/workers/api/migrations/0001_initial.sql) | Add `content TEXT` column | Persist full Markdown document in database schema |
+| [workers/api/src/index.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/workers/api/src/index.js) | Update `upsertPostIndexRecord` and `/api/drafts/publish` router, add `content` to `/api/posts` query | Save and retrieve content from D1 database |
+| [tests/worker-security.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/worker-security.test.mjs) | Add `POST /api/drafts/publish with direct D1 target...` test case | Verify correct routing, query generation, and metadata mapping |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm test` | Passed | All 20 tests passed successfully |
+
+---
+
+## Commit 008 - feat: implement D1 persistent write integration and unit tests
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Commit hash
+`8d70e70`
+
+### Related step
+Step 013 - Implement D1 persistent write integration and unit tests
+
+### Commit message
+```text
+feat: implement D1 persistent write integration and unit tests (Gemini 3.5 Flash)
+
+1. Append content TEXT column to posts_index table definition in migrations.
+2. Update upsertPostIndexRecord and SELECT query to fetch and store content.
+3. Allow direct D1 writes on /api/drafts/publish using publish_target: 'd1'.
+4. Add unit test asserting D1 direct write database query and response schema.
+```
+
+### Summary
+- Configured D1 schema to store article body content.
+- Enabled D1 fallback write when GITHUB app credentials are not configured.
+- Added verification test asserting mock DB bindings.
+
+### Files included
+| File | Reason |
+|---|---|
+| `workers/api/migrations/0001_initial.sql` | Schema update |
+| `workers/api/src/index.js` | Logic update |
+| `tests/worker-security.test.mjs` | Test addition |
+| `docs/CLAUDE_BRANCH_PROGRESS.md` | Log update |
 

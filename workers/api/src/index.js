@@ -388,8 +388,8 @@ async function upsertPostIndexRecord(env, record) {
 
   await env.DB.prepare(
     `INSERT OR REPLACE INTO posts_index
-    (id, slug, title, path, status, created_at, updated_at, published_at, github_branch, github_pr_url)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    (id, slug, title, path, status, created_at, updated_at, published_at, github_branch, github_pr_url, content)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(
     record.id,
     record.slug,
@@ -400,7 +400,8 @@ async function upsertPostIndexRecord(env, record) {
     record.updated_at,
     record.published_at || null,
     record.github_branch || null,
-    record.github_pr_url || null
+    record.github_pr_url || null,
+    record.content || null
   ).run();
 
   return true;
@@ -804,7 +805,7 @@ export default {
     if (url.pathname === '/api/posts') {
       const items = await selectRows(
         env,
-        'SELECT id, slug, title, path, status, created_at, updated_at, published_at, github_branch, github_pr_url FROM posts_index ORDER BY COALESCE(updated_at, created_at) DESC LIMIT 10'
+        'SELECT id, slug, title, path, status, created_at, updated_at, published_at, github_branch, github_pr_url, content FROM posts_index ORDER BY COALESCE(updated_at, created_at) DESC LIMIT 10'
       );
 
       return createJsonResponse({
@@ -921,49 +922,61 @@ export default {
         return rejectLiveWriteDisabled();
       }
 
-      const authorization = await getGitHubAuthorization(env);
-      if (!authorization.header) {
-        return createJsonResponse({
-          error: 'GitHub App env or GITHUB_TOKEN is required for the live draft publish prototype.',
-          mode
-        }, { status: 503 });
+      const markdown = buildDraftMarkdownDocument(input);
+      let pullRequest = null;
+      let branchResult = { created: false };
+      let commitResult = null;
+      let authMode = 'd1';
+
+      const hasGitHub = hasGitHubAppConfig(env) || Boolean(env.GITHUB_TOKEN);
+      const useGitHub = hasGitHub && input.publish_target !== 'd1';
+
+      if (useGitHub) {
+        const authorization = await getGitHubAuthorization(env);
+        if (!authorization.header) {
+          return createJsonResponse({
+            error: 'GitHub App env or GITHUB_TOKEN is required for the live draft publish prototype.',
+            mode
+          }, { status: 503 });
+        }
+        authMode = authorization.mode;
+        const baseSha = await getBranchHeadSha(env, preview.baseBranch);
+        branchResult = await createBranchIfMissing(env, preview.branchName, baseSha);
+        commitResult = await createDraftFileCommit(
+          env,
+          preview.filePath,
+          preview.branchName,
+          markdown,
+          preview.commitMessage
+        );
+        pullRequest = await createPullRequest(env, preview);
       }
 
-      const markdown = buildDraftMarkdownDocument(input);
-      const baseSha = await getBranchHeadSha(env, preview.baseBranch);
-      const branchResult = await createBranchIfMissing(env, preview.branchName, baseSha);
-      const commitResult = await createDraftFileCommit(
-        env,
-        preview.filePath,
-        preview.branchName,
-        markdown,
-        preview.commitMessage
-      );
-      const pullRequest = await createPullRequest(env, preview);
       const persisted = await upsertPostIndexRecord(env, {
         id: preview.draft.slug,
         slug: preview.draft.slug,
         title: preview.draft.title || preview.draft.slug,
         path: preview.filePath,
-        status: 'draft',
+        status: preview.draft.status || 'draft',
         created_at: nowIso(),
         updated_at: nowIso(),
-        github_branch: preview.branchName,
-        github_pr_url: pullRequest.html_url
+        github_branch: pullRequest ? preview.branchName : null,
+        github_pr_url: pullRequest ? pullRequest.html_url : null,
+        content: markdown
       });
 
       return createJsonResponse({
         mode,
-        auth_mode: authorization.mode,
+        auth_mode: authMode,
         preview,
         plan,
         branch_created: branchResult.created,
         content_path: commitResult?.content?.path || preview.filePath,
         commit_sha: commitResult?.commit?.sha || null,
-        pull_request: {
+        pull_request: pullRequest ? {
           number: pullRequest.number,
           url: pullRequest.html_url
-        },
+        } : null,
         persisted
       });
     }
