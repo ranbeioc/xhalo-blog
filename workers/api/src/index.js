@@ -590,6 +590,44 @@ function verifyAdminRequest(request, env) {
   return Boolean(provided) && provided === env.ADMIN_API_SHARED_SECRET;
 }
 
+async function verifyTurnstileToken(request, env) {
+  if (!env.TURNSTILE_SECRET_KEY) {
+    return true;
+  }
+
+  const token = request.headers.get('x-xhalo-turnstile-token') || request.headers.get('cf-turnstile-token');
+  if (!token) {
+    return false;
+  }
+
+  const fetchFn = env.TURNSTILE_FETCH || fetch;
+  try {
+    const ip = request.headers.get('cf-connecting-ip') || '';
+    const body = new URLSearchParams({
+      secret: env.TURNSTILE_SECRET_KEY,
+      response: token,
+      remoteip: ip
+    });
+
+    const res = await fetchFn('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      body: body.toString(),
+      headers: {
+        'content-type': 'application/x-www-form-urlencoded'
+      }
+    });
+
+    if (!res.ok) {
+      return false;
+    }
+
+    const outcome = await res.json();
+    return Boolean(outcome.success);
+  } catch (error) {
+    return false;
+  }
+}
+
 function rejectUnauthorized() {
   return createJsonResponse({
     error: 'Unauthorized admin API request.',
@@ -744,8 +782,19 @@ export default {
       });
     }
 
-    if (isProtectedAdminRoute(url.pathname) && !verifyAdminRequest(request, env)) {
-      return rejectUnauthorized();
+    if (isProtectedAdminRoute(url.pathname)) {
+      if (!verifyAdminRequest(request, env)) {
+        return rejectUnauthorized();
+      }
+      if (request.method === 'POST' || request.method === 'PUT') {
+        const isTurnstileValid = await verifyTurnstileToken(request, env);
+        if (!isTurnstileValid) {
+          return createJsonResponse({
+            error: 'Turnstile verification failed.',
+            note: 'Verify your Turnstile token in headers (x-xhalo-turnstile-token or cf-turnstile-token).'
+          }, { status: 403 });
+        }
+      }
     }
 
     if (url.pathname === '/api/readiness') {

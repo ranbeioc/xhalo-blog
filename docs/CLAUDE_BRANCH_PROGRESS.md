@@ -355,3 +355,140 @@ docs: include model names in progress log for model tracking
 |---|---|
 | `npm run check:all` | Passed |
 
+---
+
+## Step 008 - Implement Turnstile runtime token verification
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Code change / Security configuration
+
+### Goal
+Enforce Turnstile runtime verification in the API Worker to protect state mutations on admin routes.
+
+### Reason
+- The framework had configuration support for Turnstile site and secret keys but lacked actual runtime checks on writing API requests.
+- Protecting endpoints like `/api/drafts/publish` and `/api/assets/r2-upload` with Turnstile prevents bots from bypassing client-side validation and spamming mutations.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [workers/api/src/index.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/workers/api/src/index.js) | Add `verifyTurnstileToken` and verify on POST/PUT mutations in protected admin routes. | Core logic enforcement. |
+| [tests/worker-security.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/worker-security.test.mjs) | Add tests for missing, incorrect, and valid Turnstile tokens. | Automation test assurance. |
+
+### Implementation details
+- `verifyTurnstileToken` reads `x-xhalo-turnstile-token` or `cf-turnstile-token` headers, and sends a validation POST to `https://challenges.cloudflare.com/turnstile/v0/siteverify`.
+- Bypassed in tests where `env.TURNSTILE_SECRET_KEY` is not set, ensuring zero disruption to existing tests unless Turnstile validation is explicitly mocked.
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm test` | Passed | 18/18 tests passed, including 3 new Turnstile scenarios |
+
+---
+
+## Step 009 - Build premium open-source landing page
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Feature / HTML & CSS configuration
+
+### Goal
+Provide a premium landing introduction page inside the monorepo at `apps/landing/`.
+
+### Reason
+- The framework requires an attractive, fast, responsive landing page to explain the product capabilities, architecture layout, and setup guidelines to new users.
+- Highlighting Cloudflare ecosystem benefits (D1, R2, Workers, Pages) in an aesthetic layout improves developer engagement.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [package.json](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/package.json) | Register landing build script. | Pipeline integration. |
+| [apps/landing/package.json](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/landing/package.json) [NEW] | Setup landing workspace. | Workspace creation. |
+| [apps/landing/scripts/build.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/landing/scripts/build.mjs) [NEW] | Add static copying build script. | Build setup. |
+| [apps/landing/src/index.html](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/landing/src/index.html) [NEW] | Create semantic HTML structure, including SEO meta tags and SVG diagram. | Content addition. |
+| [apps/landing/src/style.css](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/landing/src/style.css) [NEW] | Define dark theme style rules, glassmorphism, responsive grid layout, and hover animation variables. | Styling addition. |
+| [apps/landing/src/app.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/landing/src/app.js) [NEW] | Add simple navbar scroll effect and SVG node highlight click listeners. | Interactivity addition. |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm run build:landing` | Passed | Landing workspace builds successfully |
+| `npm run check:all` | Passed | Entire validation pipeline passes on Windows |
+
+---
+
+## Commit 004 - feat: implement Turnstile runtime token verification and unit tests
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Commit hash
+`bf9f36e`
+
+### Related step
+Step 008 - Implement Turnstile runtime token verification
+
+### Commit message
+```text
+feat: implement Turnstile runtime token verification and unit tests
+
+1. Create verifyTurnstileToken helper in api worker.
+2. Hook Turnstile verification on POST/PUT requests in isProtectedAdminRoute checks.
+3. Add three worker security tests for Turnstile token verification.
+```
+
+### Summary
+- Patched api worker to verify Turnstile headers.
+- Added tests verifying bypass, error, and pass flows.
+
+### Files included
+| File | Reason |
+|---|---|
+| `workers/api/src/index.js` | Logic modification |
+| `tests/worker-security.test.mjs` | Test suite addition |
+| `docs/CLAUDE_BRANCH_PROGRESS.md` | Handoff log update |
+
+---
+
+## Commit 005 - feat: build premium open-source landing page in apps/landing
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Commit hash
+`COMMIT_005_HASH`
+
+### Related step
+Step 009 - Build premium open-source landing page
+
+### Commit message
+```text
+feat: build premium open-source landing page in apps/landing
+
+1. Register @xhalo-blog/landing workspace and build scripts.
+2. Create apps/landing/ with package.json, build.mjs, and static assets in src/.
+3. Implement dark mode design, outfit font typography, glassmorphism card grid, and SVG architecture flow.
+```
+
+### Summary
+- Initialized workspace for landing page.
+- Created beautiful and responsive static assets.
+
+### Files included
+| File | Reason |
+|---|---|
+| `package.json` | Pipeline update |
+| `apps/landing/package.json` | Workspace creation |
+| `apps/landing/scripts/build.mjs` | Build script |
+| `apps/landing/src/index.html` | Content page |
+| `apps/landing/src/style.css` | Styling sheet |
+| `apps/landing/src/app.js` | Interactivity |
+| `docs/CLAUDE_BRANCH_PROGRESS.md` | Handoff log update |
+
+
+
