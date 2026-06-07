@@ -272,10 +272,10 @@ test('POST /api/drafts/publish with direct D1 target successfully persists and r
   assert.equal(json.pull_request, null);
   assert.equal(json.persisted, true);
   assert.ok(prepRunCalled);
-  assert.ok(prepSql.includes('INSERT OR REPLACE INTO posts_index'));
+  assert.ok(prepSql.includes('INSERT INTO posts_index'));
   assert.equal(prepBind[1], 'd1-only-post'); // slug
   assert.equal(prepBind[2], 'D1 Only Post'); // title
-  assert.ok(prepBind[10].includes('This post is stored directly in D1.')); // content
+  assert.ok(prepBind[11].includes('This post is stored directly in D1.')); // content
 });
 
 function makeMockJwt(header, payload) {
@@ -768,6 +768,328 @@ test('Schema Validation: optional fields summary, category, tags are validated s
 
   assert.equal(response.status, 200);
   assert.equal(json.mode, 'dry-run');
+});
+
+test('R2 Upload: filename with path traversal is rejected with 400', async () => {
+  const { response, json } = await requestJson('/api/assets/r2-upload', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      filename: '../../evil.png',
+      contentType: 'image/png',
+      content: 'fake-content'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret
+  });
+
+  assert.equal(response.status, 400);
+  assert.match(json.error, /invalid path traversal characters/);
+});
+
+test('R2 Upload: content type extension mismatch is rejected with 400', async () => {
+  const { response, json } = await requestJson('/api/assets/r2-upload', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      filename: 'image.png',
+      contentType: 'text/plain',
+      content: 'fake-content'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret
+  });
+
+  assert.equal(response.status, 400);
+  assert.match(json.error, /extension does not match the Content-Type/);
+});
+
+test('R2 Upload: forbidden MIME type is rejected with 400', async () => {
+  const { response, json } = await requestJson('/api/assets/r2-upload', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      filename: 'script.js',
+      contentType: 'application/javascript',
+      content: 'console.log(1)'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret
+  });
+
+  assert.equal(response.status, 400);
+  assert.match(json.error, /not allowed/);
+});
+
+test('R2 Upload: path traversal in scope is rejected with 400', async () => {
+  const { response, json } = await requestJson('/api/assets/r2-upload', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      filename: 'image.png',
+      contentType: 'image/png',
+      scope: '../../evil',
+      content: 'fake-content'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret
+  });
+
+  assert.equal(response.status, 400);
+  assert.match(json.error, /Scope contains invalid path/);
+});
+
+test('R2 Upload: path traversal in postSlug is rejected with 400', async () => {
+  const { response, json } = await requestJson('/api/assets/r2-upload', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      filename: 'image.png',
+      contentType: 'image/png',
+      postSlug: '../../evil',
+      content: 'fake-content'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret
+  });
+
+  assert.equal(response.status, 400);
+  assert.match(json.error, /postSlug contains invalid path/);
+});
+
+test('R2 Signed Upload: filename with traversal is rejected with 400', async () => {
+  const { response, json } = await requestJson('/api/assets/r2-signed-upload', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      filename: '../../evil.png',
+      contentType: 'image/png'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret
+  });
+
+  assert.equal(response.status, 400);
+  assert.match(json.error, /invalid path traversal characters/);
+});
+
+test('R2 Preview: filename with traversal is rejected with 400', async () => {
+  const { response, json } = await requestJson('/api/assets/r2-preview', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      filename: '../../evil.png',
+      contentType: 'image/png'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret
+  });
+
+  assert.equal(response.status, 400);
+  assert.match(json.error, /invalid path traversal characters/);
+});
+
+test('GitHub Publish: standard successful flow', async () => {
+  let createdBranch = false;
+  let committedFile = false;
+  let createdPr = false;
+
+  const mockGithubFetch = async (url, init) => {
+    const parsedUrl = new URL(url);
+    const path = parsedUrl.pathname;
+
+    if (path.includes('/git/ref/heads/main')) {
+      return new Response(JSON.stringify({ object: { sha: 'base-sha' } }), { status: 200 });
+    }
+    if (path.includes('/git/refs') && init.method === 'POST') {
+      createdBranch = true;
+      return new Response(JSON.stringify({ ref: 'refs/heads/draft/post-title' }), { status: 201 });
+    }
+    if (path.includes('/contents/') && (!init.method || init.method === 'GET')) {
+      return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+    }
+    if (path.includes('/contents/') && init.method === 'PUT') {
+      committedFile = true;
+      return new Response(JSON.stringify({ content: { path: 'content/posts/post-title.md' }, commit: { sha: 'commit-sha' } }), { status: 201 });
+    }
+    if (path.includes('/pulls') && init.method === 'POST') {
+      createdPr = true;
+      return new Response(JSON.stringify({ number: 42, html_url: 'https://github.com/example/xhalo-blog/pull/42' }), { status: 201 });
+    }
+    return new Response(JSON.stringify({}), { status: 404 });
+  };
+
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Post Title',
+      slug: 'post-title',
+      mode: 'live'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    LIVE_WRITES_ENABLED: 'true',
+    GITHUB_TOKEN: 'mock-token',
+    GITHUB_FETCH: mockGithubFetch,
+    DB: {
+      prepare: () => ({
+        bind: () => ({
+          run: async () => ({ success: true })
+        })
+      })
+    }
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(json.pull_request.number, 42);
+  assert.ok(createdBranch);
+  assert.ok(committedFile);
+  assert.ok(createdPr);
+});
+
+test('GitHub Publish: branch and PR already exist (idempotency)', async () => {
+  let fetchedExistingPr = false;
+  let fileUpdatedWithSha = false;
+
+  const mockGithubFetch = async (url, init) => {
+    const parsedUrl = new URL(url);
+    const path = parsedUrl.pathname;
+
+    if (path.includes('/git/ref/heads/main')) {
+      return new Response(JSON.stringify({ object: { sha: 'base-sha' } }), { status: 200 });
+    }
+    if (path.includes('/git/refs') && init.method === 'POST') {
+      const errorResponse = {
+        message: 'Validation Failed',
+        errors: [{ resource: 'Reference', code: 'already_exists' }]
+      };
+      return new Response(JSON.stringify(errorResponse), { status: 422 });
+    }
+    if (path.includes('/contents/') && (!init.method || init.method === 'GET')) {
+      return new Response(JSON.stringify({ sha: 'existing-file-sha' }), { status: 200 });
+    }
+    if (path.includes('/contents/') && init.method === 'PUT') {
+      const body = JSON.parse(init.body);
+      if (body.sha === 'existing-file-sha') {
+        fileUpdatedWithSha = true;
+      }
+      return new Response(JSON.stringify({ content: { path: 'content/posts/post-title.md' }, commit: { sha: 'commit-sha' } }), { status: 200 });
+    }
+    if (path.includes('/pulls') && init.method === 'POST') {
+      return new Response(JSON.stringify({ message: 'Validation Failed' }), { status: 422 });
+    }
+    if (path.includes('/pulls') && (!init.method || init.method === 'GET')) {
+      fetchedExistingPr = true;
+      return new Response(JSON.stringify([
+        { number: 42, html_url: 'https://github.com/example/xhalo-blog/pull/42' }
+      ]), { status: 200 });
+    }
+    return new Response(JSON.stringify({}), { status: 404 });
+  };
+
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Post Title',
+      slug: 'post-title',
+      mode: 'live'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    LIVE_WRITES_ENABLED: 'true',
+    GITHUB_TOKEN: 'mock-token',
+    GITHUB_FETCH: mockGithubFetch,
+    DB: {
+      prepare: () => ({
+        bind: () => ({
+          run: async () => ({ success: true })
+        })
+      })
+    }
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(json.pull_request.number, 42);
+  assert.ok(fileUpdatedWithSha);
+  assert.ok(fetchedExistingPr);
+});
+
+test('GitHub Publish: commit conflict returns 409', async () => {
+  const mockGithubFetch = async (url, init) => {
+    const parsedUrl = new URL(url);
+    const path = parsedUrl.pathname;
+
+    if (path.includes('/git/ref/heads/main')) {
+      return new Response(JSON.stringify({ object: { sha: 'base-sha' } }), { status: 200 });
+    }
+    if (path.includes('/git/refs') && init.method === 'POST') {
+      return new Response(JSON.stringify({ ref: 'refs/heads/draft/post-title' }), { status: 201 });
+    }
+    if (path.includes('/contents/') && init.method === 'GET') {
+      return new Response(JSON.stringify({ sha: 'old-sha' }), { status: 200 });
+    }
+    if (path.includes('/contents/') && init.method === 'PUT') {
+      return new Response(JSON.stringify({ message: 'conflict' }), { status: 409 });
+    }
+    return new Response(JSON.stringify({}), { status: 404 });
+  };
+
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Post Title',
+      slug: 'post-title',
+      mode: 'live'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    LIVE_WRITES_ENABLED: 'true',
+    GITHUB_TOKEN: 'mock-token',
+    GITHUB_FETCH: mockGithubFetch,
+    DB: {
+      prepare: () => ({
+        bind: () => ({
+          run: async () => ({ success: true })
+        })
+      })
+    }
+  });
+
+  assert.equal(response.status, 409);
+  assert.match(json.error, /Commit conflict/);
 });
 
 
