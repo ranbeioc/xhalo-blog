@@ -602,13 +602,29 @@ async function verifyAccessJwt(request, env) {
     const header = JSON.parse(base64UrlDecode(parts[0]));
     const payload = JSON.parse(base64UrlDecode(parts[1]));
 
-    // 1. Verify expiration
-    const nowSec = Date.now() / 1000;
-    if (payload.exp && nowSec >= payload.exp) {
+    // 1. Verify algorithm — MUST be RS256
+    if (header.alg !== 'RS256') {
       return false;
     }
 
-    // 2. Verify issuer
+    // 2. Verify kid — MUST exist in header
+    if (!header.kid) {
+      return false;
+    }
+
+    // 3. Verify expiration — MUST exist and not be expired
+    if (typeof payload.exp !== 'number') {
+      return false;
+    }
+    const nowSec = Date.now() / 1000;
+    if (nowSec >= payload.exp) {
+      return false;
+    }
+
+    // 4. Verify issuer — MUST exist and match expected format
+    if (!payload.iss) {
+      return false;
+    }
     if (env.ACCESS_TEAM_DOMAIN) {
       const expectedIss = `https://${env.ACCESS_TEAM_DOMAIN}.cloudflareaccess.com`;
       if (payload.iss !== expectedIss) {
@@ -616,14 +632,18 @@ async function verifyAccessJwt(request, env) {
       }
     }
 
-    // 3. Verify audience
+    // 5. Verify audience — MUST match; supports both string and array
     if (env.ACCESS_AUDIENCE_TAG) {
-      if (payload.aud !== env.ACCESS_AUDIENCE_TAG) {
+      if (Array.isArray(payload.aud)) {
+        if (!payload.aud.includes(env.ACCESS_AUDIENCE_TAG)) {
+          return false;
+        }
+      } else if (payload.aud !== env.ACCESS_AUDIENCE_TAG) {
         return false;
       }
     }
 
-    // 4. Verify signature
+    // 6. Verify signature (bypass available for testing only)
     if (env.ACCESS_BYPASS_SIGNATURE_FOR_TESTING === 'true') {
       return true;
     }
@@ -639,6 +659,8 @@ async function verifyAccessJwt(request, env) {
     if (!res.ok) return false;
 
     const jwks = await res.json();
+    if (!jwks.keys || !Array.isArray(jwks.keys)) return false;
+
     const jwk = jwks.keys.find(key => key.kid === header.kid);
     if (!jwk) return false;
 

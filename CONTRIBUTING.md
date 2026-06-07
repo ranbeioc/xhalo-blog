@@ -1,29 +1,87 @@
 # Contributing to xhalo-blog
 
-Thanks for helping improve `xhalo-blog`.
+Thank you for your interest in contributing to xhalo-blog. This document outlines the development workflow and requirements for submitting changes.
 
-## Development principles
+## Branch Policy
 
-1. Keep the public static site stable.
-2. Keep dynamic Cloudflare features optional and isolated.
-3. Do not commit secrets or production-only configuration.
-4. Prefer small pull requests with clear scope.
-5. Keep Hexo theme compatibility in mind.
+- **Never push directly to `main`.** All changes must go through pull requests.
+- Create a feature or fix branch from `main`:
+  ```bash
+  git checkout main
+  git pull --ff-only
+  git checkout -b <your-branch-name>
+  ```
 
-## Local checks
+## Development Workflow
 
-```bash
-npm install
-npm run check
-```
+1. **Create a branch** from `main`.
+2. **Make small, focused commits** with clear messages.
+3. **Run validation** before each commit:
+   ```bash
+   npm ci
+   npm run check:all
+   npm test
+   ```
+4. **Push your branch** and create a pull request.
+5. **Wait for CI** to pass before requesting review.
+6. **Update progress documentation** if working on a tracked task.
 
-## Pull request expectations
+## Pull Request Requirements
 
-- Explain the problem and solution.
-- Include documentation changes for user-facing behavior.
-- Include migration notes if configuration changes.
-- Avoid committing generated output such as `public/`, `.deploy_git/`, or local caches.
+Every PR must include:
 
-## Security issues
+- A clear summary of changes
+- Security impact assessment (if applicable)
+- Migration impact assessment (if applicable)
+- Validation results
+- Updated progress documentation (for tracked tasks)
+
+Use the PR template provided in `.github/pull_request_template.md`.
+
+## Validation Checklist
+
+Before submitting a PR, verify:
+
+- [ ] `npm ci` installs cleanly
+- [ ] `npm run check:all` passes (syntax, secrets, compatibility, build)
+- [ ] `npm test` passes all test suites
+- [ ] No secrets, production credentials, or private configuration committed
+- [ ] Progress documentation updated (if applicable)
+
+## Security-Related Changes
+
+PRs that modify security-critical code must:
+
+- Describe the security impact in the PR description
+- Include or update relevant tests in `tests/`
+- Reference the security documentation in `docs/security.md`
+- Not weaken existing security controls (Cloudflare Access, Turnstile, admin secret)
+
+## D1 / R2 / Worker Changes
+
+PRs that modify database schema, R2 bindings, or Worker logic must:
+
+- Describe migration impact in the PR description
+- Create forward migrations (never modify existing migration files)
+- Document upgrade steps in `docs/d1-migrations.md`
+- Not bypass `LIVE_WRITES_ENABLED` guards
+
+## Code Style
+
+- Use ES modules (`import`/`export`)
+- Use `node:test` for test suites
+- Use `node:assert/strict` for assertions
+- Keep Workers dependency-free (no npm packages in worker code)
+
+## Security Issues
 
 Do not open a public issue for sensitive security reports. See `SECURITY.md`.
+
+## Branch Protection (Recommended)
+
+Repository maintainers should enable:
+
+- Require pull request reviews before merging
+- Require status checks to pass before merging
+- Require branches to be up to date before merging
+- Block force pushes to `main`
