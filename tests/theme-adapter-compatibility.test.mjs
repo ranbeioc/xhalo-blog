@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  buildHexoCompatibilityFixtureManifest,
   buildHexoCompatibilityProfile,
   mapSiteConfigToHexo
 } from '../packages/theme-adapter-hexo/src/index.js';
@@ -35,4 +36,14 @@ test('theme adapter compatibility profile exposes the optional plugin baseline',
   assert.ok(profile.optionalPlugins.some((plugin) => plugin.packageName === '@waline/hexo-next'));
   assert.ok(profile.optionalPlugins.some((plugin) => plugin.packageName === 'hexo-generator-searchdb'));
   assert.ok(profile.optionalPlugins.some((plugin) => plugin.packageName === 'hexo-tag-chart'));
+});
+
+test('theme adapter fixture manifest keeps the runtime compatibility sample stable', () => {
+  const manifest = buildHexoCompatibilityFixtureManifest();
+
+  assert.equal(manifest.postSlug, 'hexo-compatibility-fixtures');
+  assert.equal(manifest.postOutputPath, '/2026/06/02/hexo-compatibility-fixtures/index.html');
+  assert.ok(manifest.assets.some((asset) => asset.endsWith('fixture-video.mp4')));
+  assert.ok(manifest.expectedHtmlMarkers.some((marker) => marker.includes('fixture-document.pdf')));
+  assert.ok(manifest.expectedHtmlMarkers.some((marker) => marker === 'compatibility fixture'));
 });

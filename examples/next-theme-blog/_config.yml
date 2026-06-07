@@ -34,3 +34,9 @@ index_generator:
   path: ''
   per_page: 10
   order_by: -date
+
+search:
+  path: search.xml
+  field: post
+  format: html
+  content: true

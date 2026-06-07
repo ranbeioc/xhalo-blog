@@ -25,7 +25,7 @@ npm install
 npm run check:all
 ```
 
-This verifies the scaffold baseline, production-marker scan, admin build, basic example build, Worker syntax checks, and minimal security tests.
+This verifies the scaffold baseline, production-marker scan, admin build, both Hexo build paths, built compatibility fixtures, Worker syntax checks, and minimal security tests.
 
 When the placeholder API is deployed on the same origin, protect it first with Cloudflare Access and `ADMIN_API_SHARED_SECRET`. The admin scaffold now expects that shared secret before it will query protected routes such as `GET /api/readiness`, `GET /api/posts`, and `GET /api/tasks`.
 
@@ -86,6 +86,7 @@ Use this path when you need a working Hexo baseline with:
 - NexT-compatible theme configuration
 - `_headers` checked into `source/_headers`
 - compatibility helper `scripts/hexo-asset-image.js` for post-asset image, FancyBox, and video path rewriting
+- fixture-backed coverage for PDF, Chart, searchdb, sitemap, and baidusitemap outputs
 
 ## Prepare configuration
 
