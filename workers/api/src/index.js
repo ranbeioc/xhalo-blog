@@ -460,6 +460,79 @@ async function insertTaskRecord(env, task) {
   return true;
 }
 
+// ── Structured Logging ──────────────────────────────────────────────────────
+
+function createStructuredLog(level, action, fields = {}) {
+  return {
+    level,
+    action,
+    timestamp: nowIso(),
+    ...fields
+  };
+}
+
+function logInfo(action, fields = {}) {
+  const entry = createStructuredLog('info', action, fields);
+  console.log(JSON.stringify(entry));
+  return entry;
+}
+
+function logWarn(action, fields = {}) {
+  const entry = createStructuredLog('warn', action, fields);
+  console.warn(JSON.stringify(entry));
+  return entry;
+}
+
+function logError(action, fields = {}) {
+  const entry = createStructuredLog('error', action, fields);
+  console.error(JSON.stringify(entry));
+  return entry;
+}
+
+function logSecurity(action, fields = {}) {
+  return logWarn(action, { ...fields, category: 'security' });
+}
+
+// ── Audit Log Persistence ───────────────────────────────────────────────────
+
+async function insertAuditLog(env, entry) {
+  if (!env.DB || typeof env.DB.prepare !== 'function') return false;
+  try {
+    await env.DB.prepare(
+      `INSERT INTO audit_logs (id, timestamp, action, actor, resource, resource_id, method, path, status_code, detail, ip, user_agent, duration_ms, error)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(
+      entry.id || crypto.randomUUID(),
+      entry.timestamp || nowIso(),
+      entry.action,
+      entry.actor || null,
+      entry.resource || null,
+      entry.resource_id || null,
+      entry.method || null,
+      entry.path || null,
+      entry.status_code || null,
+      typeof entry.detail === 'object' ? JSON.stringify(entry.detail) : (entry.detail || null),
+      entry.ip || null,
+      entry.user_agent || null,
+      entry.duration_ms || null,
+      entry.error || null
+    ).run();
+    return true;
+  } catch (err) {
+    console.error(JSON.stringify(createStructuredLog('error', 'audit_log_write_failed', { error: err.message })));
+    return false;
+  }
+}
+
+function extractRequestMeta(request) {
+  return {
+    ip: request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || null,
+    user_agent: request.headers.get('user-agent') || null,
+    method: request.method,
+    path: new URL(request.url).pathname
+  };
+}
+
 async function upsertPostIndexRecord(env, record) {
   if (!env.DB || typeof env.DB.prepare !== 'function') return false;
 
@@ -980,7 +1053,7 @@ function rejectUnauthorized() {
 }
 
 function isProtectedAdminRoute(pathname) {
-  if (pathname === '/api/readiness' || pathname === '/api/posts' || pathname === '/api/tasks' || pathname === '/api/tasks/example') {
+  if (pathname === '/api/readiness' || pathname === '/api/posts' || pathname === '/api/tasks' || pathname === '/api/tasks/example' || pathname === '/api/audit-logs') {
     return true;
   }
 
@@ -994,6 +1067,8 @@ function isProtectedAdminRoute(pathname) {
 
 export default {
   async fetch(request, env) {
+    const requestStart = Date.now();
+    try {
     const url = new URL(request.url);
 
     if (url.pathname === '/api/health') {
@@ -1010,6 +1085,15 @@ export default {
       try {
         await verifyGithubWebhookSignature(env, request, rawBody);
       } catch (error) {
+        logSecurity('webhook_auth_failed', { ...extractRequestMeta(request), webhook: 'github' });
+        await insertAuditLog(env, {
+          action: 'webhook_auth_failed',
+          ...extractRequestMeta(request),
+          resource: 'webhook',
+          resource_id: 'github',
+          status_code: 403,
+          duration_ms: Date.now() - requestStart
+        });
         return createJsonResponse({ error: error.message || 'Invalid GitHub webhook.' }, { status: 403 });
       }
 
@@ -1043,6 +1127,16 @@ export default {
               pullRequestUrl: prUrl
             }
           }
+        });
+
+        await insertAuditLog(env, {
+          action: 'github_webhook',
+          ...extractRequestMeta(request),
+          resource: 'webhook',
+          resource_id: branchName,
+          status_code: 200,
+          duration_ms: Date.now() - requestStart,
+          detail: { event: eventName, action, status, branch: branchName }
         });
 
         return createJsonResponse({
@@ -1080,6 +1174,15 @@ export default {
       try {
         await verifyPreviewWebhookSecret(env, request);
       } catch (error) {
+        logSecurity('webhook_auth_failed', { ...extractRequestMeta(request), webhook: 'preview' });
+        await insertAuditLog(env, {
+          action: 'webhook_auth_failed',
+          ...extractRequestMeta(request),
+          resource: 'webhook',
+          resource_id: 'preview',
+          status_code: 403,
+          duration_ms: Date.now() - requestStart
+        });
         return createJsonResponse({ error: error.message || 'Invalid preview deployment webhook.' }, { status: 403 });
       }
 
@@ -1115,6 +1218,16 @@ export default {
         }
       });
 
+      await insertAuditLog(env, {
+        action: 'preview_deployment',
+        ...extractRequestMeta(request),
+        resource: 'deployment',
+        resource_id: postSlug || branchName,
+        status_code: 200,
+        duration_ms: Date.now() - requestStart,
+        detail: { provider, previewUrl, status, branch: branchName }
+      });
+
       return createJsonResponse({
         accepted: true,
         provider,
@@ -1129,11 +1242,25 @@ export default {
 
     if (isProtectedAdminRoute(url.pathname)) {
       if (!(await verifyAdminRequest(request, env))) {
+        logSecurity('auth_rejected', extractRequestMeta(request));
+        await insertAuditLog(env, {
+          action: 'auth_rejected',
+          ...extractRequestMeta(request),
+          status_code: 401,
+          duration_ms: Date.now() - requestStart
+        });
         return rejectUnauthorized();
       }
       if (request.method === 'POST' || request.method === 'PUT') {
         const isTurnstileValid = await verifyTurnstileToken(request, env);
         if (!isTurnstileValid) {
+          logSecurity('turnstile_rejected', extractRequestMeta(request));
+          await insertAuditLog(env, {
+            action: 'turnstile_rejected',
+            ...extractRequestMeta(request),
+            status_code: 403,
+            duration_ms: Date.now() - requestStart
+          });
           return createJsonResponse({
             error: 'Turnstile verification failed.',
             note: 'Verify your Turnstile token in headers (x-xhalo-turnstile-token or cf-turnstile-token).'
@@ -1170,6 +1297,19 @@ export default {
         items: items ? items.map(summarizeTaskRecord) : createFallbackTasks().map(summarizeTaskRecord),
         backend: items ? 'd1' : 'fallback',
         note: items ? 'Read-only tasks prototype.' : 'D1 task status integration pending; showing fallback examples.'
+      });
+    }
+
+    if (url.pathname === '/api/audit-logs') {
+      const items = await selectRows(
+        env,
+        'SELECT id, timestamp, action, actor, resource, resource_id, method, path, status_code, duration_ms, error FROM audit_logs ORDER BY timestamp DESC LIMIT 50'
+      );
+
+      return createJsonResponse({
+        items: items || [],
+        backend: items ? 'd1' : 'unavailable',
+        note: 'Read-only audit log viewer.'
       });
     }
 
@@ -1348,6 +1488,16 @@ export default {
         github_branch: pullRequest ? preview.branchName : null,
         github_pr_url: pullRequest ? pullRequest.html_url : null,
         content: markdown
+      });
+
+      await insertAuditLog(env, {
+        action: 'draft_publish',
+        ...extractRequestMeta(request),
+        resource: 'post',
+        resource_id: preview.draft.slug,
+        status_code: 200,
+        duration_ms: Date.now() - requestStart,
+        detail: { mode, auth_mode: authMode, branch_created: branchResult.created, has_pr: !!pullRequest }
       });
 
       return createJsonResponse({
@@ -1547,6 +1697,16 @@ export default {
         updated_at: recordedAt
       });
 
+      await insertAuditLog(env, {
+        action: 'r2_signed_upload',
+        ...extractRequestMeta(request),
+        resource: 'asset',
+        resource_id: signedPayload.objectKey,
+        status_code: 201,
+        duration_ms: Date.now() - requestStart,
+        detail: { uploaded_bytes: body.byteLength }
+      });
+
       return createJsonResponse({
         mode: 'signed-upload',
         public_url: signedPayload.publicUrl,
@@ -1627,6 +1787,16 @@ export default {
         },
         created_at: recordedAt,
         updated_at: recordedAt
+      });
+
+      await insertAuditLog(env, {
+        action: 'r2_upload',
+        ...extractRequestMeta(request),
+        resource: 'asset',
+        resource_id: preview.objectKey,
+        status_code: 200,
+        duration_ms: Date.now() - requestStart,
+        detail: { mode, uploaded_bytes: uploadBody.byteLength }
       });
 
       return createJsonResponse({
@@ -1778,5 +1948,25 @@ export default {
     }
 
     return createJsonResponse({ error: 'Not found' }, { status: 404 });
+    } catch (uncaughtError) {
+      const duration = Date.now() - requestStart;
+      logError('uncaught_error', {
+        ...extractRequestMeta(request),
+        error: uncaughtError.message || String(uncaughtError),
+        stack: uncaughtError.stack || null,
+        duration_ms: duration
+      });
+      await insertAuditLog(env, {
+        action: 'uncaught_error',
+        ...extractRequestMeta(request),
+        status_code: 500,
+        duration_ms: duration,
+        error: uncaughtError.message || String(uncaughtError)
+      });
+      return createJsonResponse({
+        error: 'Internal server error.',
+        request_id: crypto.randomUUID()
+      }, { status: 500 });
+    }
   }
 };
