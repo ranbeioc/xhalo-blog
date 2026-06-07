@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>xhalo-blog — Cloudflare-Native Blog Framework Scaffold</title>
+  <meta name="description" content="xhalo-blog is a premium, open-source, Cloudflare-native blog framework scaffold combining D1 Database, R2 Storage, Workers API, and Hexo static compilation.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header / Navigation -->
+  <header id="main-header" class="header-glass">
+    <div class="container header-container">
+      <a href="#" id="brand-logo" class="logo">
+        <span class="logo-accent">x</span>halo-blog
+      </a>
+      <nav id="navbar">
+        <ul class="nav-links">
+          <li><a href="#features" id="nav-features-link">Features</a></li>
+          <li><a href="#architecture" id="nav-arch-link">Architecture</a></li>
+          <li><a href="#quickstart" id="nav-docs-link">Quickstart</a></li>
+          <li><a href="https://github.com/ranbeioc/xhalo-blog" id="nav-github-link" class="btn btn-secondary">GitHub</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section id="hero">
+    <div class="hero-bg-glow"></div>
+    <div class="container hero-container">
+      <div class="hero-content">
+        <div class="badge" id="hero-badge">Cloudflare Native</div>
+        <h1 id="hero-title">The Ultimate <span class="gradient-text">Cloudflare-Native</span> Blog Scaffold</h1>
+        <p id="hero-subtitle" class="lead">
+          Deploy a blazing-fast personal blog or developer journal completely on the Cloudflare edge network. Powered by Hexo, Pages, Workers, D1 database, and R2 bucket.
+        </p>
+        <div class="hero-actions">
+          <a href="#quickstart" id="btn-get-started" class="btn btn-primary">Deploy Now</a>
+          <a href="#architecture" id="btn-learn-more" class="btn btn-tertiary">Learn More &rarr;</a>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="glass-card visual-card" id="visual-showcase">
+          <div class="card-header">
+            <span class="dot dot-red"></span>
+            <span class="dot dot-yellow"></span>
+            <span class="dot dot-green"></span>
+            <span class="card-url">dashboard.xhalo.dev</span>
+          </div>
+          <div class="card-body">
+            <pre class="terminal-code"><code><span class="code-comment"># Clone and bootstrap</span>
+$ git clone https://github.com/ranbeioc/xhalo-blog.git
+$ cd xhalo-blog && npm install
+
+<span class="code-comment"># Start the local development server</span>
+$ npm run dev
+
+<span class="code-success">✔ xhalo-blog dev server ready at http://localhost:8787</span>
+<span class="code-info">ℹ D1 Database local binding configured</span>
+<span class="code-info">ℹ R2 Storage local bucket mapped</span></code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Grid -->
+  <section id="features" class="section-padding">
+    <div class="container">
+      <div class="section-header">
+        <h2>Powerful Capabilities, <span class="gradient-text">Zero Servers</span></h2>
+        <p class="section-lead">xhalo-blog provides everything you need to run a professional, secure, and infinitely scalable blog with zero server maintenance overhead.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="glass-card feature-card" id="feat-static">
+          <div class="feature-icon">⚡</div>
+          <h3>Hexo Speed</h3>
+          <p>Supercharged by Hexo static generation. Fast build times, standard Markdown compatibility, and NexT theme adapter support.</p>
+        </div>
+
+        <div class="glass-card feature-card" id="feat-d1">
+          <div class="feature-icon">💾</div>
+          <h3>D1 SQLite Database</h3>
+          <p>Serverless relational database at the edge. Mapped schemas, index tracking, and auto-generated migration history.</p>
+        </div>
+
+        <div class="glass-card feature-card" id="feat-r2">
+          <div class="feature-icon">📦</div>
+          <h3>R2 Object Storage</h3>
+          <p>Zero egress fee storage bucket. Directly upload assets, support signed preview links, and automatically match theme folders.</p>
+        </div>
+
+        <div class="glass-card feature-card" id="feat-turnstile">
+          <div class="feature-icon">🛡️</div>
+          <h3>Turnstile Security</h3>
+          <p>Protect mutation endpoints from bots and malicious requests using non-interactive Cloudflare Turnstile token validation.</p>
+        </div>
+
+        <div class="glass-card feature-card" id="feat-admin">
+          <div class="feature-icon">🖥️</div>
+          <h3>Admin Panel UI</h3>
+          <p>Write, edit, preview, and publish your content on the web. Connects directly to Workers API with local dry-run options.</p>
+        </div>
+
+        <div class="glass-card feature-card" id="feat-actions">
+          <div class="feature-icon">⚙️</div>
+          <h3>GitHub Actions Integration</h3>
+          <p>Deploy preview environments on branch commits. Auto-generate sitemaps, robots.txt rules, and RSS feeds during merge cycles.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Architecture Diagram -->
+  <section id="architecture" class="section-padding alt-bg">
+    <div class="container">
+      <div class="section-header">
+        <h2>Edge Architecture Overview</h2>
+        <p class="section-lead">Here is how xhalo-blog integrates the full Cloudflare ecosystem to distribute content and manage assets globally.</p>
+      </div>
+
+      <div class="architecture-diagram-container">
+        <!-- SVG Architecture Diagram -->
+        <svg viewBox="0 0 800 400" width="100%" height="auto" class="arch-svg" id="svg-arch-diagram">
+          <defs>
+            <linearGradient id="cf-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#f48220" />
+              <stop offset="100%" stop-color="#faad3f" />
+            </linearGradient>
+            <linearGradient id="db-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#3b82f6" />
+              <stop offset="100%" stop-color="#06b6d4" />
+            </linearGradient>
+            <linearGradient id="ui-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#8b5cf6" />
+              <stop offset="100%" stop-color="#ec4899" />
+            </linearGradient>
+            <linearGradient id="edge-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#10b981" />
+              <stop offset="100%" stop-color="#34d399" />
+            </linearGradient>
+          </defs>
+
+          <!-- User Node -->
+          <g transform="translate(40, 200)" class="node user-node">
+            <rect x="0" y="0" width="100" height="60" rx="8" fill="url(#ui-grad)" />
+            <text x="50" y="35" text-anchor="middle" fill="#ffffff" font-family="'Outfit', sans-serif" font-weight="600" font-size="14">Visitor / Admin</text>
+          </g>
+
+          <!-- Cloudflare Edge Boundary -->
+          <rect x="200" y="40" width="560" height="320" rx="15" fill="none" stroke="#374151" stroke-width="2" stroke-dasharray="8 4" />
+          <text x="220" y="70" fill="#9ca3af" font-family="'Outfit', sans-serif" font-weight="500" font-size="14">Cloudflare Edge Network</text>
+
+          <!-- Cloudflare Pages -->
+          <g transform="translate(240, 100)" class="node edge-node">
+            <rect x="0" y="0" width="140" height="70" rx="8" fill="url(#edge-grad)" />
+            <text x="70" y="32" text-anchor="middle" fill="#ffffff" font-family="'Outfit', sans-serif" font-weight="600" font-size="14">CF Pages</text>
+            <text x="70" y="52" text-anchor="middle" fill="#ffffff" font-family="'Outfit', sans-serif" font-size="11" opacity="0.8">Static HTML / CSS</text>
+          </g>
+
+          <!-- API Worker -->
+          <g transform="translate(240, 230)" class="node edge-node">
+            <rect x="0" y="0" width="140" height="70" rx="8" fill="url(#cf-grad)" />
+            <text x="70" y="32" text-anchor="middle" fill="#ffffff" font-family="'Outfit', sans-serif" font-weight="600" font-size="14">CF Workers API</text>
+            <text x="70" y="52" text-anchor="middle" fill="#ffffff" font-family="'Outfit', sans-serif" font-size="11" opacity="0.8">Serverless Router</text>
+          </g>
+
+          <!-- R2 Bucket -->
+          <g transform="translate(540, 100)" class="node db-node">
+            <rect x="0" y="0" width="140" height="70" rx="8" fill="url(#db-grad)" />
+            <text x="70" y="32" text-anchor="middle" fill="#ffffff" font-family="'Outfit', sans-serif" font-weight="600" font-size="14">CF R2 Bucket</text>
+            <text x="70" y="52" text-anchor="middle" fill="#ffffff" font-family="'Outfit', sans-serif" font-size="11" opacity="0.8">Media & Assets</text>
+          </g>
+
+          <!-- D1 Database -->
+          <g transform="translate(540, 230)" class="node db-node">
+            <rect x="0" y="0" width="140" height="70" rx="8" fill="url(#db-grad)" />
+            <text x="70" y="32" text-anchor="middle" fill="#ffffff" font-family="'Outfit', sans-serif" font-weight="600" font-size="14">CF D1 Database</text>
+            <text x="70" y="52" text-anchor="middle" fill="#ffffff" font-family="'Outfit', sans-serif" font-size="11" opacity="0.8">SQLite Metadata</text>
+          </g>
+
+          <!-- Connecting Arrows -->
+          <!-- User to Pages -->
+          <path d="M 140 215 L 230 145" fill="none" stroke="#f3f4f6" stroke-width="2" marker-end="url(#arrow)" />
+          <!-- User to Worker -->
+          <path d="M 140 235 L 230 255" fill="none" stroke="#f3f4f6" stroke-width="2" marker-end="url(#arrow)" />
+
+          <!-- Pages to R2 -->
+          <path d="M 380 135 L 530 135" fill="none" stroke="#f3f4f6" stroke-width="2" stroke-dasharray="4 2" />
+
+          <!-- Worker to D1 -->
+          <path d="M 380 265 L 530 265" fill="none" stroke="#f3f4f6" stroke-width="2" />
+
+          <!-- Worker to R2 -->
+          <path d="M 360 230 L 550 170" fill="none" stroke="#f3f4f6" stroke-width="1.5" />
+
+          <!-- Arrow Marker Definition -->
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#f3f4f6" />
+            </marker>
+          </defs>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <!-- Quickstart Setup Guide -->
+  <section id="quickstart" class="section-padding">
+    <div class="container">
+      <div class="section-header">
+        <h2>Get Started in <span class="gradient-text">2 Minutes</span></h2>
+        <p class="section-lead">Follow these simple steps to deploy your own xhalo-blog edge environment.</p>
+      </div>
+
+      <div class="setup-steps">
+        <div class="setup-step">
+          <div class="step-num">1</div>
+          <div class="step-info">
+            <h3>Clone the Repository</h3>
+            <p>Get the scaffold codebase on your local machine and install workspaces dependencies.</p>
+            <pre class="terminal-inline"><code>git clone https://github.com/ranbeioc/xhalo-blog.git
+cd xhalo-blog
+npm install</code></pre>
+          </div>
+        </div>
+
+        <div class="setup-step">
+          <div class="step-num">2</div>
+          <div class="step-info">
+            <h3>Configure Cloudflare Resources</h3>
+            <p>Login to your Cloudflare account using Wrangler and create your D1 database and R2 bucket.</p>
+            <pre class="terminal-inline"><code>npx wrangler login
+npx wrangler d1 create xhalo-blog-db
+npx wrangler r2 bucket create xhalo-blog-assets</code></pre>
+          </div>
+        </div>
+
+        <div class="setup-step">
+          <div class="step-num">3</div>
+          <div class="step-info">
+            <h3>Local Dry Run & Development</h3>
+            <p>Boot up the edge emulator and local admin panel workspace to verify operations.</p>
+            <pre class="terminal-inline"><code>npm run dev</code></pre>
+          </div>
+        </div>
+
+        <div class="setup-step">
+          <div class="step-num">4</div>
+          <div class="step-info">
+            <h3>Deploy to Production</h3>
+            <p>Build and push your configuration to the live Cloudflare network.</p>
+            <pre class="terminal-inline"><code>npm run check:all
+npx wrangler deploy --all</code></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer id="main-footer">
+    <div class="container footer-container">
+      <p>&copy; 2026 xhalo-blog scaffold. Released under the MIT License.</p>
+      <ul class="footer-links">
+        <li><a href="https://github.com/ranbeioc/xhalo-blog/blob/main/LICENSE">License</a></li>
+        <li><a href="https://github.com/ranbeioc/xhalo-blog/blob/main/SECURITY.md">Security</a></li>
+        <li><a href="https://github.com/ranbeioc/xhalo-blog/blob/main/docs/">Documentation</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

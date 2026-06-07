@@ -428,7 +428,7 @@ Provide a premium landing introduction page inside the monorepo at `apps/landing
 Gemini 3.5 Flash
 
 ### Commit hash
-`bf9f36e`
+`d78787f`
 
 ### Related step
 Step 008 - Implement Turnstile runtime token verification
@@ -461,7 +461,7 @@ feat: implement Turnstile runtime token verification and unit tests
 Gemini 3.5 Flash
 
 ### Commit hash
-`COMMIT_005_HASH`
+`1553512`
 
 ### Related step
 Step 009 - Build premium open-source landing page
