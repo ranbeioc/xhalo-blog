@@ -623,6 +623,7 @@ function getDraftFormPayload(form) {
     title: String(formData.get('title') || '').trim(),
     slug: String(formData.get('slug') || '').trim(),
     summary: String(formData.get('summary') || '').trim(),
+    body: String(formData.get('body') || '').trim(),
     tags,
     category: String(formData.get('category') || '').trim(),
     status: String(formData.get('status') || '').trim()
@@ -808,15 +809,43 @@ function handlePostClick(event) {
     const slugInput = form.querySelector('input[name="slug"]');
     const summaryText = form.querySelector('textarea[name="summary"]');
     const statusInput = form.querySelector('input[name="status"]');
+    const bodyTextarea = form.querySelector('textarea[name="body"]');
 
     if (titleInput) titleInput.value = post.title || '';
     if (slugInput) slugInput.value = post.slug || '';
     if (statusInput) statusInput.value = post.status || '';
-    if (summaryText) summaryText.value = `Front matter loaded for ${post.slug}. Click Generate Preview to sync plan actions.`;
+    if (summaryText) summaryText.value = post.summary || `Front matter loaded for ${post.slug}. Click Generate Preview to sync plan actions.`;
+
+    if (bodyTextarea) {
+      let bodyContent = post.content || '';
+      if (bodyContent.startsWith('---')) {
+        const parts = bodyContent.split('---');
+        if (parts.length >= 3) {
+          bodyContent = parts.slice(2).join('---').trim();
+        }
+      }
+      bodyTextarea.value = bodyContent || post.summary || '';
+    }
+
+    updateRealtimePreview();
 
     const submitter = form.querySelector('button[value="preview"]');
     if (submitter) {
       submitter.click();
+    }
+  }
+}
+
+function updateRealtimePreview() {
+  const form = document.querySelector('[data-role="draft-preview-form"]');
+  if (!form) return;
+  const bodyText = form.querySelector('textarea[name="body"]')?.value || '';
+  const previewDiv = document.querySelector('[data-field="draft-preview-html"]');
+  if (previewDiv) {
+    if (window.marked && typeof window.marked.parse === 'function') {
+      previewDiv.innerHTML = window.marked.parse(bodyText) || '<p>No content preview available.</p>';
+    } else {
+      previewDiv.textContent = bodyText || 'No content preview available.';
     }
   }
 }
@@ -829,6 +858,8 @@ async function handleDraftPreviewSubmit(event) {
     ? 'Queueing task'
     : action === 'publish'
       ? 'Publishing draft'
+    : action === 'publish-d1'
+      ? 'Publishing to D1'
     : action === 'plan'
       ? 'Building plan'
       : 'Generating preview';
@@ -837,12 +868,18 @@ async function handleDraftPreviewSubmit(event) {
   try {
     const endpoint = action === 'queue'
       ? '/api/drafts/tasks'
-      : action === 'publish'
+      : action === 'publish' || action === 'publish-d1'
         ? '/api/drafts/publish'
       : action === 'plan'
         ? '/api/drafts/github-plan'
         : '/api/drafts/preview';
-    const result = await postDraftAction(form, endpoint, action === 'publish' ? { mode: 'live' } : {});
+    const result = await postDraftAction(form, endpoint, 
+      action === 'publish' 
+        ? { mode: 'live' } 
+        : action === 'publish-d1'
+          ? { mode: 'live', publish_target: 'd1' }
+          : {}
+    );
 
     if (result?.mode === 'static') {
       renderDraftPreview(fallbackDraftPreview);
@@ -868,13 +905,14 @@ async function handleDraftPreviewSubmit(event) {
 
     if (result.plan) {
       renderDraftPlan(result.plan);
-      if (action === 'publish') {
+      if (action === 'publish' || action === 'publish-d1') {
         renderDraftPublishResult({
           mode: result.mode || 'live',
           auth_mode: result.auth_mode || 'token',
           pull_request: result.pull_request?.url || '-'
         });
         renderDraftPreviewStatus('ok', result.mode === 'live' ? 'Publish request completed' : 'Publish dry-run ready');
+        loadScaffoldData();
         return;
       }
       renderDraftPreviewStatus('ok', 'Plan ready');
@@ -1165,6 +1203,10 @@ async function loadScaffoldData() {
   const draftForm = document.querySelector('[data-role="draft-preview-form"]');
   if (draftForm && !draftForm.dataset.bound) {
     draftForm.addEventListener('submit', handleDraftPreviewSubmit);
+    const bodyTextarea = draftForm.querySelector('textarea[name="body"]');
+    if (bodyTextarea) {
+      bodyTextarea.addEventListener('input', updateRealtimePreview);
+    }
     draftForm.dataset.bound = 'true';
   }
   const r2Form = document.querySelector('[data-role="r2-preview-form"]');

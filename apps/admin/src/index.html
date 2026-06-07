@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="./style.css" />
     <script type="module" src="./app.js"></script>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   </head>
   <body>
     <main>
@@ -232,6 +233,10 @@
               <span>Summary</span>
               <textarea name="summary" rows="3">Draft metadata preview</textarea>
             </label>
+            <label class="field-span-2">
+              <span>Body (Markdown)</span>
+              <textarea name="body" rows="8" placeholder="Type your markdown content here..."></textarea>
+            </label>
             <label>
               <span>Tags</span>
               <input name="tags" type="text" value="cloudflare, stage3" />
@@ -249,6 +254,7 @@
               <button type="submit" name="action" value="queue" class="button-secondary" data-protected-action>Queue dry-run task</button>
               <button type="submit" name="action" value="plan" class="button-secondary" data-protected-action>Show GitHub plan</button>
               <button type="submit" name="action" value="publish" class="button-secondary" data-protected-action>Publish via GitHub</button>
+              <button type="submit" name="action" value="publish-d1" class="button-secondary" data-protected-action>Publish to D1</button>
             </div>
           </form>
 
@@ -284,6 +290,12 @@
               <pre class="preview-code" data-field="draft-preview-front-matter">{
   "title": "Stage 3 Prototype Post"
 }</pre>
+            </div>
+            <div class="meta-block field-span-2">
+              <span class="meta-label">Live Post Preview (HTML)</span>
+              <div class="post-preview-html" data-field="draft-preview-html">
+                <p>No content preview available.</p>
+              </div>
             </div>
             <div class="meta-grid">
               <div class="meta-row">

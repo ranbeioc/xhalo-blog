@@ -710,3 +710,71 @@ feat: implement D1 persistent write integration and unit tests (Gemini 3.5 Flash
 | `tests/worker-security.test.mjs` | Test addition |
 | `docs/CLAUDE_BRANCH_PROGRESS.md` | Log update |
 
+---
+
+## Step 014 - Integrate marked Markdown rendering and Admin UI real-time preview
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Feature / Front-end integration
+
+### Goal
+Integrate a Markdown parser into the Admin UI, support inputting article body content in real-time, render parsed HTML live in the workbench, and add a button to trigger D1 direct publishing.
+
+### Reason
+- The Admin UI previously lacked a textarea for post body content (making it impossible to draft actual articles) and could not display live HTML rendering of Markdown syntax.
+- Resolving this completes the frontend editing loop and lets operators verify their content formatting before committing the draft.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [apps/admin/src/index.html](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/index.html) | Inject `marked` library script tag, add body textarea, Publish to D1 action button, and live preview container | HTML elements expansion |
+| [apps/admin/src/style.css](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/style.css) | Add styling for `.post-preview-html` container and nested element tag behaviors | Visual alignment |
+| [apps/admin/src/app.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/app.js) | Bind `input` listener to body textarea, map `post.content` to body, and route `publish-d1` actions | Client logic update |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm run build:admin` | Passed | Admin panel placeholder successfully built |
+| `npm run check:all` | Passed | Entire validation suite compiles cleanly |
+
+---
+
+## Commit 009 - feat: integrate marked Markdown rendering and Admin UI real-time preview
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Commit hash
+`dac0df5`
+
+### Related step
+Step 014 - Integrate marked Markdown rendering and Admin UI real-time preview
+
+### Commit message
+```text
+feat: integrate marked Markdown rendering and Admin UI real-time preview (Gemini 3.5 Flash)
+
+1. Load marked JS library from CDN in Admin Panel HTML.
+2. Add body textarea input and dynamic HTML post preview container to workbench.
+3. Style preview container to match the premium dark theme grid layout.
+4. Extract body field from form data, map it to state, and enable input event listeners.
+5. Add Publish to D1 button in Admin Panel forms and route live D1 write actions.
+```
+
+### Summary
+- Configured markdown rendering and live preview update loops.
+- Integrated D1 direct publish button mapping.
+- Staged all files.
+
+### Files included
+| File | Reason |
+|---|---|
+| `apps/admin/src/index.html` | Layout updates |
+| `apps/admin/src/style.css` | Styling additions |
+| `apps/admin/src/app.js` | Logic updates |
+| `docs/CLAUDE_BRANCH_PROGRESS.md` | Log update |
+
+
