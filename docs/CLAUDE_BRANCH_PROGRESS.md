@@ -1085,4 +1085,85 @@ No code files changed in this step (progress log updated and PR created).
 |---|---|---|
 | `gh pr create` | Passed | Created PR on GitHub |
 
+---
+
+## Step 026 - Hardening D1 constraints and implementing publish input schema validation
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Security Hardening / Database schema
+
+### Goal
+Enforce SQLite constraints (slug uniqueness, indexes) and implement API-layer payload verification for drafts/publishing.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| workers/api/migrations/0003_harden_posts_index_constraints.sql | New migration file | Add unique index on slug and performance indexes |
+| docs/d1-migrations.md | Update documentation | Register 0003 migration details |
+| workers/api/src/index.js | Implement validatePublishInput() | Block invalid metadata, enforce lowercase alphanumeric slug format |
+| tests/worker-security.test.mjs | Add 6 unit test scenarios & update payloads | Validate validation failures and correct payloads |
+| docs/CLAUDE_BRANCH_PROGRESS.md | Log Step 026 updates | Keep record |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm test` | Passed | 52/52 tests pass successfully |
+| `npm run check:all` | Passed | Full monorepo check passes |
+
+---
+
+## Step 027 - Document D1 unique index migration preflight checks
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Migration hardening / Documentation / Check script
+
+### Goal
+Document D1 unique index migration preflight checks for duplicate slugs and add a static checks script to enforce migration integrity.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| docs/d1-migrations.md | Document preflight check query and rollback query | Instruct operators on checking duplicate slugs |
+| package.json | Register "check:migrations" script | Integration with the build validation pipeline |
+| scripts/check-d1-migration-readiness.mjs [NEW] | Create migration preflight validation checks script | Automate verification of migration statements and docs |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm run check:migrations` | Passed | Script successfully validates 0003 statement and docs |
+| `npm run check:all` | Passed | Preflight script executes properly in check pipeline |
+
+---
+
+## Step 028 - Harden draft publish request validation
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Security hardening / API validation / Tests
+
+### Goal
+Introduce safe JSON body parsing to prevent crashing worker, validate mode, publish_target, summary, category, tags constraints, reject underscore in slugs, and expand unit tests.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| workers/api/src/index.js | Implement readJsonBody helper, validate mode/publish_target/body size/summary/category/tags, and disallow underscore in slug regex | Robust error response for malformed or oversized payloads |
+| tests/worker-security.test.mjs | Add 10 new test cases covering invalid JSON, invalid fields, and constraints | Verification of security bounds |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm test` | Passed | 62/62 tests pass successfully |
+| `npm run check:all` | Passed | Monorepo check passes |
+
+
+
 

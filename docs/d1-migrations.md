@@ -8,6 +8,8 @@ This document describes the Cloudflare D1 migration strategy for xhalo-blog.
 |---|---|---|
 | `0001_initial.sql` | Create `posts_index`, `site_settings`, `tasks`, `audit_logs` tables | Stage 3 initial |
 | `0002_add_posts_content.sql` | Add `content TEXT` column to `posts_index` | Hardening phase |
+| `0003_harden_posts_index_constraints.sql` | Create unique index on slug and performance indexes | Stage 4 hardening |
+
 
 ## New Environment Setup
 
@@ -46,6 +48,42 @@ This is **safe to ignore**. The column already exists and no data is lost. To co
 
 ```sql
 PRAGMA table_info(posts_index);
+```
+
+## Unique Index Upgrade & Preflight Checks (0003)
+
+Migration `0003_harden_posts_index_constraints.sql` adds a `UNIQUE` index on the `slug` column to prevent duplicate post routes, along with performance tuning lookup indexes.
+
+### Preflight: Check for Duplicate Slugs
+
+Because SQLite does not allow creating a `UNIQUE` index on columns that contain duplicate values, you **must check for and clean up duplicate slugs** in your existing D1 database before applying this migration.
+
+Run this preflight query in your D1 database:
+
+```sql
+SELECT slug, COUNT(*) AS count
+FROM posts_index
+GROUP BY slug
+HAVING count > 1;
+```
+
+- **If the query returns zero rows**: You can safely apply migration 0003.
+- **If the query returns duplicate rows**: Do **not** apply the migration yet. You must manually resolve the duplicates by renaming or deleting the conflicting records in `posts_index`.
+
+Once all duplicate slugs are resolved, apply the migration:
+
+```bash
+npx wrangler d1 migrations apply <DB_NAME>
+```
+
+### Rollback Strategy
+
+If you need to roll back the constraint changes introduced in 0003:
+
+```sql
+DROP INDEX IF EXISTS idx_posts_index_slug;
+DROP INDEX IF EXISTS idx_posts_index_status;
+DROP INDEX IF EXISTS idx_posts_index_published_at;
 ```
 
 ## Local Development
