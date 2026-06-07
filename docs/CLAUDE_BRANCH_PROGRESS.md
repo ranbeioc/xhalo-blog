@@ -896,5 +896,94 @@ docs: add Cloudflare Access verification setup guide (Gemini 3.5 Flash)
 | `docs/cloudflare-access-jwt.md` | Document addition |
 | `docs/CLAUDE_BRANCH_PROGRESS.md` | Log update |
 
+---
 
+## Hardening Phase — Branch: claude/harden-runtime-migrations-security
+
+> This phase follows the `claude_gemini_role_split_prompt.md` and `next_step_xhalo_hexo_hardening_prompt.md` specifications.
+> Direction correction: Previous Phase 6 feature expansion (R2 Media Manager, Comment Moderation, Bot Webhook) was abandoned in favor of security hardening.
+
+---
+
+## Step 018 - D1 forward migration fix
+
+### Executed by Model
+Claude Opus 4 (Thinking)
+
+### Type
+Migration fix
+
+### Goal
+Add forward migration for posts_index content column to support environments that executed 0001_initial.sql before the content column was added.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| workers/api/migrations/0002_add_posts_content.sql | New migration file with ALTER TABLE | Forward migration for content column |
+| docs/d1-migrations.md | New documentation | Migration guide with upgrade paths |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm test` | Passed | 22/22 tests |
+| `npm run check:all` | Passed | All checks pass |
+
+### Risk
+- If 0001_initial.sql already includes content column, 0002 will fail with "duplicate column name" — documented in docs/d1-migrations.md as safe to ignore.
+
+---
+
+## Step 019 - Admin Markdown preview XSS fix
+
+### Executed by Model
+Claude Opus 4 (Thinking)
+
+### Type
+Security fix
+
+### Goal
+Remove unsafe `window.marked.parse()` innerHTML rendering and replace with safe Markdown subset renderer. Remove unpinned CDN marked.js dependency.
+
+### Reason
+The previous implementation used `previewDiv.innerHTML = window.marked.parse(bodyText)` which allowed arbitrary HTML injection including `<script>`, `<img onerror>`, and `javascript:` protocol links.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| apps/admin/src/app.js | Replace unsafe marked.parse() with renderSafeMarkdown() | XSS prevention |
+| apps/admin/src/index.html | Remove CDN marked.min.js script tag | Supply chain risk elimination |
+| tests/markdown-xss-safety.test.mjs | New test file with 16 XSS and rendering tests | Security test coverage |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm test` | Passed | 38/38 tests (22 original + 16 new) |
+| `npm run check:all` | Passed | All checks pass |
+
+### Security Impact
+- **Critical**: Eliminates stored/self XSS in Admin Panel preview
+- **Critical**: Removes unpinned CDN dependency (supply chain risk)
+
+---
+
+## Step 020 - Admin preview security documentation
+
+### Executed by Model
+Claude Opus 4 (Thinking)
+
+### Type
+Documentation
+
+### Goal
+Document the admin preview security model, explaining why raw HTML and CDN dependencies are rejected.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| docs/admin-preview-security.md | New security documentation | Security model reference |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm run check:all` | Passed | All checks pass |
 
