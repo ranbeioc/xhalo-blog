@@ -76,6 +76,7 @@ test('POST /api/drafts/publish live returns 403 when live writes are disabled', 
     },
     body: JSON.stringify({
       title: 'Draft title',
+      slug: 'draft-title',
       mode: 'live'
     })
   }, {
@@ -143,6 +144,7 @@ test('POST /api/drafts/publish with admin secret but missing Turnstile token whe
     },
     body: JSON.stringify({
       title: 'Draft title',
+      slug: 'draft-title',
       mode: 'live'
     })
   }, {
@@ -171,6 +173,7 @@ test('POST /api/drafts/publish with incorrect Turnstile token returns 403', asyn
     },
     body: JSON.stringify({
       title: 'Draft title',
+      slug: 'draft-title',
       mode: 'live'
     })
   }, {
@@ -205,6 +208,7 @@ test('POST /api/drafts/publish with valid Turnstile token passes verification', 
     },
     body: JSON.stringify({
       title: 'Draft title',
+      slug: 'draft-title',
       mode: 'live'
     })
   }, {
@@ -251,6 +255,7 @@ test('POST /api/drafts/publish with direct D1 target successfully persists and r
     },
     body: JSON.stringify({
       title: 'D1 Only Post',
+      slug: 'd1-only-post',
       body: 'This post is stored directly in D1.',
       publish_target: 'd1',
       mode: 'live'
@@ -448,3 +453,128 @@ test('JWT hardening: aud array missing tag is rejected', async () => {
   }, jwtEnv);
   assert.equal(response.status, 401);
 });
+
+// ─── Input Schema Validation Tests (Gemini 3.5 Flash) ───────────────────
+
+const validationEnv = {
+  ADMIN_API_SHARED_SECRET: adminSecret
+};
+
+test('Schema Validation: missing title is rejected with 400', async () => {
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      slug: 'valid-slug',
+      mode: 'dry-run'
+    })
+  }, validationEnv);
+
+  assert.equal(response.status, 400);
+  assert.equal(json.error, 'Validation failed.');
+  assert.ok(json.details.includes('Missing required field: title'));
+});
+
+test('Schema Validation: empty title is rejected with 400', async () => {
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: '   ',
+      slug: 'valid-slug',
+      mode: 'dry-run'
+    })
+  }, validationEnv);
+
+  assert.equal(response.status, 400);
+  assert.equal(json.error, 'Validation failed.');
+  assert.ok(json.details.includes('title cannot be empty'));
+});
+
+test('Schema Validation: missing slug is rejected with 400', async () => {
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      mode: 'dry-run'
+    })
+  }, validationEnv);
+
+  assert.equal(response.status, 400);
+  assert.equal(json.error, 'Validation failed.');
+  assert.ok(json.details.includes('Missing required field: slug'));
+});
+
+test('Schema Validation: invalid slug characters are rejected with 400', async () => {
+  const invalidSlugs = ['../traversal', 'slug/with/slash', 'UPPERCASE', 'invalid_char!', 'space slug'];
+  for (const slug of invalidSlugs) {
+    const { response, json } = await requestJson('/api/drafts/publish', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-xhalo-admin-secret': adminSecret
+      },
+      body: JSON.stringify({
+        title: 'Valid Title',
+        slug: slug,
+        mode: 'dry-run'
+      })
+    }, validationEnv);
+
+    assert.equal(response.status, 400);
+    assert.equal(json.error, 'Validation failed.');
+    assert.ok(json.details.some(d => d.includes('slug contains invalid characters')));
+  }
+});
+
+test('Schema Validation: invalid status values are rejected with 400', async () => {
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: 'valid-slug',
+      status: 'archived',
+      mode: 'dry-run'
+    })
+  }, validationEnv);
+
+  assert.equal(response.status, 400);
+  assert.equal(json.error, 'Validation failed.');
+  assert.ok(json.details.includes('status must be either "draft" or "published"'));
+});
+
+test('Schema Validation: valid inputs pass validation with 200', async () => {
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: 'valid-slug',
+      status: 'draft',
+      body: 'Valid post body content',
+      mode: 'dry-run'
+    })
+  }, validationEnv);
+
+  assert.equal(response.status, 200);
+  assert.equal(json.mode, 'dry-run');
+  assert.equal(json.persisted, undefined); // dry-run doesn't persist
+});
+

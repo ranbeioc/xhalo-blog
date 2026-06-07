@@ -1085,4 +1085,33 @@ No code files changed in this step (progress log updated and PR created).
 |---|---|---|
 | `gh pr create` | Passed | Created PR on GitHub |
 
+---
+
+## Step 026 - Hardening D1 constraints and implementing publish input schema validation
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Security Hardening / Database schema
+
+### Goal
+Enforce SQLite constraints (slug uniqueness, indexes) and implement API-layer payload verification for drafts/publishing.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| workers/api/migrations/0003_harden_posts_index_constraints.sql | New migration file | Add unique index on slug and performance indexes |
+| docs/d1-migrations.md | Update documentation | Register 0003 migration details |
+| workers/api/src/index.js | Implement validatePublishInput() | Block invalid metadata, enforce lowercase alphanumeric slug format |
+| tests/worker-security.test.mjs | Add 6 unit test scenarios & update payloads | Validate validation failures and correct payloads |
+| docs/CLAUDE_BRANCH_PROGRESS.md | Log Step 026 updates | Keep record |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm test` | Passed | 52/52 tests pass successfully |
+| `npm run check:all` | Passed | Full monorepo check passes |
+
+
 

@@ -738,6 +738,51 @@ async function verifyTurnstileToken(request, env) {
   }
 }
 
+function validatePublishInput(input) {
+  const errors = [];
+
+  // Title validation
+  if (input.title === undefined || input.title === null) {
+    errors.push('Missing required field: title');
+  } else {
+    const title = String(input.title).trim();
+    if (title.length === 0) {
+      errors.push('title cannot be empty');
+    } else if (title.length > 200) {
+      errors.push('title cannot be longer than 200 characters');
+    }
+  }
+
+  // Slug validation
+  if (input.slug === undefined || input.slug === null) {
+    errors.push('Missing required field: slug');
+  } else {
+    const slug = String(input.slug).trim();
+    if (slug.length === 0) {
+      errors.push('slug cannot be empty');
+    } else if (slug.length > 100) {
+      errors.push('slug cannot be longer than 100 characters');
+    } else if (!/^[a-z0-9-_]+$/.test(slug)) {
+      errors.push('slug contains invalid characters. Only lowercase alphanumeric, hyphens, and underscores are allowed.');
+    }
+  }
+
+  // Status validation
+  if (input.status !== undefined && input.status !== null) {
+    const status = String(input.status).trim();
+    if (status !== 'draft' && status !== 'published') {
+      errors.push('status must be either "draft" or "published"');
+    }
+  }
+
+  // Content/Body validation
+  if (input.body !== undefined && input.body !== null && typeof input.body !== 'string') {
+    errors.push('body must be a string');
+  }
+
+  return errors;
+}
+
 function rejectUnauthorized() {
   return createJsonResponse({
     error: 'Unauthorized admin API request.',
@@ -947,6 +992,10 @@ export default {
 
     if (url.pathname === '/api/drafts/preview' && request.method === 'POST') {
       const input = await request.json();
+      const validationErrors = validatePublishInput(input);
+      if (validationErrors.length > 0) {
+        return createJsonResponse({ error: 'Validation failed.', details: validationErrors }, { status: 400 });
+      }
       const preview = buildPullRequestPreview(input, {
         repoOwner: env.GITHUB_OWNER || 'example',
         repoName: env.GITHUB_REPO || 'xhalo-blog',
@@ -963,6 +1012,10 @@ export default {
       if (!env.TASK_QUEUE) return createJsonResponse({ error: 'TASK_QUEUE is not bound' }, { status: 500 });
 
       const input = await request.json();
+      const validationErrors = validatePublishInput(input);
+      if (validationErrors.length > 0) {
+        return createJsonResponse({ error: 'Validation failed.', details: validationErrors }, { status: 400 });
+      }
       const prototype = buildDraftTaskPrototype(input, {
         repoOwner: env.GITHUB_OWNER || 'example',
         repoName: env.GITHUB_REPO || 'xhalo-blog',
@@ -985,6 +1038,10 @@ export default {
 
     if (url.pathname === '/api/drafts/github-plan' && request.method === 'POST') {
       const input = await request.json();
+      const validationErrors = validatePublishInput(input);
+      if (validationErrors.length > 0) {
+        return createJsonResponse({ error: 'Validation failed.', details: validationErrors }, { status: 400 });
+      }
       const plan = buildGitHubWritePlan(input, {
         repoOwner: env.GITHUB_OWNER || 'example',
         repoName: env.GITHUB_REPO || 'xhalo-blog',
@@ -1004,11 +1061,16 @@ export default {
 
     if (url.pathname === '/api/drafts/publish' && request.method === 'POST') {
       const input = await request.json();
+      const validationErrors = validatePublishInput(input);
+      if (validationErrors.length > 0) {
+        return createJsonResponse({ error: 'Validation failed.', details: validationErrors }, { status: 400 });
+      }
       const mode = input.mode === 'live' ? 'live' : 'dry-run';
       const repository = getGitHubRepository(env);
       const preview = buildPullRequestPreview(input, {
         repoOwner: repository.owner,
         repoName: repository.repo,
+
         baseBranch: repository.baseBranch
       });
       const plan = buildGitHubWritePlan(input, {
