@@ -12,6 +12,7 @@ Current implementation line:
 - Stage 3.2 admin UX hardening for protected-route operation and safer scaffold controls
 - Stage 3.3 provider hardening for readiness, live-write gating, and operator visibility
 - Stage 3.4 theme and plugin compatibility expansion for the `hexo-next` path
+- Stage 3.5 runtime integration hardening for built Hexo compatibility fixtures, generated output checks, and cross-repo validation evidence
 
 ## Contract v1
 

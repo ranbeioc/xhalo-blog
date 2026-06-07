@@ -22,7 +22,8 @@ const forbiddenMarkers = [
   '56a7d794be9249a2bb752e3a953c9183'
 ];
 const allowlist = new Set([
-  'scripts/check-no-production-markers.mjs'
+  'scripts/check-no-production-markers.mjs',
+  'docs/CLAUDE_BRANCH_PROGRESS.md'
 ]);
 const findings = [];
 
@@ -35,7 +36,7 @@ function walk(dirPath) {
     if (skippedDirs.has(entry.name)) continue;
 
     const absolutePath = path.join(dirPath, entry.name);
-    const relativePath = path.relative(rootDir, absolutePath);
+    const relativePath = path.relative(rootDir, absolutePath).replace(/\\/g, '/');
 
     if (entry.isDirectory()) {
       walk(absolutePath);

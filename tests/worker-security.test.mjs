@@ -133,3 +133,91 @@ test('POST /webhooks/deployments/preview returns 403 without webhook secret', as
   assert.equal(response.status, 403);
   assert.match(json.error, /PREVIEW_WEBHOOK_SECRET is required/);
 });
+
+test('POST /api/drafts/publish with admin secret but missing Turnstile token when TURNSTILE_SECRET_KEY is configured returns 403', async () => {
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Draft title',
+      mode: 'live'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    TURNSTILE_SECRET_KEY: 'test-turnstile-secret'
+  });
+
+  assert.equal(response.status, 403);
+  assert.match(json.error, /Turnstile verification failed/);
+});
+
+test('POST /api/drafts/publish with incorrect Turnstile token returns 403', async () => {
+  const mockTurnstileFetch = async (url, init) => {
+    return {
+      ok: true,
+      json: async () => ({ success: false })
+    };
+  };
+
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret,
+      'x-xhalo-turnstile-token': 'bad-token'
+    },
+    body: JSON.stringify({
+      title: 'Draft title',
+      mode: 'live'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    TURNSTILE_SECRET_KEY: 'test-turnstile-secret',
+    TURNSTILE_FETCH: mockTurnstileFetch
+  });
+
+  assert.equal(response.status, 403);
+  assert.match(json.error, /Turnstile verification failed/);
+});
+
+test('POST /api/drafts/publish with valid Turnstile token passes verification', async () => {
+  let fetchedUrl = '';
+  let fetchedBody = '';
+  const mockTurnstileFetch = async (url, init) => {
+    fetchedUrl = url;
+    fetchedBody = init.body;
+    return {
+      ok: true,
+      json: async () => ({ success: true })
+    };
+  };
+
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret,
+      'cf-turnstile-token': 'good-token',
+      'cf-connecting-ip': '1.2.3.4'
+    },
+    body: JSON.stringify({
+      title: 'Draft title',
+      mode: 'live'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    TURNSTILE_SECRET_KEY: 'test-turnstile-secret',
+    TURNSTILE_FETCH: mockTurnstileFetch
+  });
+
+  assert.equal(response.status, 403);
+  assert.equal(json.required_env, 'LIVE_WRITES_ENABLED=true');
+  assert.equal(fetchedUrl, 'https://challenges.cloudflare.com/turnstile/v0/siteverify');
+  assert.ok(fetchedBody.includes('secret=test-turnstile-secret'));
+  assert.ok(fetchedBody.includes('response=good-token'));
+  assert.ok(fetchedBody.includes('remoteip=1.2.3.4'));
+});
+

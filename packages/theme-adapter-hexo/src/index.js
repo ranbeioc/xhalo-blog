@@ -15,6 +15,15 @@ const optionalCompatibilityPlugins = [
   { packageName: 'hexo-tag-mmedia', purpose: 'mmedia tag compatibility', status: 'planned' }
 ];
 
+const compatibilityFixtureAssets = [
+  'fixture-image.png',
+  'fixture-gallery.jpg',
+  'fixture-video-poster.jpg',
+  'fixture-video.mp4',
+  'fixture-video.webm',
+  'fixture-document.pdf'
+];
+
 function normalizeMenuItem(item) {
   return {
     key: item?.key || 'custom',
@@ -84,5 +93,25 @@ export function buildHexoCompatibilityProfile() {
     headersFile: 'source/_headers',
     assetRewriteHelper: 'scripts/hexo-asset-image.js',
     optionalPlugins: optionalCompatibilityPlugins
+  };
+}
+
+export function buildHexoCompatibilityFixtureManifest(baseUrl = '/2026/06/02/hexo-compatibility-fixtures/') {
+  return {
+    postSlug: 'hexo-compatibility-fixtures',
+    postOutputPath: `${baseUrl}index.html`,
+    searchOutput: 'search.xml',
+    sitemapOutput: 'sitemap.xml',
+    baiduSitemapOutput: 'baidusitemap.xml',
+    assets: compatibilityFixtureAssets.map((asset) => `${baseUrl}${asset}`),
+    expectedHtmlMarkers: [
+      `${baseUrl}fixture-image.png`,
+      `${baseUrl}fixture-gallery.jpg`,
+      `${baseUrl}fixture-video-poster.jpg`,
+      `${baseUrl}fixture-video.mp4`,
+      `${baseUrl}fixture-video.webm`,
+      'fixture-document.pdf',
+      'compatibility fixture'
+    ]
   };
 }

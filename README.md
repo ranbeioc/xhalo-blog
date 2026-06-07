@@ -48,12 +48,13 @@ xhalo-blog/
 - Turnstile and Access integration notes.
 - GitHub PR publishing workflow design.
 - Hexo + NexT template with example post and Cloudflare `_headers`.
+- Fixture-backed Hexo compatibility checks for asset rewriting, PDF, Chart, searchdb, sitemap, and baidusitemap outputs.
 
 ## Quick start
 
 ```bash
 npm install
-npm run check
+npm run check:all
 ```
 
 See [`docs/getting-started.md`](./docs/getting-started.md) for the full Stage 2.5 scaffold setup flow.
@@ -78,6 +79,7 @@ http://localhost:4000
 - [`docs/getting-started.md`](./docs/getting-started.md)
 - [`docs/public-config-contract.md`](./docs/public-config-contract.md)
 - [`docs/compatibility-matrix.md`](./docs/compatibility-matrix.md)
+- [`docs/hexo-compat-fixtures.md`](./docs/hexo-compat-fixtures.md)
 - [`docs/hexo-next-optional-plugins.md`](./docs/hexo-next-optional-plugins.md)
 - [`docs/hexo-blog-extraction-manifest.md`](./docs/hexo-blog-extraction-manifest.md)
 - [`docs/stable-deployment-guide.md`](./docs/stable-deployment-guide.md)
