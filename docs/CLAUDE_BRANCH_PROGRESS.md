@@ -557,6 +557,66 @@ feat: integrate Turnstile challenge widget inside Admin Panel UI
 | `apps/admin/src/app.js` | Fetch headers and reset handlers |
 | `docs/CLAUDE_BRANCH_PROGRESS.md` | Handoff log update |
 
+---
+
+## Step 011 - Improve Admin UI with dynamic post selection and editing
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Feature / Front-end UI improvement
+
+### Goal
+Allow the user to select an existing post from the database post preview list, load its data (title, slug, status) into the editor forms, and trigger previews.
+
+### Reason
+- The Admin Panel was previously a read-only view for posts. Making them clickable and editable completes the feedback loop for dynamic post drafting.
+- Operators can now easily select any active post in the database or fallback list, inspect it in the editor, make revisions, and plan updates without manually copy-pasting slugs and titles.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [apps/admin/src/app.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/app.js) | Save fetched posts to state, render list as clickable items, and implement click event delegate logic to populate form inputs. | Front-end dynamic mapping. |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm run build:admin` | Passed | Admin panel compiles and bundles correctly. |
+| `npm run check:all` | Passed | Full monorepo validation suite passes. |
+
+---
+
+## Commit 007 - feat: improve Admin UI with dynamic post selection and editing
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Commit hash
+`7545d9f`
+
+### Related step
+Step 011 - Improve Admin UI with dynamic post selection and editing
+
+### Commit message
+```text
+feat: improve Admin UI with dynamic post selection and editing
+
+1. Store loaded posts list in state.posts.
+2. Render posts list elements as clickable links.
+3. Bind event delegate handler to populate editor form on post selection.
+```
+
+### Summary
+- Updated admin front-end app.js to enable clickable post list items that populate the editor forms.
+
+### Files included
+| File | Reason |
+|---|---|
+| `apps/admin/src/app.js` | Logic update |
+| `docs/CLAUDE_BRANCH_PROGRESS.md` | Handoff log update |
+
+
 
 
 
