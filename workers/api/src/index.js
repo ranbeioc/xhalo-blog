@@ -585,7 +585,94 @@ function hasAdminRequestSecret(env) {
   return Boolean(env.ADMIN_API_SHARED_SECRET);
 }
 
-function verifyAdminRequest(request, env) {
+async function verifyAccessJwt(request, env) {
+  const token = request.headers.get('cf-access-jwt-assertion');
+  if (!token) return false;
+
+  const parts = token.split('.');
+  if (parts.length !== 3) return false;
+
+  try {
+    const base64UrlDecode = (str) => {
+      let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
+      while (base64.length % 4) base64 += '=';
+      return atob(base64);
+    };
+
+    const header = JSON.parse(base64UrlDecode(parts[0]));
+    const payload = JSON.parse(base64UrlDecode(parts[1]));
+
+    // 1. Verify expiration
+    const nowSec = Date.now() / 1000;
+    if (payload.exp && nowSec >= payload.exp) {
+      return false;
+    }
+
+    // 2. Verify issuer
+    if (env.ACCESS_TEAM_DOMAIN) {
+      const expectedIss = `https://${env.ACCESS_TEAM_DOMAIN}.cloudflareaccess.com`;
+      if (payload.iss !== expectedIss) {
+        return false;
+      }
+    }
+
+    // 3. Verify audience
+    if (env.ACCESS_AUDIENCE_TAG) {
+      if (payload.aud !== env.ACCESS_AUDIENCE_TAG) {
+        return false;
+      }
+    }
+
+    // 4. Verify signature
+    if (env.ACCESS_BYPASS_SIGNATURE_FOR_TESTING === 'true') {
+      return true;
+    }
+
+    const teamDomain = env.ACCESS_TEAM_DOMAIN;
+    if (!teamDomain) {
+      return false;
+    }
+
+    const certsUrl = `https://${teamDomain}.cloudflareaccess.com/cdn-cgi/access/certs`;
+    const fetchFn = env.ACCESS_FETCH || fetch;
+    const res = await fetchFn(certsUrl);
+    if (!res.ok) return false;
+
+    const jwks = await res.json();
+    const jwk = jwks.keys.find(key => key.kid === header.kid);
+    if (!jwk) return false;
+
+    const publicKey = await crypto.subtle.importKey(
+      'jwk',
+      jwk,
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      false,
+      ['verify']
+    );
+
+    const encoder = new TextEncoder();
+    const data = encoder.encode(parts[0] + '.' + parts[1]);
+    const signatureBytes = new Uint8Array(
+      Array.from(base64UrlDecode(parts[2]), c => c.charCodeAt(0))
+    );
+
+    return await crypto.subtle.verify(
+      'RSASSA-PKCS1-v1_5',
+      publicKey,
+      signatureBytes,
+      data
+    );
+  } catch (error) {
+    return false;
+  }
+}
+
+async function verifyAdminRequest(request, env) {
+  if (request.headers.has('cf-access-jwt-assertion')) {
+    const isJwtValid = await verifyAccessJwt(request, env);
+    if (isJwtValid) return true;
+  }
+
   if (!hasAdminRequestSecret(env)) return false;
   const provided = request.headers.get('x-xhalo-admin-secret') || '';
   return Boolean(provided) && provided === env.ADMIN_API_SHARED_SECRET;
@@ -784,7 +871,7 @@ export default {
     }
 
     if (isProtectedAdminRoute(url.pathname)) {
-      if (!verifyAdminRequest(request, env)) {
+      if (!(await verifyAdminRequest(request, env))) {
         return rejectUnauthorized();
       }
       if (request.method === 'POST' || request.method === 'PUT') {

@@ -777,4 +777,124 @@ feat: integrate marked Markdown rendering and Admin UI real-time preview (Gemini
 | `apps/admin/src/app.js` | Logic updates |
 | `docs/CLAUDE_BRANCH_PROGRESS.md` | Log update |
 
+---
+
+## Step 015 - Implement Cloudflare Access JWT validation middleware and unit tests
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Code change / Security configuration / Test suite update
+
+### Goal
+Implement JWT signature verification logic inside the Worker's `verifyAdminRequest` gate using the Web Crypto API, validating expiration (`exp`), issuer (`iss`), and audience (`aud`) claims, and write unit tests for claim validation.
+
+### Reason
+- The API Worker previously only verified requests using a shared secret token. Leveraging Cloudflare Access's signed JWT assertions adds edge-level role-based identity validation.
+- Constructing claims validation logic securely using native `crypto.subtle` APIs keeps the Worker lightweight and dependency-free.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [workers/api/src/index.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/workers/api/src/index.js) | Add `verifyAccessJwt` helper and update `verifyAdminRequest` to support JWT checking | Core middleware security enforcement |
+| [tests/worker-security.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/worker-security.test.mjs) | Add mock JWT signature bypass tests and claims mismatch validation assertions | Verification coverage |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm test` | Passed | 22/22 unit tests passed successfully |
+
+---
+
+## Step 016 - Add Cloudflare Access verification setup guide
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Documentation change
+
+### Goal
+Create a comprehensive setup guide detailing how Cloudflare Access assertion JWT verification works and its required environmental parameters.
+
+### Reason
+Provide developers with guidance on configuring Access Team Domains, Audience Tags, and the local testing bypass configuration.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [docs/cloudflare-access-jwt.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/cloudflare-access-jwt.md) [NEW] | Create Cloudflare Access JWT documentation | Setup guidelines |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| Read file | Passed | Documentation formatting is correct |
+
+---
+
+## Commit 010 - feat: implement Cloudflare Access JWT validation middleware and unit tests
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Commit hash
+`PENDING_COMMIT_HASH_010`
+
+### Related step
+Step 015 - Implement Cloudflare Access JWT validation middleware and unit tests
+
+### Commit message
+```text
+feat: implement Cloudflare Access JWT validation middleware and unit tests (Gemini 3.5 Flash)
+
+1. Add verifyAccessJwt helper to parse, decode, and validate Access JWTs.
+2. Verify exp, iss, and aud claims using native Web Crypto subtle.verify signatures.
+3. Allow bypassing JWKS signature verification in testing using ACCESS_BYPASS_SIGNATURE_FOR_TESTING=true.
+4. Update verifyAdminRequest to be async and support hybrid assertion + secret headers.
+5. Add unit tests for successful and rejected JWT claims verification.
+```
+
+### Summary
+- Patched API worker request verification pipeline.
+- Implemented JWT parsing and claim assertions.
+- Added verification tests.
+
+### Files included
+| File | Reason |
+|---|---|
+| `workers/api/src/index.js` | Logic update |
+| `tests/worker-security.test.mjs` | Test additions |
+| `docs/CLAUDE_BRANCH_PROGRESS.md` | Log update |
+
+---
+
+## Commit 011 - docs: add Cloudflare Access verification setup guide
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Commit hash
+`PENDING_COMMIT_HASH_011`
+
+### Related step
+Step 016 - Add Cloudflare Access verification setup guide
+
+### Commit message
+```text
+docs: add Cloudflare Access verification setup guide (Gemini 3.5 Flash)
+
+1. Create docs/cloudflare-access-jwt.md explaining Team domains, Audience tags, and testing bypass flags.
+```
+
+### Summary
+- Added Access setup documentation.
+
+### Files included
+| File | Reason |
+|---|---|
+| `docs/cloudflare-access-jwt.md` | Document addition |
+| `docs/CLAUDE_BRANCH_PROGRESS.md` | Log update |
+
+
 
