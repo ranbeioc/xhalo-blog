@@ -90,35 +90,32 @@ Use this path when you need a working Hexo baseline with:
 
 ## Prepare configuration
 
-Start from these files at the repository root:
+Start from the configuration templates:
 
-```text
-rb-blog.config.example.json
-.env.example
-wrangler.toml.example
-```
+- Root directory: `wrangler.toml.example`, `rb-blog.config.example.json`, `.env.example`
+- HTTP API Worker: [workers/api/wrangler.toml.example](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/workers/api/wrangler.toml.example)
+- Queue Worker: [workers/queue/wrangler.toml.example](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/workers/queue/wrangler.toml.example)
 
-Current scaffold defaults assume:
-
-- Worker entry: `workers/api/src/index.js`
-- Queue binding: `TASK_QUEUE`
-- Queue name: `xhalo-blog-tasks`
-- D1 binding: `DB`
-- Example database name: `xhalo-blog`
+Refer to the step-by-step setup guides for detailed instructions:
+1. [Cloudflare Setup Guide](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/cloudflare-setup.md)
+2. [GitHub App Setup Guide](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/github-app-setup.md)
 
 Do not commit real account IDs, zone IDs, analytics IDs, private keys, comment endpoints, or production secrets.
 
 ## Read next
 
-- `docs/cloudflare-pages.md`
-- `docs/deploy-cloudflare.md`
-- `docs/public-config-contract.md`
-- `docs/stable-deployment-guide.md`
-- `docs/stable-template-layout.md`
-- `docs/functions-workers.md`
-- `docs/theme-config.md`
-- `docs/security.md`
-- `docs/github-pr-publishing.md`
+- [Cloudflare Setup Guide](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/cloudflare-setup.md)
+- [GitHub App Setup Guide](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/github-app-setup.md)
+- [cloudflare-pages.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/cloudflare-pages.md)
+- [deploy-cloudflare.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/deploy-cloudflare.md)
+- [public-config-contract.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/public-config-contract.md)
+- [stable-deployment-guide.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/stable-deployment-guide.md)
+- [stable-template-layout.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/stable-template-layout.md)
+- [functions-workers.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/functions-workers.md)
+- [theme-config.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/theme-config.md)
+- [security.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/security.md)
+- [github-pr-publishing.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/github-pr-publishing.md)
+
 
 ## Boundary
 
