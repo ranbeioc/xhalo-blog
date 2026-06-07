@@ -836,17 +836,147 @@ function handlePostClick(event) {
   }
 }
 
+/**
+ * Render a safe subset of Markdown to HTML.
+ * All HTML is escaped FIRST, then safe Markdown patterns are applied.
+ * This prevents XSS attacks including script injection, img onerror, and javascript: protocol.
+ *
+ * Supported: headers, paragraphs, bold, italic, inline code, fenced code blocks,
+ * unordered/ordered lists, links (https/http/mailto only), line breaks.
+ */
+function renderSafeMarkdown(markdown) {
+  if (!markdown || !markdown.trim()) return '';
+
+  // Step 1: Escape ALL HTML entities
+  function escapeHtml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  const escaped = escapeHtml(markdown);
+
+  // Step 2: Extract fenced code blocks before other processing
+  const codeBlocks = [];
+  let processed = escaped.replace(/```(?:[a-zA-Z]*)\n([\s\S]*?)```/g, (_, code) => {
+    const index = codeBlocks.length;
+    codeBlocks.push(`<pre><code>${code.replace(/\n$/, '')}</code></pre>`);
+    return `\x00CODEBLOCK_${index}\x00`;
+  });
+
+  // Step 3: Process inline elements
+  // Inline code (before bold/italic to avoid conflicts)
+  processed = processed.replace(/`([^`]+)`/g, '<code>$1</code>');
+  // Bold
+  processed = processed.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  // Italic (single asterisk, not inside bold)
+  processed = processed.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>');
+  // Links — ONLY allow safe protocols (https, http, mailto)
+  processed = processed.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    (match, text, url) => {
+      const trimmedUrl = url.trim();
+      if (/^https?:\/\//i.test(trimmedUrl) || /^mailto:/i.test(trimmedUrl)) {
+        return `<a href="${trimmedUrl}" rel="noopener noreferrer">${text}</a>`;
+      }
+      // Reject dangerous protocols (javascript:, data:, vbscript:, etc.)
+      return `${text} (${trimmedUrl})`;
+    }
+  );
+
+  // Step 4: Process block elements line by line
+  const lines = processed.split('\n');
+  const outputBlocks = [];
+  let currentList = null; // { type: 'ul' | 'ol', items: [] }
+  let paragraphLines = [];
+
+  function flushParagraph() {
+    if (paragraphLines.length > 0) {
+      outputBlocks.push(`<p>${paragraphLines.join('<br>')}</p>`);
+      paragraphLines = [];
+    }
+  }
+
+  function flushList() {
+    if (currentList) {
+      const tag = currentList.type;
+      outputBlocks.push(`<${tag}>${currentList.items.map(i => `<li>${i}</li>`).join('')}</${tag}>`);
+      currentList = null;
+    }
+  }
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+
+    // Code block placeholder
+    const codeMatch = trimmed.match(/^\x00CODEBLOCK_(\d+)\x00$/);
+    if (codeMatch) {
+      flushParagraph();
+      flushList();
+      outputBlocks.push(codeBlocks[parseInt(codeMatch[1], 10)]);
+      continue;
+    }
+
+    // Headers
+    const headerMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
+    if (headerMatch) {
+      flushParagraph();
+      flushList();
+      const level = headerMatch[1].length;
+      outputBlocks.push(`<h${level}>${headerMatch[2]}</h${level}>`);
+      continue;
+    }
+
+    // Unordered list items
+    if (/^[-*]\s+/.test(trimmed)) {
+      flushParagraph();
+      if (!currentList || currentList.type !== 'ul') {
+        flushList();
+        currentList = { type: 'ul', items: [] };
+      }
+      currentList.items.push(trimmed.replace(/^[-*]\s+/, ''));
+      continue;
+    }
+
+    // Ordered list items
+    if (/^\d+\.\s+/.test(trimmed)) {
+      flushParagraph();
+      if (!currentList || currentList.type !== 'ol') {
+        flushList();
+        currentList = { type: 'ol', items: [] };
+      }
+      currentList.items.push(trimmed.replace(/^\d+\.\s+/, ''));
+      continue;
+    }
+
+    // Empty line = paragraph break
+    if (trimmed === '') {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+
+    // Regular text — accumulate into paragraph
+    flushList();
+    paragraphLines.push(trimmed);
+  }
+
+  flushParagraph();
+  flushList();
+
+  return outputBlocks.join('\n');
+}
+
 function updateRealtimePreview() {
   const form = document.querySelector('[data-role="draft-preview-form"]');
   if (!form) return;
   const bodyText = form.querySelector('textarea[name="body"]')?.value || '';
   const previewDiv = document.querySelector('[data-field="draft-preview-html"]');
   if (previewDiv) {
-    if (window.marked && typeof window.marked.parse === 'function') {
-      previewDiv.innerHTML = window.marked.parse(bodyText) || '<p>No content preview available.</p>';
-    } else {
-      previewDiv.textContent = bodyText || 'No content preview available.';
-    }
+    previewDiv.innerHTML = renderSafeMarkdown(bodyText) || '<p>No content preview available.</p>';
   }
 }
 
