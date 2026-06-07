@@ -26,3 +26,12 @@ test('provider readiness marks live writes as partial when enabled', () => {
   assert.equal(liveWrites?.status, 'partial');
   assert.match(liveWrites?.note || '', /LIVE_WRITES_ENABLED=true/);
 });
+
+test('provider readiness includes turnstileSiteKey when configured', () => {
+  const snapshot = buildProviderReadinessSnapshot({
+    TURNSTILE_SITE_KEY: 'test-site-key',
+    TURNSTILE_SECRET_KEY: 'test-secret-key'
+  });
+  assert.equal(snapshot.turnstileSiteKey, 'test-site-key');
+});
+

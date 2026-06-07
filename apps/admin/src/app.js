@@ -289,13 +289,83 @@ function hasAdminSecret() {
   return Boolean(state.adminSecret);
 }
 
+let turnstileWidgetId = null;
+
+function initTurnstileWidget(siteKey) {
+  const container = document.getElementById('turnstile-widget-container');
+  if (!container) return;
+
+  if (!siteKey) {
+    container.style.display = 'none';
+    return;
+  }
+
+  container.style.display = 'block';
+
+  // Wait if Turnstile library is not fully loaded yet
+  if (typeof turnstile === 'undefined') {
+    setTimeout(() => initTurnstileWidget(siteKey), 500);
+    return;
+  }
+
+  // Render widget if not already rendered
+  if (turnstileWidgetId === null) {
+    try {
+      turnstileWidgetId = turnstile.render('#turnstile-widget', {
+        sitekey: siteKey,
+        theme: 'dark',
+        callback: (token) => {
+          console.log('Turnstile challenge solved, token received.');
+        }
+      });
+    } catch (err) {
+      console.error('Failed to render Turnstile widget:', err);
+    }
+  }
+}
+
 async function apiFetch(input, init = {}) {
   const headers = new Headers(init.headers || {});
   if (hasAdminSecret()) headers.set('x-xhalo-admin-secret', state.adminSecret);
-  return fetch(input, {
+
+  if (typeof turnstile !== 'undefined') {
+    try {
+      const token = turnstile.getResponse();
+      if (token) {
+        headers.set('x-xhalo-turnstile-token', token);
+      }
+    } catch (e) {
+      // Ignore Turnstile client-side query errors
+    }
+  }
+
+  const response = await fetch(input, {
     ...init,
     headers
   });
+
+  // If Turnstile verification failed, reset the widget to force a re-challenge
+  if (response.status === 403 && typeof turnstile !== 'undefined' && turnstileWidgetId !== null) {
+    try {
+      const body = await response.clone().json();
+      if (body?.error?.includes('Turnstile')) {
+        turnstile.reset(turnstileWidgetId);
+      }
+    } catch (e) {
+      // Ignore JSON parse error
+    }
+  }
+
+  // For POST/PUT requests, reset Turnstile to prepare a fresh token for the next action
+  if ((init.method === 'POST' || init.method === 'PUT') && typeof turnstile !== 'undefined' && turnstileWidgetId !== null) {
+    try {
+      turnstile.reset(turnstileWidgetId);
+    } catch (e) {
+      // Ignore
+    }
+  }
+
+  return response;
 }
 
 function setText(selector, value) {
@@ -1130,6 +1200,13 @@ async function loadScaffoldData() {
       renderReadinessStatus(badgeState, `${ready} ready / ${partial} partial / ${missing} missing`);
       const liveWrites = readiness.items?.find((item) => item.key === 'live_writes')?.note || 'disabled by default';
       renderOperatorGuard('Secret loaded', 'Protected routes can now be queried from this session. Keep Cloudflare Access enabled as the outer gate.', liveWrites);
+
+      if (readiness.turnstileSiteKey) {
+        initTurnstileWidget(readiness.turnstileSiteKey);
+      } else {
+        const container = document.getElementById('turnstile-widget-container');
+        if (container) container.style.display = 'none';
+      }
     } else {
       renderReadinessStatus('warning', `Readiness unavailable (${readinessResponse.status})`);
     }

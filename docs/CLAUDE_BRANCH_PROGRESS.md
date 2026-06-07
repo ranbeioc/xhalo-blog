@@ -490,5 +490,73 @@ feat: build premium open-source landing page in apps/landing
 | `apps/landing/src/app.js` | Interactivity |
 | `docs/CLAUDE_BRANCH_PROGRESS.md` | Handoff log update |
 
+---
+
+## Step 010 - Integrate Turnstile challenge widget inside Admin Panel UI
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Feature / Front-end integration
+
+### Goal
+Render the Turnstile iframe widget inside the Admin Panel UI and inject challenge tokens in API requests to support runtime validation.
+
+### Reason
+- The API Worker now requires Turnstile tokens on writing requests (POST/PUT mutations) if `TURNSTILE_SECRET_KEY` is configured.
+- The Admin Panel needs to render the Turnstile widget to let operators solve the challenge and automatically send the resulting token in `x-xhalo-turnstile-token` headers.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [packages/core/src/index.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/packages/core/src/index.js) | Include `turnstileSiteKey` in `buildProviderReadinessSnapshot` payload. | Expose public site key to client. |
+| [tests/provider-readiness.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/provider-readiness.test.mjs) | Add a test verifying `turnstileSiteKey` is populated correctly. | Automation test coverage. |
+| [apps/admin/src/index.html](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/index.html) | Load Turnstile API script and add widget element in Operator Guard panel. | HTML structure. |
+| [apps/admin/src/app.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/app.js) | Implement Turnstile rendering, fetch header injection, and automatic widget reset on POST/PUT actions. | Client logic integration. |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm test` | Passed | All 19 tests passed, including readiness key check. |
+| `npm run check:all` | Passed | Entire scaffold and workspaces compile cleanly. |
+
+---
+
+## Commit 006 - feat: integrate Turnstile challenge widget inside Admin Panel UI
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Commit hash
+`2fd7fd4`
+
+### Related step
+Step 010 - Integrate Turnstile challenge widget inside Admin Panel UI
+
+### Commit message
+```text
+feat: integrate Turnstile challenge widget inside Admin Panel UI
+
+1. Expose public TURNSTILE_SITE_KEY in provider readiness snapshot.
+2. Load Turnstile library in Admin Panel UI and render container inside Operator Guard.
+3. Automatically append Turnstile token headers in apiFetch.
+4. Auto-reset Turnstile widget on POST/PUT requests and 403 Turnstile errors.
+```
+
+### Summary
+- Configured backend readiness schema to return public site key.
+- Added front-end Turnstile script rendering and request mapping logic.
+
+### Files included
+| File | Reason |
+|---|---|
+| `packages/core/src/index.js` | Expose Site Key |
+| `tests/provider-readiness.test.mjs` | Key assertion |
+| `apps/admin/src/index.html` | Script and container addition |
+| `apps/admin/src/app.js` | Fetch headers and reset handlers |
+| `docs/CLAUDE_BRANCH_PROGRESS.md` | Handoff log update |
+
+
 
 
