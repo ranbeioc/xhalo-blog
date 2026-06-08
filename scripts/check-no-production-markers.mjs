@@ -51,6 +51,7 @@ function checkSecretLikeValues(relativePath, content) {
     '<placeholder>',
     '<redacted>',
     '<redacted-staging-admin-secret>',
+    '<read-only-token>',
     'your-secret',
     'example',
     'dummy-token',
@@ -61,9 +62,11 @@ function checkSecretLikeValues(relativePath, content) {
     'your-admin-shared-secret',
     'your_secret',
     'your-github-username',
+    'your-github-token',
     'your-blog-repo',
     'main',
-    '1x0000000000000000000000000000000aa'
+    '1x0000000000000000000000000000000aa',
+    'test-admin-secret'
   ]);
 
   for (const regex of regexes) {

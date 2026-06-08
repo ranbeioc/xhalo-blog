@@ -1750,5 +1750,37 @@ None.
 | Command | Result | Notes |
 |---|---|---|
 | `npm ci` | Passed | Package install clean |
-| `npm run check:all` | Passed | All builds, syntax checks, secrets scanning, fixtures, and unit tests pass (77/77 tests passed) |
 | `$env:ASYNC_PUBLISH_MODE="local"; $env:ASYNC_PUBLISH_EXPECT_LIVE_WRITES="false"; npm run test:async-publish` | Passed | Local mode dry-run safety rejection verified successfully |
+
+---
+
+## Step 046 - Level 1 Read-only Validation Prep
+
+### Executed by Model
+Antigravity
+
+### Type
+Feature / Testing / Documentation
+
+### Goal
+Prepare validation scripts, templates, and runbooks for Level 1 read-only compatibility verification without performing any remote writes.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [scripts/verify-level1-readonly.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/scripts/verify-level1-readonly.mjs) | Create script to assert read-only readiness, posts index, dry-run, live publish rejection, and remote GitHub state | Automated Level 1 check |
+| [package.json](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/package.json) | Register `"verify:level1"` command pointing to the verification script | Command availability |
+| [docs/level1-readonly-validation-report-template.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/level1-readonly-validation-report-template.md) | Create Level 1 validation report template for documenting validation run results | Result auditing |
+| [docs/level1-readonly-validation-runbook.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/level1-readonly-validation-runbook.md) | Document Step 4 with instructions on using the automated verification script | Runbook completeness |
+| [scripts/check-no-production-markers.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/scripts/check-no-production-markers.mjs) | Allow `<read-only-token>`, `your-github-token`, and `test-admin-secret` in safe values | Secrets scanning alignment |
+| [docs/CLAUDE_BRANCH_PROGRESS.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/CLAUDE_BRANCH_PROGRESS.md) | Append Step 046 progress block | Tracking development steps |
+
+### Required external action
+None.
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm ci` | Passed | Package install clean |
+| `npm run check:all` | Passed | All builds, syntax checks, secrets scanning, fixtures, and unit tests pass (77/77 tests passed) |
+
