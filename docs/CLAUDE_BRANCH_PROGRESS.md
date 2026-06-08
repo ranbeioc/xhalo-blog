@@ -1343,5 +1343,51 @@ Align deployment guides and verification documents with the split API and Queue 
 | `npm run check:secrets` | Passed | No production secrets found |
 | `npm test` | Passed | All 72 tests pass cleanly |
 
+---
+
+## Step 034 - Phase 6: Cloudflare Staging Deployment Verification
+
+### Executed by Model
+Gemini 3.5 Flash / Antigravity
+
+### Type
+Configuration / Deployment / Validation
+
+### Goal
+Deploy the split worker architecture, D1 migrations (0001–0005), R2 staging bucket, and task queue to a live Cloudflare staging environment, and execute the smoke test suite to verify connectivity and validation routing.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| .gitignore | Exclude local `**/wrangler.toml` files | Protect env-specific configs and UUIDs from leaking into version control |
+| workers/api/migrations/0005_create_audit_logs.sql | Add `DROP TABLE IF EXISTS audit_logs;` at the beginning of migration | Ensure fresh database installations recreate the table structure correctly instead of silently skipping due to `IF NOT EXISTS` |
+| scripts/smoke-worker-routes.mjs | Add `cf-turnstile-token` header to mutation tests | Bypass active Turnstile checks in staging by providing a dummy token compatible with the testing secret key |
+
+### Validation
+Staging resources were provisioned using wrangler CLI:
+- D1 Database: `xhalo-blog-staging` (UUID: `f62ca342-dd3e-4fa8-a133-b739bece78d6`)
+- R2 Bucket: `xhalo-blog-staging-assets`
+- Cloudflare Queue: `xhalo-blog-staging-tasks`
+
+Migrations were successfully applied to the remote database:
+```bash
+npx wrangler d1 migrations apply xhalo-blog-staging --remote
+```
+Both workers were deployed:
+- API Worker: `xhalo-blog-staging-api` (triggers: `https://xhalo-blog-staging-api.ranbei.workers.dev`)
+- Queue Worker: `xhalo-blog-staging-queue`
+
+Staging secrets were set:
+- `ADMIN_API_SHARED_SECRET`
+- `GITHUB_WEBHOOK_SECRET`
+- `PREVIEW_WEBHOOK_SECRET`
+- `TURNSTILE_SECRET_KEY`
+
+Smoke tests results:
+```bash
+SMOKE_TARGET_URL=https://xhalo-blog-staging-api.ranbei.workers.dev ADMIN_API_SHARED_SECRET=staging-secret-1234 npm run test:smoke
+```
+All 7 smoke tests passed successfully.
+
 
 
