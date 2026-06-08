@@ -9,3 +9,6 @@ dist/
 .cache/
 .wrangler/
 db.json
+
+# Local Wrangler configurations
+**/wrangler.toml

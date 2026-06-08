@@ -108,7 +108,8 @@ async function main() {
       method: 'POST',
       headers: {
         'x-xhalo-admin-secret': sharedSecret,
-        'content-type': 'application/json'
+        'content-type': 'application/json',
+        'cf-turnstile-token': 'dummy-token'
       },
       body: '{invalid json'
     },
@@ -129,7 +130,8 @@ async function main() {
       method: 'POST',
       headers: {
         'x-xhalo-admin-secret': sharedSecret,
-        'content-type': 'application/json'
+        'content-type': 'application/json',
+        'cf-turnstile-token': 'dummy-token'
       },
       body: JSON.stringify({ mode: 'dry-run' })
     },
@@ -150,7 +152,8 @@ async function main() {
       method: 'POST',
       headers: {
         'x-xhalo-admin-secret': sharedSecret,
-        'content-type': 'application/json'
+        'content-type': 'application/json',
+        'cf-turnstile-token': 'dummy-token'
       },
       body: JSON.stringify({
         title: 'Smoke Test Post',
