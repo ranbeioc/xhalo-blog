@@ -1314,4 +1314,34 @@ Refactor Wrangler configuration templates for workspace-based Worker deployment 
 |---|---|---|
 | `npm run check:all` | Passed | Full static analysis checks and test runs pass successfully |
 
+---
+
+## Step 033 - Phase 5-B: Align deployment verification with split worker configs
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Documentation / Alignment
+
+### Goal
+Align deployment guides and verification documents with the split API and Queue worker architecture, adding a comprehensive integration runbook and smoke tests matrix.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| docs/cloudflare-deployment-verification.md | Update Wrangler Configuration Audit for HTTP API and Queue Workers separately | Correct old configuration mouth matching the single worker prototype |
+| docs/getting-started.md | Reference setup guides and split wrangler templates | Guide operators cleanly |
+| docs/deployment-integration-runbook.md [NEW] | Create a new runbook for Cloudflare deployment | Step-by-step instructions for D1, R2, Queue, Pages, Access, Turnstile, smoke tests, and rollbacks |
+| docs/CLAUDE_BRANCH_PROGRESS.md | Append Step 033 progress | Handoff tracking |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm run check` | Passed | Documentation and scripts syntax checks succeed |
+| `npm run check:syntax` | Passed | Workers syntax check passes |
+| `npm run check:secrets` | Passed | No production secrets found |
+| `npm test` | Passed | All 72 tests pass cleanly |
+
+
 

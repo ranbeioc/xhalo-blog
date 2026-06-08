@@ -16,15 +16,25 @@ Ensure the following Cloudflare services are provisioned in your Cloudflare dash
 
 ## 2. Wrangler Configuration Audit
 
-Before running `npx wrangler deploy`, verify that your `wrangler.toml` (created from `wrangler.toml.example`) meets the following criteria:
+`xhalo-blog` splits HTTP API operations and Queue consumption into two decoupled workers. Verify that their respective `wrangler.toml` configurations (created from their `wrangler.toml.example` templates) meet the following criteria:
 
-- [ ] **Name**: The worker name is set correctly (e.g. `xhalo-blog-api`).
-- [ ] **Main Entrypoint**: `main` is set to `"workers/api/src/index.js"`.
-- [ ] **Compatibility Date**: `compatibility_date` is configured to `"2026-06-01"` or later to enable current ES features.
-- [ ] **D1 Databases**: The `d1_databases` array contains a binding `binding = "DB"` and has your active D1 `database_id` specified.
-- [ ] **R2 Buckets**: The `r2_buckets` array contains a binding `binding = "ASSETS"` pointing to your active R2 `bucket_name`.
-- [ ] **Queues Producer**: The `queues.producers` array contains a binding `binding = "TASK_QUEUE"` and the queue name matches your queue.
-- [ ] **Queues Consumers**: The `queues.consumers` array binds the same queue name with reasonable settings (`max_batch_size = 10`, `max_batch_timeout = 30`).
+### 2.1 HTTP API Worker (`workers/api/wrangler.toml`)
+- [ ] **Name**: Set correctly (e.g. `xhalo-blog-api`).
+- [ ] **Main Entrypoint**: `main` is set to `"src/index.js"`.
+- [ ] **Compatibility Date**: `compatibility_date` is set to `"2026-06-01"` or later.
+- [ ] **Live Write Gate**: `[vars] LIVE_WRITES_ENABLED = "false"` is set by default.
+- [ ] **D1 Databases**: Binding `binding = "DB"` matches your active D1 `database_id`.
+- [ ] **R2 Buckets**: Binding `binding = "ASSETS"` points to your active R2 `bucket_name`.
+- [ ] **Queues Producer**: Binding `binding = "TASK_QUEUE"` points to your queue name (e.g. `xhalo-blog-tasks`).
+- [ ] **No Queue Consumer**: Confirm **no** `[[queues.consumers]]` block is present in this worker configuration.
+
+### 2.2 Queue Worker (`workers/queue/wrangler.toml`)
+- [ ] **Name**: Set correctly (e.g. `xhalo-blog-queue`).
+- [ ] **Main Entrypoint**: `main` is set to `"src/index.js"`.
+- [ ] **Compatibility Date**: `compatibility_date` is set to `"2026-06-01"` or later.
+- [ ] **D1 Databases**: Binding `binding = "DB"` matches your active D1 `database_id` (so it can reconcile task statuses).
+- [ ] **Queues Consumer**: The `[[queues.consumers]]` block is present, specifying `queue = "xhalo-blog-tasks"`, `max_batch_size = 10`, and `max_batch_timeout = 30`.
+- [ ] **No Producer/R2 Buckets**: Confirm **no** `TASK_QUEUE` producer binding or `ASSETS` R2 bucket binding is present.
 
 ---
 
