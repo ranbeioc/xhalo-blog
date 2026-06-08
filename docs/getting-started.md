@@ -1,6 +1,6 @@
 # Getting Started
 
-`xhalo-blog` is currently `0.1.x alpha / Stage 3 prototype`. `Contract v1` documents the scaffold baseline, but provider integrations and runtime APIs remain prototype-grade.
+`xhalo-blog` is currently `v0.1.0-alpha / Stage 4 Release Candidate`. `Contract v1` documents the scaffold baseline, with fully implemented runtime APIs and Cloudflare integrations.
 
 ## Choose a starting point
 
@@ -25,17 +25,17 @@ npm install
 npm run check:all
 ```
 
-This verifies the scaffold baseline, production-marker scan, admin build, both Hexo build paths, built compatibility fixtures, Worker syntax checks, and minimal security tests.
+This verifies the scaffold baseline, production-marker scan, admin build, both Hexo build paths, built compatibility fixtures, Worker syntax checks, and automated unit/integration tests.
 
-When the placeholder API is deployed on the same origin, protect it first with Cloudflare Access and `ADMIN_API_SHARED_SECRET`. The admin scaffold now expects that shared secret before it will query protected routes such as `GET /api/readiness`, `GET /api/posts`, and `GET /api/tasks`.
+When the API is deployed, protect it first with Cloudflare Access and `ADMIN_API_SHARED_SECRET`. The API expects that shared secret (or a valid Cloudflare Access JWT) before it will authorize queries to protected routes such as `GET /api/readiness`, `GET /api/posts`, `GET /api/tasks`, and `GET /api/audit-logs`.
 
-For live GitHub draft publishing, prefer `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY`, and `GITHUB_INSTALLATION_ID`. The worker accepts the PEM you download from GitHub for the app key. `GITHUB_TOKEN` remains a fallback for the early prototype path.
+For live GitHub draft publishing, set up a GitHub App with the required permissions and register `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` (PEM format), and `GITHUB_INSTALLATION_ID`. The API handles commits, branch creation, and Pull Requests asynchronously using a Queue Worker backend.
 
-For the first live R2 upload prototype, bind `ASSETS` in Wrangler and set both `ASSETS_PUBLIC_BASE_URL` and `ASSETS_SIGNING_SECRET`. The direct live upload path uses the public base URL, and the signed upload path uses the signing secret to mint short-lived worker upload URLs.
+For R2 asset uploads, bind `ASSETS` in Wrangler and set both `ASSETS_PUBLIC_BASE_URL` and `ASSETS_SIGNING_SECRET`. The pipeline includes built-in filename sanitation, MIME allowlist verification, and short-lived upload signatures.
 
-Keep `LIVE_WRITES_ENABLED` blank or `false` by default. Only set `LIVE_WRITES_ENABLED=true` after Access, request verification, and route-level tests are in place.
+Keep `LIVE_WRITES_ENABLED` blank or `false` by default. Only enable it on your Cloudflare Staging/Production Worker variables once you have verified the deployment using our 17-point smoke test matrix and staging live-write runbook.
 
-For webhook reconciliation, also set `GITHUB_WEBHOOK_SECRET` and `PREVIEW_WEBHOOK_SECRET` before exposing `/webhooks/github` or `/webhooks/deployments/preview`.
+For webhook reconciliation, set `GITHUB_WEBHOOK_SECRET` and `PREVIEW_WEBHOOK_SECRET` to verify signatures and update the D1 database status when preview deployments finish.
 
 ## Run the minimal static example
 

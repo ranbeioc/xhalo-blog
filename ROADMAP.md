@@ -1,18 +1,18 @@
 # Roadmap
 
-## 0.1.x alpha
+## v0.1.0-alpha (Stage 4 Release Candidate)
 
 Current implementation line:
 
-- open-source scaffold for Cloudflare-native Hexo publishing
-- Hexo + NexT example and reusable template
-- Worker API, queue worker, and admin scaffold
-- prototype GitHub publishing, R2 upload, webhook reconciliation, and execution views
-- Stage 3.1 hardening for security boundaries, tests, compatibility notes, and release governance
-- Stage 3.2 admin UX hardening for protected-route operation and safer scaffold controls
-- Stage 3.3 provider hardening for readiness, live-write gating, and operator visibility
-- Stage 3.4 theme and plugin compatibility expansion for the `hexo-next` path
-- Stage 3.5 runtime integration hardening for built Hexo compatibility fixtures, generated output checks, and cross-repo validation evidence
+- Open-source scaffold for Cloudflare-native Hexo publishing.
+- Hexo + NexT example and reusable template with compatibility adapters.
+- Decoupled API and Queue Worker runtime architecture.
+- Turnstile verification and Zero Trust Cloudflare Access JWT validation.
+- Hardened D1 Database schema, performance indexing, and unique slug validation.
+- R2 asset upload pipeline with filename sanitation, MIME allowlist, and TTL/HMAC signed URLs.
+- GitHub App integration for async publishing with PR idempotency and conflict mapping.
+- Observability suite including structured JSON logs, uncaught error boundaries, and D1 audit logs.
+- 17-point automated deployment smoke-test suite and validation runbooks.
 
 ## Contract v1
 

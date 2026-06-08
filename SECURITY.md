@@ -1,12 +1,12 @@
 # Security Policy
 
-`xhalo-blog` is still a `0.1.x alpha` runtime with prototype-grade provider integrations. Treat `Contract v1` as a documentation and scaffold baseline, not as proof of production runtime stability.
+`xhalo-blog` is currently in the `v0.1.0-alpha` release line with Stage 4 hardened security boundaries. Treat `Contract v1` as a documentation and scaffold baseline, and evaluate your security parameters (Access, Turnstile, secrets) prior to public deployment.
 
 ## Supported versions
 
 | Version | Supported |
 |---|---|
-| 0.1.x alpha | Best-effort security fixes for scaffold and prototype code |
+| v0.1.0-alpha | Best-effort security fixes for the current release line |
 | Contract v1 docs | Supported as documentation baseline only |
 
 ## Reporting a vulnerability

@@ -42,9 +42,13 @@ wrangler d1 migrations apply xhalo-blog --local
 wrangler d1 migrations apply xhalo-blog --remote
 ```
 
-> [!CAUTION]
-> Before running migrations in production, always perform a database backup.
-> Refer to [d1-local-remote-verification.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/d1-local-remote-verification.md) for preflight check commands and backup procedures.
+> [!IMPORTANT]
+> **Non-destructive Migration Policy**: Forward migrations must never contain destructive commands such as `DROP TABLE` or `DROP COLUMN` on existing tables. Rollback scripts must only be kept as reference documentation.
+> Before running migrations in production, always perform a database backup:
+> ```bash
+> wrangler d1 export xhalo-blog --remote --output backup.sql
+> ```
+> Refer to [d1-local-remote-verification.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/d1-local-remote-verification.md) for detailed preflight check procedures.
 
 ---
 
@@ -96,7 +100,7 @@ Queues manage background tasks, such as publishing pipelines and asset processin
 
 ## 6. Cloudflare Access (Admin Authentication)
 
-Cloudflare Access secures `/api/*` and `/admin/*` routes.
+Cloudflare Access secures `/api/*` and `/admin/*` routes. Protected endpoints include `/api/readiness`, `/api/posts`, `/api/tasks`, and `/api/audit-logs`.
 
 1. Go to your Cloudflare Zero Trust dashboard.
 2. Go to **Access** → **Applications** → **Add an Application** → **Self-hosted**.
@@ -148,3 +152,18 @@ wrangler secret put TURNSTILE_SECRET_KEY --name xhalo-blog-api
 ```
 
 For setting up the GitHub App credentials (`GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` PEM, etc.), refer to [github-app-setup.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/github-app-setup.md).
+
+---
+
+## 9. Deployment Verification (Smoke Testing)
+
+To verify the correct configuration of all Cloudflare bindings, secrets, and routes, run the automated smoke testing script against your staging or production endpoint:
+
+```bash
+# Run the 17-point route verification suite
+SMOKE_TARGET_URL="https://your-api-worker.workers.dev" \
+ADMIN_API_SHARED_SECRET="your-admin-shared-secret" \
+npm run test:smoke
+```
+
+See [deployment-smoke-test-matrix.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/deployment-smoke-test-matrix.md) for details on the 17-point test matrix, which verifies public, protected, mutation (dry-run), rejection, and security boundaries.
