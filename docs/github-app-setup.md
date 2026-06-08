@@ -91,3 +91,21 @@ wrangler secret put GITHUB_WEBHOOK_SECRET --name xhalo-blog-api
 ```
 
 Once configured, pushes to your GitHub repository will trigger the `/webhooks/github` route, verifying the signature against your secret and synchronizing the posts index database automatically.
+
+---
+
+## 8. User-Agent Header Requirement
+
+The GitHub REST API blocks requests from Cloudflare Workers that do not send a standard `User-Agent` header (returning a `403 Forbidden` error). 
+
+The `xhalo-blog` worker is pre-configured to send `user-agent: xhalo-blog-api` for all requests to the GitHub API. If you customize the worker's HTTP client or fetch logic, ensure you retain or configure a custom `User-Agent` header:
+
+```javascript
+const response = await fetch(url, {
+  headers: {
+    'Authorization': `Bearer ${accessToken}`,
+    'Accept': 'application/vnd.github+json',
+    'User-Agent': 'xhalo-blog-api'
+  }
+});
+```

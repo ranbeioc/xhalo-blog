@@ -4,7 +4,7 @@
 
 It starts as a clean community edition template, not as a copy of any production blog. The repository contains example content, placeholder configuration, and a minimal Cloudflare platform skeleton for Pages, Workers, D1, R2, Queues, Turnstile, Access, and GitHub PR-based publishing workflows.
 
-> Status: `0.1.x alpha / Stage 3 prototype`. The public scaffold contract is tracked as `Contract v1`, but runtime APIs and provider integrations are not production-ready.
+> Status: `v0.1.0-alpha / Stage 4 Release Candidate`. The public scaffold contract is tracked as `Contract v1`, with fully implemented and verified runtime APIs, database migrations, and Cloudflare integrations.
 
 ## Production warning
 
@@ -37,18 +37,14 @@ xhalo-blog/
 
 ## Current capabilities
 
-- Clean starter documentation.
-- Example `rb-blog.config.example.json`.
-- Example `.env.example`.
-- Example `wrangler.toml.example`.
-- Minimal Worker API routes.
-- Minimal Queue consumer.
-- D1 schema for posts, settings, tasks, and audit logs.
-- R2 asset path convention.
-- Turnstile and Access integration notes.
-- GitHub PR publishing workflow design.
-- Hexo + NexT template with example post and Cloudflare `_headers`.
-- Fixture-backed Hexo compatibility checks for asset rewriting, PDF, Chart, searchdb, sitemap, and baidusitemap outputs.
+- **Decoupled Workers**: Decoupled API and Queue Worker architecture for async execution.
+- **D1 Database**: Hardened database schema and migrations for posts, settings, tasks, and audit logs.
+- **R2 Assets**: Secure R2 asset upload pipeline with filename sanitation, MIME allowlist, and signed upload URLs.
+- **GitHub Integration**: GitHub App PR-based draft publishing flow with idempotency and API conflict handling.
+- **Observability**: Structured JSON logging, error boundaries, and persistent D1 audit trails.
+- **Security Gates**: Zero Trust Cloudflare Access JWT validation and Turnstile protection.
+- **Hexo Compatibility**: Theme adapter with fixture-backed asset rewriting and regression testing.
+- **Smoke Tests**: 17-point automated deployment smoke-test suite and runbooks.
 
 ## Quick start
 
@@ -57,7 +53,7 @@ npm install
 npm run check:all
 ```
 
-See [`docs/getting-started.md`](./docs/getting-started.md) for the full Stage 2.5 scaffold setup flow.
+See [`docs/getting-started.md`](./docs/getting-started.md) for the full Stage 4 setup flow.
 
 To test the Hexo NexT example:
 

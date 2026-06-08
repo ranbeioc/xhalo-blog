@@ -1486,7 +1486,35 @@ Operators must deploy the GitHub App, rotate staging secrets, configure staging 
 | `npm ci` | Passed | Package install clean |
 | `npm run check:all` | Passed | Static checks and unit tests pass |
 
+---
 
+## Step 038 - Phase 9: Open-Source Release Candidate (v0.1.0-alpha)
 
+### Executed by Model
+Antigravity
 
+### Type
+Documentation / Release / Hardening
 
+### Goal
+Prepare the xhalo-blog repository as an open-source release candidate (v0.1.0-alpha.0) by updating the root README, improving setup documentation for Stage 4 capabilities, enforcing non-destructive D1 migration policies, and verifying codebase sanity.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [README.md](file:///C:/Users/ranbe/Documents/Github/xhalo-blog/README.md) | Update status to v0.1.0-alpha Release Candidate and highlight Stage 4 capabilities | Repository documentation alignment |
+| [docs/getting-started.md](file:///C:/Users/ranbe/Documents/Github/xhalo-blog/docs/getting-started.md) | Reflect updated setup flow and Stage 4 verification requirements | Setup flow clarity |
+| [docs/cloudflare-setup.md](file:///C:/Users/ranbe/Documents/Github/xhalo-blog/docs/cloudflare-setup.md) | Document non-destructive D1 migrations, audit logs, and smoke-testing | Deployment guide completeness |
+| [docs/github-app-setup.md](file:///C:/Users/ranbe/Documents/Github/xhalo-blog/docs/github-app-setup.md) | Detail GitHub API User-Agent header requirements to avoid 403 blocks | Deployment guide completeness |
+| [ROADMAP.md](file:///C:/Users/ranbe/Documents/Github/xhalo-blog/ROADMAP.md) | Mark Stage 4 hardening milestones as completed in the release line | Roadmap alignment |
+| [SECURITY.md](file:///C:/Users/ranbe/Documents/Github/xhalo-blog/SECURITY.md) | Update status references to v0.1.0-alpha | Policy accuracy |
+| [docs/CLAUDE_BRANCH_PROGRESS.md](file:///C:/Users/ranbe/Documents/Github/xhalo-blog/docs/CLAUDE_BRANCH_PROGRESS.md) | Append Step 038 log block | Tracking development steps |
+
+### Required external action
+None.
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm ci` | Passed | Package install clean |
+| `npm run check:all` | Passed | All builds, syntax checks, secrets scanning, fixtures, and unit tests pass |
