@@ -1712,7 +1712,43 @@ Provide complete production readiness review guidelines, read-only compatibility
 None.
 
 ### Validation
+| `npm ci` | Passed | Package install clean |
+| `npm run check:all` | Passed | All builds, syntax checks, secrets scanning, fixtures, and unit tests pass (77/77 tests passed) |
+
+---
+
+## Step 045 - Production Readiness Corrections
+
+### Executed by Model
+Antigravity
+
+### Type
+Documentation / Verification / Governance / Smoke Test Safety
+
+### Goal
+Correct production readiness checklist state, align environment variables with the actual code in runbooks, add Turnstile headers to curl examples, backfill PRs #44–#46 execution audits, and strengthen PR completeness template checks.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [docs/production-go-no-go-checklist.md](./production-go-no-go-checklist.md) | Set staging async evidence to pending and added note | Checklist correction |
+| [docs/staging-verification-evidence.md](./staging-verification-evidence.md) | Mark Phase 7.1 async evidence section template as pending real execution | Evidence correction |
+| [docs/level1-readonly-validation-runbook.md](./level1-readonly-validation-runbook.md) | Aligned GITHUB variables and added cf-turnstile-token to POST examples | Runbook correction |
+| [docs/level2-pr-generator-trial-runbook.md](./level2-pr-generator-trial-runbook.md) | Aligned Turnstile headers and token validation instructions | Runbook correction |
+| [docs/async-publish-runbook.md](./async-publish-runbook.md) | Documented `ASYNC_PUBLISH_MODE` environment variable | Runbook enhancement |
+| [scripts/smoke-async-publish.mjs](../scripts/smoke-async-publish.mjs) | Enhanced script to support local, staging, and e2e validation modes | Integration hardening |
+| [.github/pull_request_template.md](../.github/pull_request_template.md) | Added strict merge blockers warnings against placeholder descriptions | Governance enforcement |
+| [CONTRIBUTING.md](../CONTRIBUTING.md) | Specified completeness requirements and merge blockers | Governance enforcement |
+| [docs/pr-44-46-execution-report.md](./pr-44-46-execution-report.md) [NEW] | Backfill execution review details for PR #44, PR #45, and PR #46 | Audit logs compliance |
+| [docs/production-readiness-corrections-report.md](./production-readiness-corrections-report.md) [NEW] | Documented verification of the corrections performed in this phase | Audit logs compliance |
+| [docs/CLAUDE_BRANCH_PROGRESS.md](./CLAUDE_BRANCH_PROGRESS.md) | Append Step 045 progress block | Tracking development steps |
+
+### Required external action
+None.
+
+### Validation
 | Command | Result | Notes |
 |---|---|---|
 | `npm ci` | Passed | Package install clean |
 | `npm run check:all` | Passed | All builds, syntax checks, secrets scanning, fixtures, and unit tests pass (77/77 tests passed) |
+| `$env:ASYNC_PUBLISH_MODE="local"; $env:ASYNC_PUBLISH_EXPECT_LIVE_WRITES="false"; npm run test:async-publish` | Passed | Local mode dry-run safety rejection verified successfully |

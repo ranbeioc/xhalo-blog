@@ -23,7 +23,8 @@ This document records the formal Go / No-Go decision and readiness checklist for
 - [x] All unit tests (77/77) pass cleanly.
 - [x] Secrets scanning checks pass with no raw tokens or credentials committed.
 - [x] Admin token headers (`x-xhalo-admin-secret` / `cf-turnstile-token`) standardized in code and docs.
-- [x] Staging async publish verification evidence generated and logged.
+- [ ] Staging async publish verification evidence generated and logged.
+  *Note: Phase 7.1 async evidence template exists; real sanitized staging evidence remains pending.*
 
 ### 2.2 Pre-requisites for Level 2 (PR Generator Trial Mode)
 - [ ] Level 1 read-only connection compatibility validation completed successfully.

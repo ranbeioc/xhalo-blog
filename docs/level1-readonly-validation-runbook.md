@@ -24,10 +24,13 @@ Ensure the following environment variables are bound/configured in the target Cl
 | Variable | Staging Value | Rationale |
 |---|---|---|
 | `LIVE_WRITES_ENABLED` | `false` | **Mandatory**. Rejects all write actions at the gateway level. |
-| `GITHUB_REPO_OWNER` | `<owner>` | Target repository owner. |
-| `GITHUB_REPO_NAME` | `<production-repo>` | Target repository name. |
+| `GITHUB_OWNER` | `<owner>` | Target repository owner (username or organization). |
+| `GITHUB_REPO` | `<production-repo>` | Target repository name. |
+| `GITHUB_BRANCH` | `main` | Target repository default branch (e.g., `main`). |
 | `GITHUB_TOKEN` | `<read-only-token>` | GitHub Personal Access Token or App Installation Token with **read-only** contents access. |
 | `ADMIN_API_SHARED_SECRET` | `your-admin-shared-secret` | For admin authentication. |
+
+*Note: Do not use `GITHUB_REPO_OWNER` or `GITHUB_REPO_NAME` unless aliases are explicitly implemented in code. Standard variables in the worker environment are `GITHUB_OWNER`, `GITHUB_REPO`, and `GITHUB_BRANCH`.*
 
 ---
 
@@ -48,10 +51,11 @@ curl -X GET "https://<production-api-url>/api/readiness" \
 ```
 
 ### Step 2: Dry-run Draft Publish Execution
-Submit a publish request specifying `mode: "dry-run"` to test parsing and structural compatibility:
+Submit a publish request specifying `mode: "dry-run"` to test parsing and structural compatibility. Since this is a POST request, a Turnstile challenge token must be provided:
 ```bash
 curl -X POST "https://<production-api-url>/api/drafts/publish" \
   -H "x-xhalo-admin-secret: your-admin-shared-secret" \
+  -H "cf-turnstile-token: <turnstile-token>" \
   -H "content-type: application/json" \
   -d '{
     "title": "Staging Post",
@@ -61,6 +65,9 @@ curl -X POST "https://<production-api-url>/api/drafts/publish" \
     "publish_target": "github"
   }'
 ```
+
+*Note: If `TURNSTILE_SECRET_KEY` is not configured in the environment, the API may bypass this verification. For staging/testing environments utilizing Cloudflare Turnstile test keys, the sitekey bypass token `dummy-token` may be passed. In production-like validation, use a real Turnstile challenge token.*
+
 **Expected Response (200 OK)**:
 ```json
 {
@@ -95,10 +102,11 @@ curl -X POST "https://<production-api-url>/api/drafts/publish" \
 ```
 
 ### Step 3: Verify Gateway Safety (Write Attempt Check)
-Force a write request by sending `mode: "live"`. The gateway must intercept and reject the request:
+Force a write request by sending `mode: "live"`. The gateway must intercept and reject the request with `403 Forbidden` before checking Turnstile or sending tasks to the queue:
 ```bash
 curl -X POST "https://<production-api-url>/api/drafts/publish" \
   -H "x-xhalo-admin-secret: your-admin-shared-secret" \
+  -H "cf-turnstile-token: <turnstile-token>" \
   -H "content-type: application/json" \
   -d '{
     "title": "Staging Post",
