@@ -206,7 +206,7 @@ Fix the build check pipeline on Windows environments.
 ### Files changed
 | File | Change summary | Reason |
 |---|---|---|
-| [scripts/check-no-production-markers.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/scripts/check-no-production-markers.mjs) | Replace backslashes with forward slashes in relative paths; add progress log to allowlist | Fix Windows path separators and ignore progress log in secrets scan |
+| [scripts/check-no-production-markers.mjs](../scripts/check-no-production-markers.mjs) | Replace backslashes with forward slashes in relative paths; add progress log to allowlist | Fix Windows path separators and ignore progress log in secrets scan |
 
 ### Implementation details
 - Used `.replace(/\\/g, '/')` on relative paths.
@@ -236,8 +236,8 @@ PR #27 introduces a fixture post dated `2026-06-02 00:00:00`. Since the site tim
 ### Files changed
 | File | Change summary | Reason |
 |---|---|---|
-| [examples/next-theme-blog/source/_posts/2026-06-02-hexo-compatibility-fixtures.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/examples/next-theme-blog/source/_posts/2026-06-02-hexo-compatibility-fixtures.md) | Shift date to `12:00:00` (noon) | Avoid timezone shifts causing day change |
-| [templates/hexo-next/source/_posts/2026-06-02-hexo-compatibility-fixtures.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/templates/hexo-next/source/_posts/2026-06-02-hexo-compatibility-fixtures.md) | Shift date to `12:00:00` (noon) | Avoid timezone shifts causing day change |
+| [examples/next-theme-blog/source/_posts/2026-06-02-hexo-compatibility-fixtures.md](../examples/next-theme-blog/source/_posts/2026-06-02-hexo-compatibility-fixtures.md) | Shift date to `12:00:00` (noon) | Avoid timezone shifts causing day change |
+| [templates/hexo-next/source/_posts/2026-06-02-hexo-compatibility-fixtures.md](../templates/hexo-next/source/_posts/2026-06-02-hexo-compatibility-fixtures.md) | Shift date to `12:00:00` (noon) | Avoid timezone shifts causing day change |
 
 ### Implementation details
 - Shifted the post date front matter from midnight to `12:00:00`. Since Shanghai timezone offset is 8 hours, `12:00:00 Shanghai` translates to `04:00:00 UTC` on the same calendar day, ensuring the permalink date is consistently `2026/06/02` globally.
@@ -375,8 +375,8 @@ Enforce Turnstile runtime verification in the API Worker to protect state mutati
 ### Files changed
 | File | Change summary | Reason |
 |---|---|---|
-| [workers/api/src/index.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/workers/api/src/index.js) | Add `verifyTurnstileToken` and verify on POST/PUT mutations in protected admin routes. | Core logic enforcement. |
-| [tests/worker-security.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/worker-security.test.mjs) | Add tests for missing, incorrect, and valid Turnstile tokens. | Automation test assurance. |
+| [workers/api/src/index.js](../workers/api/src/index.js) | Add `verifyTurnstileToken` and verify on POST/PUT mutations in protected admin routes. | Core logic enforcement. |
+| [tests/worker-security.test.mjs](../tests/worker-security.test.mjs) | Add tests for missing, incorrect, and valid Turnstile tokens. | Automation test assurance. |
 
 ### Implementation details
 - `verifyTurnstileToken` reads `x-xhalo-turnstile-token` or `cf-turnstile-token` headers, and sends a validation POST to `https://challenges.cloudflare.com/turnstile/v0/siteverify`.
@@ -407,12 +407,12 @@ Provide a premium landing introduction page inside the monorepo at `apps/landing
 ### Files changed
 | File | Change summary | Reason |
 |---|---|---|
-| [package.json](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/package.json) | Register landing build script. | Pipeline integration. |
-| [apps/landing/package.json](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/landing/package.json) [NEW] | Setup landing workspace. | Workspace creation. |
-| [apps/landing/scripts/build.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/landing/scripts/build.mjs) [NEW] | Add static copying build script. | Build setup. |
-| [apps/landing/src/index.html](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/landing/src/index.html) [NEW] | Create semantic HTML structure, including SEO meta tags and SVG diagram. | Content addition. |
-| [apps/landing/src/style.css](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/landing/src/style.css) [NEW] | Define dark theme style rules, glassmorphism, responsive grid layout, and hover animation variables. | Styling addition. |
-| [apps/landing/src/app.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/landing/src/app.js) [NEW] | Add simple navbar scroll effect and SVG node highlight click listeners. | Interactivity addition. |
+| [package.json](../package.json) | Register landing build script. | Pipeline integration. |
+| [apps/landing/package.json](../apps/landing/package.json) [NEW] | Setup landing workspace. | Workspace creation. |
+| [apps/landing/scripts/build.mjs](../apps/landing/scripts/build.mjs) [NEW] | Add static copying build script. | Build setup. |
+| [apps/landing/src/index.html](../apps/landing/src/index.html) [NEW] | Create semantic HTML structure, including SEO meta tags and SVG diagram. | Content addition. |
+| [apps/landing/src/style.css](../apps/landing/src/style.css) [NEW] | Define dark theme style rules, glassmorphism, responsive grid layout, and hover animation variables. | Styling addition. |
+| [apps/landing/src/app.js](../apps/landing/src/app.js) [NEW] | Add simple navbar scroll effect and SVG node highlight click listeners. | Interactivity addition. |
 
 ### Validation
 | Command | Result | Notes |
@@ -510,10 +510,10 @@ Render the Turnstile iframe widget inside the Admin Panel UI and inject challeng
 ### Files changed
 | File | Change summary | Reason |
 |---|---|---|
-| [packages/core/src/index.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/packages/core/src/index.js) | Include `turnstileSiteKey` in `buildProviderReadinessSnapshot` payload. | Expose public site key to client. |
-| [tests/provider-readiness.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/provider-readiness.test.mjs) | Add a test verifying `turnstileSiteKey` is populated correctly. | Automation test coverage. |
-| [apps/admin/src/index.html](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/index.html) | Load Turnstile API script and add widget element in Operator Guard panel. | HTML structure. |
-| [apps/admin/src/app.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/app.js) | Implement Turnstile rendering, fetch header injection, and automatic widget reset on POST/PUT actions. | Client logic integration. |
+| [packages/core/src/index.js](../packages/core/src/index.js) | Include `turnstileSiteKey` in `buildProviderReadinessSnapshot` payload. | Expose public site key to client. |
+| [tests/provider-readiness.test.mjs](../tests/provider-readiness.test.mjs) | Add a test verifying `turnstileSiteKey` is populated correctly. | Automation test coverage. |
+| [apps/admin/src/index.html](../apps/admin/src/index.html) | Load Turnstile API script and add widget element in Operator Guard panel. | HTML structure. |
+| [apps/admin/src/app.js](../apps/admin/src/app.js) | Implement Turnstile rendering, fetch header injection, and automatic widget reset on POST/PUT actions. | Client logic integration. |
 
 ### Validation
 | Command | Result | Notes |
@@ -577,7 +577,7 @@ Allow the user to select an existing post from the database post preview list, l
 ### Files changed
 | File | Change summary | Reason |
 |---|---|---|
-| [apps/admin/src/app.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/app.js) | Save fetched posts to state, render list as clickable items, and implement click event delegate logic to populate form inputs. | Front-end dynamic mapping. |
+| [apps/admin/src/app.js](../apps/admin/src/app.js) | Save fetched posts to state, render list as clickable items, and implement click event delegate logic to populate form inputs. | Front-end dynamic mapping. |
 
 ### Validation
 | Command | Result | Notes |
@@ -665,9 +665,9 @@ Extend the `/api/drafts/publish` endpoint to support persistent D1 SQLite databa
 ### Files changed
 | File | Change summary | Reason |
 |---|---|---|
-| [workers/api/migrations/0001_initial.sql](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/workers/api/migrations/0001_initial.sql) | Add `content TEXT` column | Persist full Markdown document in database schema |
-| [workers/api/src/index.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/workers/api/src/index.js) | Update `upsertPostIndexRecord` and `/api/drafts/publish` router, add `content` to `/api/posts` query | Save and retrieve content from D1 database |
-| [tests/worker-security.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/worker-security.test.mjs) | Add `POST /api/drafts/publish with direct D1 target...` test case | Verify correct routing, query generation, and metadata mapping |
+| [workers/api/migrations/0001_initial.sql](../workers/api/migrations/0001_initial.sql) | Add `content TEXT` column | Persist full Markdown document in database schema |
+| [workers/api/src/index.js](../workers/api/src/index.js) | Update `upsertPostIndexRecord` and `/api/drafts/publish` router, add `content` to `/api/posts` query | Save and retrieve content from D1 database |
+| [tests/worker-security.test.mjs](../tests/worker-security.test.mjs) | Add `POST /api/drafts/publish with direct D1 target...` test case | Verify correct routing, query generation, and metadata mapping |
 
 ### Validation
 | Command | Result | Notes |
@@ -730,9 +730,9 @@ Integrate a Markdown parser into the Admin UI, support inputting article body co
 ### Files changed
 | File | Change summary | Reason |
 |---|---|---|
-| [apps/admin/src/index.html](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/index.html) | Inject `marked` library script tag, add body textarea, Publish to D1 action button, and live preview container | HTML elements expansion |
-| [apps/admin/src/style.css](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/style.css) | Add styling for `.post-preview-html` container and nested element tag behaviors | Visual alignment |
-| [apps/admin/src/app.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/app.js) | Bind `input` listener to body textarea, map `post.content` to body, and route `publish-d1` actions | Client logic update |
+| [apps/admin/src/index.html](../apps/admin/src/index.html) | Inject `marked` library script tag, add body textarea, Publish to D1 action button, and live preview container | HTML elements expansion |
+| [apps/admin/src/style.css](../apps/admin/src/style.css) | Add styling for `.post-preview-html` container and nested element tag behaviors | Visual alignment |
+| [apps/admin/src/app.js](../apps/admin/src/app.js) | Bind `input` listener to body textarea, map `post.content` to body, and route `publish-d1` actions | Client logic update |
 
 ### Validation
 | Command | Result | Notes |
@@ -797,8 +797,8 @@ Implement JWT signature verification logic inside the Worker's `verifyAdminReque
 ### Files changed
 | File | Change summary | Reason |
 |---|---|---|
-| [workers/api/src/index.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/workers/api/src/index.js) | Add `verifyAccessJwt` helper and update `verifyAdminRequest` to support JWT checking | Core middleware security enforcement |
-| [tests/worker-security.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/worker-security.test.mjs) | Add mock JWT signature bypass tests and claims mismatch validation assertions | Verification coverage |
+| [workers/api/src/index.js](../workers/api/src/index.js) | Add `verifyAccessJwt` helper and update `verifyAdminRequest` to support JWT checking | Core middleware security enforcement |
+| [tests/worker-security.test.mjs](../tests/worker-security.test.mjs) | Add mock JWT signature bypass tests and claims mismatch validation assertions | Verification coverage |
 
 ### Validation
 | Command | Result | Notes |
@@ -824,7 +824,7 @@ Provide developers with guidance on configuring Access Team Domains, Audience Ta
 ### Files changed
 | File | Change summary | Reason |
 |---|---|---|
-| [docs/cloudflare-access-jwt.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/cloudflare-access-jwt.md) [NEW] | Create Cloudflare Access JWT documentation | Setup guidelines |
+| [docs/cloudflare-access-jwt.md](./cloudflare-access-jwt.md) [NEW] | Create Cloudflare Access JWT documentation | Setup guidelines |
 
 ### Validation
 | Command | Result | Notes |
@@ -1374,7 +1374,7 @@ Migrations were successfully applied to the remote database:
 npx wrangler d1 migrations apply xhalo-blog-staging --remote
 ```
 Both workers were deployed:
-- API Worker: `xhalo-blog-staging-api` (triggers: `https://xhalo-blog-staging-api.ranbei.workers.dev`)
+- API Worker: `xhalo-blog-staging-api` (triggers: `<staging-api-worker-url>`)
 - Queue Worker: `xhalo-blog-staging-queue`
 
 Staging secrets were set:
@@ -1385,7 +1385,7 @@ Staging secrets were set:
 
 Smoke tests results:
 ```bash
-SMOKE_TARGET_URL=https://xhalo-blog-staging-api.ranbei.workers.dev ADMIN_API_SHARED_SECRET=<redacted-staging-admin-secret> npm run test:smoke
+SMOKE_TARGET_URL=<staging-api-worker-url> ADMIN_API_SHARED_SECRET=<redacted-staging-admin-secret> npm run test:smoke
 ```
 All 7 smoke tests passed successfully.
 
@@ -1440,10 +1440,10 @@ Expand the API Worker smoke test suite to cover 17 distinct endpoints, query typ
 ### Files changed
 | File | Change summary | Reason |
 |---|---|---|
-| [smoke-worker-routes.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/scripts/smoke-worker-routes.mjs) | Expand automated smoke test script to cover 17 cases and support configurable env vars | Comprehensive route and boundary validation |
-| [deployment-smoke-test-matrix.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/deployment-smoke-test-matrix.md) | Document the 17 smoke test cases, headers, inputs, and expected outcomes | Reference documentation for smoke verification |
-| [deployment-integration-runbook.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/deployment-integration-runbook.md) | Link to the new smoke test matrix and reference the automated test command | Documented runbook correctness |
-| [CLAUDE_BRANCH_PROGRESS.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/CLAUDE_BRANCH_PROGRESS.md) | Append Step 036 log block | Tracking development steps |
+| [smoke-worker-routes.mjs](../scripts/smoke-worker-routes.mjs) | Expand automated smoke test script to cover 17 cases and support configurable env vars | Comprehensive route and boundary validation |
+| [deployment-smoke-test-matrix.md](./deployment-smoke-test-matrix.md) | Document the 17 smoke test cases, headers, inputs, and expected outcomes | Reference documentation for smoke verification |
+| [deployment-integration-runbook.md](./deployment-integration-runbook.md) | Link to the new smoke test matrix and reference the automated test command | Documented runbook correctness |
+| [CLAUDE_BRANCH_PROGRESS.md](./CLAUDE_BRANCH_PROGRESS.md) | Append Step 036 log block | Tracking development steps |
 
 ### Required external action
 None.
@@ -1471,11 +1471,11 @@ Define validation loops, request/response models, boundary conditions, and clean
 ### Files changed
 | File | Change summary | Reason |
 |---|---|---|
-| [live-write-verification.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/live-write-verification.md) | Document live-write loop, payload templates, and R2 signed uploads | Verification runbook creation |
-| [deployment-integration-runbook.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/deployment-integration-runbook.md) | Reference the new staging live closed-loop verification runbook | Operations documentation updates |
-| [github-pr-publishing.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/github-pr-publishing.md) | Reference the new staging live closed-loop verification runbook | Operations documentation updates |
-| [r2-upload-security.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/r2-upload-security.md) | Reference the new staging live closed-loop verification runbook | Operations documentation updates |
-| [CLAUDE_BRANCH_PROGRESS.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/CLAUDE_BRANCH_PROGRESS.md) | Append Step 037 log block | Tracking development steps |
+| [live-write-verification.md](./live-write-verification.md) | Document live-write loop, payload templates, and R2 signed uploads | Verification runbook creation |
+| [deployment-integration-runbook.md](./deployment-integration-runbook.md) | Reference the new staging live closed-loop verification runbook | Operations documentation updates |
+| [github-pr-publishing.md](./github-pr-publishing.md) | Reference the new staging live closed-loop verification runbook | Operations documentation updates |
+| [r2-upload-security.md](./r2-upload-security.md) | Reference the new staging live closed-loop verification runbook | Operations documentation updates |
+| [CLAUDE_BRANCH_PROGRESS.md](./CLAUDE_BRANCH_PROGRESS.md) | Append Step 037 log block | Tracking development steps |
 
 ### Required external action
 Operators must deploy the GitHub App, rotate staging secrets, configure staging variables, and manually run request/response tests to verify remote publishing to a test repository.
@@ -1502,13 +1502,52 @@ Prepare the xhalo-blog repository as an open-source release candidate (v0.1.0-al
 ### Files changed
 | File | Change summary | Reason |
 |---|---|---|
-| [README.md](file:///C:/Users/ranbe/Documents/Github/xhalo-blog/README.md) | Update status to v0.1.0-alpha Release Candidate and highlight Stage 4 capabilities | Repository documentation alignment |
-| [docs/getting-started.md](file:///C:/Users/ranbe/Documents/Github/xhalo-blog/docs/getting-started.md) | Reflect updated setup flow and Stage 4 verification requirements | Setup flow clarity |
-| [docs/cloudflare-setup.md](file:///C:/Users/ranbe/Documents/Github/xhalo-blog/docs/cloudflare-setup.md) | Document non-destructive D1 migrations, audit logs, and smoke-testing | Deployment guide completeness |
-| [docs/github-app-setup.md](file:///C:/Users/ranbe/Documents/Github/xhalo-blog/docs/github-app-setup.md) | Detail GitHub API User-Agent header requirements to avoid 403 blocks | Deployment guide completeness |
-| [ROADMAP.md](file:///C:/Users/ranbe/Documents/Github/xhalo-blog/ROADMAP.md) | Mark Stage 4 hardening milestones as completed in the release line | Roadmap alignment |
-| [SECURITY.md](file:///C:/Users/ranbe/Documents/Github/xhalo-blog/SECURITY.md) | Update status references to v0.1.0-alpha | Policy accuracy |
-| [docs/CLAUDE_BRANCH_PROGRESS.md](file:///C:/Users/ranbe/Documents/Github/xhalo-blog/docs/CLAUDE_BRANCH_PROGRESS.md) | Append Step 038 log block | Tracking development steps |
+| [README.md](../README.md) | Update status to v0.1.0-alpha Release Candidate and highlight Stage 4 capabilities | Repository documentation alignment |
+| [docs/getting-started.md](./getting-started.md) | Reflect updated setup flow and Stage 4 verification requirements | Setup flow clarity |
+| [docs/cloudflare-setup.md](./cloudflare-setup.md) | Document non-destructive D1 migrations, audit logs, and smoke-testing | Deployment guide completeness |
+| [docs/github-app-setup.md](./github-app-setup.md) | Detail GitHub API User-Agent header requirements to avoid 403 blocks | Deployment guide completeness |
+| [ROADMAP.md](../ROADMAP.md) | Mark Stage 4 hardening milestones as completed in the release line | Roadmap alignment |
+| [SECURITY.md](../SECURITY.md) | Update status references to v0.1.0-alpha | Policy accuracy |
+| [docs/CLAUDE_BRANCH_PROGRESS.md](./CLAUDE_BRANCH_PROGRESS.md) | Append Step 038 log block | Tracking development steps |
+
+### Required external action
+None.
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm ci` | Passed | Package install clean |
+| `npm run check:all` | Passed | All builds, syntax checks, secrets scanning, fixtures, and unit tests pass |
+
+---
+
+## Step 039 - Phase 9-Fix: Release Candidate Boundary Hardening
+
+### Executed by Model
+Antigravity
+
+### Type
+Documentation / Security / Release Candidate Hardening
+
+### Goal
+Align v0.1.0-alpha release candidate documentation with the actual implementation boundary, remove private/local environment traces, add staging evidence templates, and clarify Queue Worker publish responsibility.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [README.md](../README.md) | Downgrade over-strong RC capability language and clarify async publishing status | Avoid misleading users |
+| [docs/live-write-verification.md](./live-write-verification.md) | Clarify current API Worker vs Queue Worker responsibility and split sequence diagrams | Align docs with implementation |
+| [docs/cloudflare-setup.md](./cloudflare-setup.md) | Replace private paths and staging URLs with placeholders | Open-source cleanliness |
+| [docs/getting-started.md](./getting-started.md) | Clean up local paths and staging URL placeholders | Open-source cleanliness |
+| [docs/github-app-setup.md](./github-app-setup.md) | Clean up staging URL placeholders | Open-source cleanliness |
+| [docs/staging-verification-evidence.md](./staging-verification-evidence.md) [NEW] | Add sanitized evidence template | Make Phase 7 evidence auditable |
+| [docs/release-checklist.md](./release-checklist.md) [NEW] | Add RC release checklist | Repeatable release process |
+| [docs/release-versioning-policy.md](./release-versioning-policy.md) [NEW] | Define alpha/beta/v1 semantics | Release governance |
+| [docs/queue-publish-boundary.md](./queue-publish-boundary.md) [NEW] | Document the functional boundary between workers | Release boundary clarity |
+| [ROADMAP.md](../ROADMAP.md) | Mark Stage 4 capabilities status | Roadmap alignment |
+| [SECURITY.md](../SECURITY.md) | Update supported versions status | Policy accuracy |
+| [scripts/check-no-production-markers.mjs](../scripts/check-no-production-markers.mjs) | Tighten marker and secret-like scans | Prevent recurrence |
+| [docs/CLAUDE_BRANCH_PROGRESS.md](./CLAUDE_BRANCH_PROGRESS.md) | Append Step 039 log block | Tracking development steps |
 
 ### Required external action
 None.

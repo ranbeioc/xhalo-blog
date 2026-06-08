@@ -48,7 +48,7 @@ wrangler d1 migrations apply xhalo-blog --remote
 > ```bash
 > wrangler d1 export xhalo-blog --remote --output backup.sql
 > ```
-> Refer to [d1-local-remote-verification.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/d1-local-remote-verification.md) for detailed preflight check procedures.
+> Refer to [d1-local-remote-verification.md](./d1-local-remote-verification.md) for detailed preflight check procedures.
 
 ---
 
@@ -151,7 +151,7 @@ wrangler secret put PREVIEW_WEBHOOK_SECRET --name xhalo-blog-api
 wrangler secret put TURNSTILE_SECRET_KEY --name xhalo-blog-api
 ```
 
-For setting up the GitHub App credentials (`GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` PEM, etc.), refer to [github-app-setup.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/github-app-setup.md).
+For setting up the GitHub App credentials (`GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` PEM, etc.), refer to [github-app-setup.md](./github-app-setup.md).
 
 ---
 
@@ -161,9 +161,9 @@ To verify the correct configuration of all Cloudflare bindings, secrets, and rou
 
 ```bash
 # Run the 17-point route verification suite
-SMOKE_TARGET_URL="https://your-api-worker.workers.dev" \
+SMOKE_TARGET_URL="https://your-account.workers.dev" \
 ADMIN_API_SHARED_SECRET="your-admin-shared-secret" \
 npm run test:smoke
 ```
 
-See [deployment-smoke-test-matrix.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/deployment-smoke-test-matrix.md) for details on the 17-point test matrix, which verifies public, protected, mutation (dry-run), rejection, and security boundaries.
+See [deployment-smoke-test-matrix.md](./deployment-smoke-test-matrix.md) for details on the 17-point test matrix, which verifies public, protected, mutation (dry-run), rejection, and security boundaries.

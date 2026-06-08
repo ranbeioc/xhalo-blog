@@ -4,7 +4,7 @@
 
 It starts as a clean community edition template, not as a copy of any production blog. The repository contains example content, placeholder configuration, and a minimal Cloudflare platform skeleton for Pages, Workers, D1, R2, Queues, Turnstile, Access, and GitHub PR-based publishing workflows.
 
-> Status: `v0.1.0-alpha / Stage 4 Release Candidate`. The public scaffold contract is tracked as `Contract v1`, with fully implemented and verified runtime APIs, database migrations, and Cloudflare integrations.
+> Status: `v0.1.0-alpha / Stage 4 Release Candidate`. Core Stage 4 paths have been implemented and staged. Some integrations, especially queue-based asynchronous publishing, remain release-candidate functionality and require operator verification before production use.
 
 ## Production warning
 
@@ -37,14 +37,10 @@ xhalo-blog/
 
 ## Current capabilities
 
-- **Decoupled Workers**: Decoupled API and Queue Worker architecture for async execution.
-- **D1 Database**: Hardened database schema and migrations for posts, settings, tasks, and audit logs.
-- **R2 Assets**: Secure R2 asset upload pipeline with filename sanitation, MIME allowlist, and signed upload URLs.
-- **GitHub Integration**: GitHub App PR-based draft publishing flow with idempotency and API conflict handling.
-- **Observability**: Structured JSON logging, error boundaries, and persistent D1 audit trails.
-- **Security Gates**: Zero Trust Cloudflare Access JWT validation and Turnstile protection.
-- **Hexo Compatibility**: Theme adapter with fixture-backed asset rewriting and regression testing.
-- **Smoke Tests**: 17-point automated deployment smoke-test suite and runbooks.
+- **Implemented Core Features**: Hardened D1 database schema with migration safety, secure R2 asset path verification, XSS-safe Markdown rendering, Cloudflare Access JWT gates, Turnstile verification on mutation routes, and a 17-point automated smoke testing suite.
+- **Staged Integrations**: Staging-ready GitHub App integration for draft branch/PR creation and R2 signed uploads with HMAC validation.
+- **Asynchronous Scaffold**: Decoupled Queue Worker architecture; asynchronous publication queue execution is staged for future operator verification (currently runs as task reconciliation scaffold).
+- **Hexo Compatibility**: Theme adapter with fixture-backed asset rewriting and regression checking.
 
 ## Quick start
 
