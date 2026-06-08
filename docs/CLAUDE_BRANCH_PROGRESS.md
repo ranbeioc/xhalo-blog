@@ -1287,6 +1287,35 @@ Implement structured logging, audit log D1 persistence, top-level try/catch erro
 
 ---
 
+## Step 032 - Stage 4-D: Open-source deploy UX
+
+### Executed by Model
+Gemini 3.5 Flash
+
+### Type
+Configuration Refactoring / Documentation / Onboarding
+
+### Goal
+Refactor Wrangler configuration templates for workspace-based Worker deployment and establish onboarding guides for Cloudflare and GitHub App configurations.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| wrangler.toml.example | Remove consumer queue blocks and add separation warnings | Root config only represents the HTTP API worker |
+| workers/api/wrangler.toml.example [NEW] | New config template for the API worker | Workspace-specific API deploy config |
+| workers/queue/wrangler.toml.example [NEW] | New config template for the Queue consumer worker | Workspace-specific Queue deploy config |
+| docs/cloudflare-setup.md [NEW] | Create Cloudflare Setup Guide | Complete walkthrough for provisioning D1, R2, Queue, Pages, Access, and Turnstile |
+| docs/github-app-setup.md [NEW] | Create GitHub App Setup Guide | Documenting registration, permissions, webhooks, key generation, and installation |
+| docs/getting-started.md | Reference new setup guides and workspace-specific config templates | Streamline user onboarding path |
+| docs/CLAUDE_BRANCH_PROGRESS.md | Log Step 032 progress | Tracking development steps |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm run check:all` | Passed | Full static analysis checks and test runs pass successfully |
+
+---
+
 ## Step 033 - Phase 5-B: Align deployment verification with split worker configs
 
 ### Executed by Model
@@ -1313,5 +1342,6 @@ Align deployment guides and verification documents with the split API and Queue 
 | `npm run check:syntax` | Passed | Workers syntax check passes |
 | `npm run check:secrets` | Passed | No production secrets found |
 | `npm test` | Passed | All 72 tests pass cleanly |
+
 
 

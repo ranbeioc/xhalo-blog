@@ -1,14 +1,16 @@
-# wrangler.toml.example (Root Config representing the HTTP API Worker)
-# To deploy the API worker, copy this file to wrangler.toml or use workers/api/wrangler.toml.example
-# To deploy the Queue consumer, use the config under workers/queue/wrangler.toml.example
-
 name = "xhalo-blog-api"
-main = "workers/api/src/index.js"
+main = "src/index.js"
 compatibility_date = "2026-06-01"
 
 [vars]
 LIVE_WRITES_ENABLED = "false"
 ASSETS_PUBLIC_BASE_URL = "https://assets.example.com"
+# GITHUB_OWNER = "your-github-username"
+# GITHUB_REPO = "your-blog-repo"
+# GITHUB_BRANCH = "main"
+# ACCESS_TEAM_DOMAIN = "your-domain"
+# ACCESS_AUDIENCE_TAG = "your-access-aud-tag"
+# TURNSTILE_SITE_KEY = "your-turnstile-site-key"
 
 [[d1_databases]]
 binding = "DB"
