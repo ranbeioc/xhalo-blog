@@ -1621,3 +1621,38 @@ None.
 |---|---|---|
 | `npm ci` | Passed | Package install clean |
 | `npm run check:all` | Passed | All builds, syntax checks, secrets scanning, fixtures, and unit tests pass (74/74 tests passed) |
+
+---
+
+## Step 042 - Phase 10 Gate Audit Fixes
+
+### Executed by Model
+Antigravity
+
+### Type
+Documentation / Tooling / Security
+
+### Goal
+Resolve inconsistencies in README status, staging evidence, header/token naming, and scanner regular expressions. Backfill execution reports for PR #42 and PR #43, and define production gate checklists.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [README.md](../README.md) | Update capability and status text to reflect that Queue Worker async publishing is implemented but alpha/staging-only | Align README with code capability |
+| [docs/staging-verification-evidence.md](./staging-verification-evidence.md) | Add Phase 7.1 Async Publish Evidence placeholders and mark Phase 7 synchronous run as historical | Align evidence with async pipeline |
+| [docs/async-publish-verification-matrix.md](./async-publish-verification-matrix.md) [NEW] | Add a 17-point verification matrix for testing the async publish execution loop | Clear staging verification checklist |
+| [docs/pr-42-43-execution-report.md](./pr-42-43-execution-report.md) [NEW] | Backfill execution details, code changes, and security audits for PR #42 and PR #43 | Audit trail backfill |
+| [docs/production-gate-audit.md](./production-gate-audit.md) [NEW] | Document required conditions and strict prohibitions before Level 1/Level 2 production integration | Clear gates establishment |
+| [docs/production-permission-boundary.md](./production-permission-boundary.md) | Align fallback secret and Turnstile challenge names with code-supported headers | Documentation correctness |
+| [docs/production-pr-generator-mode.md](./production-pr-generator-mode.md) | Update Turnstile credential references in sequence/text to headers | Documentation correctness |
+| [scripts/check-no-production-markers.mjs](../scripts/check-no-production-markers.mjs) | Correct the regex matching colon-based variable assignments to scan without mandatory spaces before the colon | Fix scanner leak |
+| [docs/CLAUDE_BRANCH_PROGRESS.md](./CLAUDE_BRANCH_PROGRESS.md) | Append Step 042 log block | Tracking development steps |
+
+### Required external action
+None.
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm ci` | Passed | Package install clean |
+| `npm run check:all` | Passed | All builds, syntax checks, secrets scanning, fixtures, and unit tests pass (74/74 tests passed) |

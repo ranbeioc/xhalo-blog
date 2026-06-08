@@ -50,7 +50,7 @@ All mutation routes in the API Worker (`/api/*` and `/admin/*`) must be shielded
 * **API Route Access Control**:
   * Secure `/api/*` endpoints via Access service tokens or JWT validation.
   * The API Worker must validate the `CF-Access-JWT-Assertion` header using the public keys exposed by the Cloudflare Access team certificates endpoint.
-  * In non-Access staging or local environments, a shared fallback header `x-admin-secret` must be validated, requiring a cryptographically secure token (minimum 32 characters).
+  * In non-Access staging or local environments, a shared fallback header `x-xhalo-admin-secret` must be validated, requiring a cryptographically secure token (minimum 32 characters).
 
 ---
 
@@ -58,7 +58,7 @@ All mutation routes in the API Worker (`/api/*` and `/admin/*`) must be shielded
 
 To protect the publish queue from denial-of-service (DoS) attacks or automated script abuse:
 * **Token Verification**:
-  * The `POST /api/drafts/publish` endpoint verifies a Turnstile challenge token (`cf-turnstile-response`) passed in the request body.
+  * The `POST /api/drafts/publish` endpoint verifies a Turnstile challenge token passed in the `cf-turnstile-token` (or `x-xhalo-turnstile-token`) header.
   * If `TURNSTILE_SECRET_KEY` is configured in the environment, requests lacking a valid token or providing an invalid token are immediately rejected with a `403 Forbidden`.
 * **Testing Configurations**:
   * For local integration testing and unit tests, the Turnstile dummy credentials (`1x0000000000000000000000000000000AA` / `2x0000000000000000000000000000000AA`) are documented and allowed only when explicitly running in non-production environments.
@@ -71,7 +71,7 @@ All administrative actions and publish lifecycles are logged to the D1 SQL datab
 
 ### Logging Scope
 * Every API request to `/api/drafts/publish`, `/api/assets/r2-upload`, and `/api/tasks` records:
-  * Timestamp, action, actor identifier (Access user email or admin-secret), HTTP method, request path, status code, IP address (sanitized or cloud-provided), User-Agent, and execution duration.
+  * Timestamp, action, actor identifier (Access user email or x-xhalo-admin-secret), HTTP method, request path, status code, IP address (sanitized or cloud-provided), User-Agent, and execution duration.
 * Every queue consumption writes corresponding lifecycle logs:
   * `draft_publish_queued`: Logged by API Worker when task is registered.
   * `draft_publish_completed`: Logged by Queue Worker when file is committed and PR opened successfully.
