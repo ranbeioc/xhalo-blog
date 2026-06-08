@@ -182,6 +182,8 @@ Only set `LIVE_WRITES_ENABLED = "true"` after:
 3. Turnstile challenge verifies correctly.
 4. D1 migrations are checked and confirmed stable.
 
+To execute a controlled verification of the live-write publish and asset upload pipeline, refer to the [Staging Live-Write Closed-Loop Verification](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/live-write-verification.md) guide.
+
 ---
 
 ## 8. Rollback Plan
