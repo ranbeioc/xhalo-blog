@@ -1,7 +1,6 @@
 -- Migration: create audit_logs table for mutation tracking and security event logging
 -- All state-changing operations (publish, upload, webhook) are recorded here.
 -- Rollback: DROP TABLE IF EXISTS audit_logs;
-DROP TABLE IF EXISTS audit_logs;
 CREATE TABLE IF NOT EXISTS audit_logs (
   id TEXT PRIMARY KEY,
   timestamp TEXT NOT NULL,
