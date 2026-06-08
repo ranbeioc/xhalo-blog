@@ -44,7 +44,7 @@ function checkSecretLikeValues(relativePath, content) {
   // We use [ \t] instead of \s to prevent matching across newlines.
   const regexes = [
     /(ADMIN_API_SHARED_SECRET|TURNSTILE_SECRET_KEY|GITHUB_WEBHOOK_SECRET|PREVIEW_WEBHOOK_SECRET|ASSETS_SIGNING_SECRET|GITHUB_TOKEN|GITHUB_APP_PRIVATE_KEY)[ \t]*=[ \t]*['"`]?([^'"\r\n\s#]+)['"`]?/gi,
-    /(ADMIN_API_SHARED_SECRET|TURNSTILE_SECRET_KEY|GITHUB_WEBHOOK_SECRET|PREVIEW_WEBHOOK_SECRET|ASSETS_SIGNING_SECRET|GITHUB_TOKEN|GITHUB_APP_PRIVATE_KEY)[ \t]* :[ \t]*['"`]([^'"\r\n]+)['"`]/gi
+    /(ADMIN_API_SHARED_SECRET|TURNSTILE_SECRET_KEY|GITHUB_WEBHOOK_SECRET|PREVIEW_WEBHOOK_SECRET|ASSETS_SIGNING_SECRET|GITHUB_TOKEN|GITHUB_APP_PRIVATE_KEY)[ \t]*:[ \t]*['"`]([^'"\r\n]+)['"`]/gi
   ];
 
   const safeValues = new Set([

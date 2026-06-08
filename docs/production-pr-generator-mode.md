@@ -61,7 +61,7 @@ sequenceDiagram
 
 ### 1. Request Ingestion & Queueing
 * The API Worker receives the publish request at `POST /api/drafts/publish` with `mode=live` and `publish_target=github` (default).
-* The request is authenticated via Cloudflare Access JWT or the shared Admin token, and Turnstile token.
+* The request is authenticated via Cloudflare Access JWT or the shared fallback Admin token header (`x-xhalo-admin-secret`), and the Turnstile token header (`cf-turnstile-token` or `x-xhalo-turnstile-token`).
 * A task of type `draft_publish` is created.
 * The API Worker performs a database write to transition the post's index status to `queued`.
 * The task is sent to `TASK_QUEUE` (Cloudflare Queues), and the API immediately responds with `202 Accepted` to keep the UI responsive.

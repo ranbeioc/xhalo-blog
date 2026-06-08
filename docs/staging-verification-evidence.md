@@ -24,7 +24,10 @@
 
 ---
 
-## Phase 7 Live-Write Verification Run
+## Historical Pre-Phase-7.1 Synchronous Live-Write Verification Run
+
+> [!NOTE]
+> This section describes the pre-Phase-7.1 synchronous verification run and must not be used as current active asynchronous publishing evidence.
 
 - **Verification Date**: 2026-06-08
 - **Target Repository**: `<owner>/<test-repo>` (GitHub App installed on staging test repository)
@@ -64,3 +67,35 @@
 - [x] Deleted R2 object `uploads/global/hello-world.png` from R2 staging bucket.
 - [x] Deleted D1 database records for test slug `staging-live-closed-loop-verification-post`.
 - [x] Reverted `LIVE_WRITES_ENABLED` to `false` on Cloudflare staging Worker dashboard.
+
+---
+
+## Phase 7.1 Async Publish Evidence
+
+> [!IMPORTANT]
+> This section must be completed only after running the Queue Worker async publish loop against staging-only resources.
+
+| Field | Value |
+|---|---|
+| Date | YYYY-MM-DD (Placeholder) |
+| Environment | staging |
+| API Worker | `<staging-api-worker-url>` |
+| Queue Worker | `<staging-queue-worker-name>` |
+| Test repository | `<owner>/<test-repo>` |
+| LIVE_WRITES_ENABLED | temporarily `true`, reverted `false` |
+| API publish response | `202 Accepted` |
+| task_id | `<redacted-task-id-or-format-only>` |
+| Initial task status | `queued` |
+| Queue processing status | `completed` / `failed` |
+| Final post status | `preview-ready` / `failed` |
+| GitHub branch | `drafts/<slug>` |
+| GitHub PR | `<sanitized-pr-reference>` |
+| Audit actions | `draft_publish_queued`, `draft_publish_completed` |
+| Cleanup | `completed` / `pending` |
+
+### Required verification queries
+- `GET /api/tasks` shows task lifecycle (status moves: `queued` -> `processing` -> `completed`).
+- `GET /api/posts` shows post status = `preview-ready`.
+- `GET /api/audit-logs` includes `draft_publish_queued` and `draft_publish_completed` (or `draft_publish_failed` if failed).
+- Test branch and PR are cleaned up.
+- `LIVE_WRITES_ENABLED` is reverted to `false` on the staging environment.
