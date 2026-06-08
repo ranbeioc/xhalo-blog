@@ -69,5 +69,5 @@ Tokens have a configurable TTL (defaulting to **120 seconds**). The API Worker r
 
 ## Staging Security Verification
 
-For instructions on executing R2 upload tests and verifying boundary rejections (such as disallowed MIME types or path traversals) against the live staging environment, refer to the [Staging Live-Write Closed-Loop Verification](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/live-write-verification.md) guide.
+For instructions on executing R2 upload tests and verifying boundary rejections (such as disallowed MIME types or path traversals) against the live staging environment, refer to the [Staging Live-Write Closed-Loop Verification](./live-write-verification.md) guide.
 

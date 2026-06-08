@@ -70,7 +70,7 @@ npx wrangler d1 migrations apply xhalo-blog --local
 npx wrangler d1 migrations apply xhalo-blog --remote
 ```
 > [!CAUTION]
-> Always run duplicate slug preflight checks (documented in [d1-migrations.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/d1-migrations.md)) before applying migrations to a database with existing data.
+> Always run duplicate slug preflight checks (documented in [d1-migrations.md](./d1-migrations.md)) before applying migrations to a database with existing data.
 
 ### 4.2 R2 Bucket
 Create the assets bucket:
@@ -109,7 +109,7 @@ Create a Turnstile widget, copy the public Site Key to `TURNSTILE_SITE_KEY` vari
 
 ## 5. GitHub App Setup
 
-Refer to [github-app-setup.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/github-app-setup.md) to:
+Refer to [github-app-setup.md](./github-app-setup.md) to:
 1. Create a GitHub App with `Contents: Read/Write`, `Pull Requests: Read/Write`, and `Metadata: Read-only` permissions.
 2. Generate a Private PEM Key.
 3. Install the App on your blog repository and record the Installation ID.
@@ -121,7 +121,7 @@ Refer to [github-app-setup.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blo
 
 To verify that the deployed API Worker operates correctly, we use both automated verification scripts and manual curl queries. 
 
-For a complete reference of all tested routes, inputs, and expected response codes, refer to the [Staging API Worker Smoke Test Matrix](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/deployment-smoke-test-matrix.md).
+For a complete reference of all tested routes, inputs, and expected response codes, refer to the [Staging API Worker Smoke Test Matrix](./deployment-smoke-test-matrix.md).
 
 ### 6.1 Automated Smoke Testing
 
@@ -182,7 +182,7 @@ Only set `LIVE_WRITES_ENABLED = "true"` after:
 3. Turnstile challenge verifies correctly.
 4. D1 migrations are checked and confirmed stable.
 
-To execute a controlled verification of the live-write publish and asset upload pipeline, refer to the [Staging Live-Write Closed-Loop Verification](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/live-write-verification.md) guide.
+To execute a controlled verification of the live-write publish and asset upload pipeline, refer to the [Staging Live-Write Closed-Loop Verification](./live-write-verification.md) guide.
 
 ---
 

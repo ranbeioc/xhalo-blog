@@ -4,6 +4,15 @@ This document details the verification plan and steps to execute a controlled, l
 
 ---
 
+## Current Implementation Boundary
+
+As of `v0.1.0-alpha.0`:
+- **Synchronous API Execution**: The HTTP API Worker (`workers/api`) owns and directly executes request validation, GitHub API helper functions (including token generation, branch creation, file commits, and Pull Requests), R2 signed upload handling, webhook reconciliation, and D1 audit logging.
+- **Queue Worker Scaffolding**: The Queue Worker (`workers/queue`) currently provides background task reconciliation scaffolding only. It does *not* execute the GitHub API publishing logic.
+- **Testing Live-Writes**: Live-write publishing verification runs synchronously through the API Worker paths (which is how PR #39 was validated). Full async publishing via the Queue Worker is deferred to Phase 7.1.
+
+---
+
 ## 1. Prerequisites & Environment State
 
 To run the live-write tests, the Cloudflare staging API Worker must be configured in the Cloudflare dashboard (or via local secrets) with the following environment variables:
@@ -15,7 +24,7 @@ GITHUB_REPO=xhalo-blog-test
 GITHUB_BRANCH=main
 # Secrets (set via wrangler secret put or dashboard)
 ADMIN_API_SHARED_SECRET=your-admin-shared-secret
-ASSETS_SIGNING_SECRET=example-secret
+ASSETS_SIGNING_SECRET=your-secret
 GITHUB_WEBHOOK_SECRET=dummy-github-webhook-secret
 PREVIEW_WEBHOOK_SECRET=dummy-preview-webhook-secret
 GITHUB_APP_ID=...
@@ -29,13 +38,13 @@ Verify that the readiness API (`GET /api/readiness`) reports `status: "ready"` o
 
 ## 2. Step-by-Step Live Loop Verification
 
+### 2.1 Current Synchronous Staging Path (API Worker Direct Write)
+
 ```mermaid
 sequenceDiagram
     autonumber
     actor Admin as Blog Administrator
     participant API as Staging API Worker
-    participant Queue as Task Queue
-    participant Consumer as Queue Worker
     participant Github as Test GitHub Repo
     participant Pages as Pages Preview Webhook
     participant D1 as D1 Database (audit_logs)
@@ -47,13 +56,9 @@ sequenceDiagram
     API-->>Admin: 201 Created (Asset uploaded to R2 staging)
 
     Admin->>API: 3. POST /api/drafts/publish (mode=live, target=github)
-    API->>Queue: Push publishing task to queue
-    API->>D1: Log draft_publish (enqueued)
-    API-->>Admin: 200 OK (Task enqueued)
-
-    Queue->>Consumer: Dispatch task
-    Consumer->>Github: 4. Create branch, commit Markdown, open PR
-    Consumer->>D1: Update task status to "completed"
+    API->>Github: 4. Create branch, commit Markdown, open PR (Synchronous)
+    API->>D1: Log draft_publish success
+    API-->>Admin: 200 OK (Branch created & PR URL returned)
 
     Pages->>API: 5. POST /webhooks/deployments/preview (Status update)
     API->>D1: Reconcile post state & save preview_url
@@ -62,6 +67,33 @@ sequenceDiagram
 
     Admin->>API: 6. GET /api/audit-logs
     API-->>Admin: Return complete audit log history
+```
+
+### 2.2 Future Asynchronous Target (Queue Worker async publish - Phase 7.1)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Admin as Blog Administrator
+    participant API as Staging API Worker
+    participant Queue as Task Queue
+    participant Consumer as Queue Worker
+    participant Github as Test GitHub Repo
+    participant Pages as Pages Preview Webhook
+    participant D1 as D1 Database (audit_logs)
+
+    Admin->>API: 1. POST /api/drafts/publish (mode=live, target=github)
+    API->>Queue: Push publishing task to queue
+    API->>D1: Log draft_publish (enqueued)
+    API-->>Admin: 200 OK (Task enqueued)
+
+    Queue->>Consumer: Dispatch task
+    Consumer->>Github: 2. Create branch, commit Markdown, open PR (Asynchronous)
+    Consumer->>D1: Update task status to "completed" & log publish success
+
+    Pages->>API: 3. POST /webhooks/deployments/preview (Status update)
+    API->>D1: Reconcile post state & save preview_url
+    API-->>Pages: 200 Accepted
 ```
 
 ---
@@ -191,7 +223,7 @@ Verify the following security boundary rejections:
 ## 4. Rollback & Staging Clean-Up Guide
 
 After verification is complete, clean up the testing artifacts:
-1. **GitHub Repository**: Close the created Pull Request and delete the `drafts/staging-live-closed-loop-verification-post` branch in the `ranbeioc/xhalo-blog-test` repository.
+1. **GitHub Repository**: Close the created Pull Request and delete the `drafts/staging-live-closed-loop-verification-post` branch in the `<owner>/<test-repo>` repository.
 2. **R2 Bucket**: Delete the uploaded object `uploads/global/hello-world.png` in the `xhalo-blog-staging-assets` bucket.
 3. **D1 Database**: Run clean-up commands to remove test database records:
    ```sql

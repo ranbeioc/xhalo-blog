@@ -19,7 +19,10 @@ const forbiddenMarkers = [
   'wae.xhalo.co',
   'G-FKQJFY0RNS',
   'gju8jhwyfo',
-  '56a7d794be9249a2bb752e3a953c9183'
+  '56a7d794be9249a2bb752e3a953c9183',
+  'file:///',
+  'c:/Users',
+  'C:/Users'
 ];
 const allowlist = new Set([
   'scripts/check-no-production-markers.mjs',
@@ -41,7 +44,7 @@ function checkSecretLikeValues(relativePath, content) {
   // We use [ \t] instead of \s to prevent matching across newlines.
   const regexes = [
     /(ADMIN_API_SHARED_SECRET|TURNSTILE_SECRET_KEY|GITHUB_WEBHOOK_SECRET|PREVIEW_WEBHOOK_SECRET|ASSETS_SIGNING_SECRET|GITHUB_TOKEN|GITHUB_APP_PRIVATE_KEY)[ \t]*=[ \t]*['"`]?([^'"\r\n\s#]+)['"`]?/gi,
-    /(ADMIN_API_SHARED_SECRET|TURNSTILE_SECRET_KEY|GITHUB_WEBHOOK_SECRET|PREVIEW_WEBHOOK_SECRET|ASSETS_SIGNING_SECRET|GITHUB_TOKEN|GITHUB_APP_PRIVATE_KEY)[ \t]*:[ \t]*['"`]([^'"\r\n]+)['"`]/gi
+    /(ADMIN_API_SHARED_SECRET|TURNSTILE_SECRET_KEY|GITHUB_WEBHOOK_SECRET|PREVIEW_WEBHOOK_SECRET|ASSETS_SIGNING_SECRET|GITHUB_TOKEN|GITHUB_APP_PRIVATE_KEY)[ \t]* :[ \t]*['"`]([^'"\r\n]+)['"`]/gi
   ];
 
   const safeValues = new Set([
@@ -49,7 +52,6 @@ function checkSecretLikeValues(relativePath, content) {
     '<redacted>',
     '<redacted-staging-admin-secret>',
     'your-secret',
-    'example-secret',
     'example',
     'dummy-token',
     'your-domain',
@@ -58,12 +60,9 @@ function checkSecretLikeValues(relativePath, content) {
     'your-access-audience-tag',
     'your-admin-shared-secret',
     'your_secret',
-    'secret',
     'your-github-username',
     'your-blog-repo',
     'main',
-    'dummy-github-webhook-secret',
-    'dummy-preview-webhook-secret',
     '1x0000000000000000000000000000000aa'
   ]);
 
@@ -73,6 +72,18 @@ function checkSecretLikeValues(relativePath, content) {
       const key = match[1];
       const val = (match[2] || match[3] || '').trim();
       if (!val) continue;
+
+      if (val === 'dummy-github-webhook-secret' || val === 'dummy-preview-webhook-secret') {
+        const allowedPaths = [
+          'docs/live-write-verification.md',
+          'docs/deployment-smoke-test-matrix.md'
+        ];
+        const isAllowed = allowedPaths.includes(relativePath) || relativePath.startsWith('tests/');
+        if (!isAllowed) {
+          findings.push(`${relativePath}: dummy secret "${val}" is only allowed in docs/live-write-verification.md, docs/deployment-smoke-test-matrix.md, or tests/`);
+        }
+        continue;
+      }
 
       if (!safeValues.has(val) && !safeValues.has(val.toLowerCase())) {
         findings.push(`${relativePath}: secret-like value found for ${key} = "${val}"`);
@@ -109,7 +120,19 @@ function walk(dirPath) {
     if (!allowlist.has(relativePath)) {
       for (const marker of forbiddenMarkers) {
         if (content.includes(marker)) {
-          findings.push(`${relativePath}: ${marker}`);
+          findings.push(`${relativePath}: forbidden production marker found: "${marker}"`);
+        }
+      }
+    }
+
+    // Check for concrete .workers.dev staging subdomains (excluding allowed placeholder)
+    if (!allowlist.has(relativePath)) {
+      const workerDevMatch = content.match(/[a-zA-Z0-9-]+\.workers\.dev/g);
+      if (workerDevMatch) {
+        for (const url of workerDevMatch) {
+          if (url !== '<your-account>.workers.dev' && url !== 'your-account.workers.dev' && url !== 'workers.dev') {
+            findings.push(`${relativePath}: concrete staging URL found: "${url}"`);
+          }
         }
       }
     }

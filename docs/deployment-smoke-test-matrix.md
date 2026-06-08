@@ -13,7 +13,7 @@ This document defines the automated and manual verification suite for the `xhalo
 
 ## Smoke Test Matrix
 
-The test suite in [smoke-worker-routes.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/scripts/smoke-worker-routes.mjs) covers 17 distinct scenarios categorised into:
+The test suite in [smoke-worker-routes.mjs](../scripts/smoke-worker-routes.mjs) covers 17 distinct scenarios categorised into:
 1. **Public Routes** (No Authentication)
 2. **Protected Read-only Routes** (Admin Secret Authentication Required)
 3. **Protected Mutation Routes** (Admin Secret + Turnstile Token Required)
@@ -57,7 +57,7 @@ The test suite in [smoke-worker-routes.mjs](file:///c:/Users/ranbe/Documents/Git
 
 Run the script pointing to the live staging worker. Keep live writes disabled by default (`SMOKE_EXPECT_LIVE_WRITES=false`).
 ```bash
-SMOKE_TARGET_URL=https://xhalo-blog-staging-api.ranbei.workers.dev \
+SMOKE_TARGET_URL=<staging-api-worker-url> \
 ADMIN_API_SHARED_SECRET=your-admin-shared-secret \
 SMOKE_TURNSTILE_TOKEN=dummy-token \
 SMOKE_EXPECT_LIVE_WRITES=false \
