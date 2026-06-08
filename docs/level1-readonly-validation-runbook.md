@@ -124,6 +124,43 @@ curl -X POST "https://<production-api-url>/api/drafts/publish" \
 }
 ```
 
+### Step 4: Automated Verification Script
+For a fully automated connection and read-only validation check, execute the verification script with the necessary environment variables:
+```bash
+LEVEL1_TARGET_URL="https://<production-api-url>" \
+ADMIN_API_SHARED_SECRET="your-admin-shared-secret" \
+LEVEL1_TURNSTILE_TOKEN="your-turnstile-token" \
+GITHUB_OWNER="<owner>" \
+GITHUB_REPO="<production-repo>" \
+GITHUB_TOKEN="<read-only-token>" \
+npm run verify:level1
+```
+
+**Expected Script Output**:
+The script will perform assertions on readiness, post indexes, dry-run publishing structure, and live write blocks, followed by checking GitHub remote states to ensure no branch or PR exists:
+```text
+Starting Level 1 Read-Only Validation...
+Target URL: https://<production-api-url>
+Admin Secret: ********
+Turnstile Token: your-turnstile-token
+GitHub Repo: <owner>/<production-repo>
+
+✓ [PASS] GET /api/readiness (Authentication and D1 Connection)
+✓ [PASS] GET /api/posts (Retrieve Posts Index)
+✓ [PASS] POST /api/drafts/publish (Dry-Run mode returns plan)
+✓ [PASS] POST /api/drafts/publish (Live write is BLOCKED by gateway)
+
+Verifying remote GitHub state for branch 'drafts/level1-smoke-test-dry-run'...
+✓ [PASS] GitHub: branch 'drafts/level1-smoke-test-dry-run' does not exist (404 OK)
+✓ [PASS] GitHub: no Pull Request exists for branch 'drafts/level1-smoke-test-dry-run'
+
+Level 1 Read-Only Validation Summary:
+  Passed: 6
+  Failed: 0
+
+✓ Level 1 Read-Only Validation completed successfully!
+```
+
 ---
 
 ## 4. Compatibility Report Checklist
@@ -133,3 +170,4 @@ After executing the validation, operators must check off the following items:
 - [ ] No pull requests were opened.
 - [ ] The API correctly generated files matching the Hexo path syntax (`source/_posts/<slug>.md`).
 - [ ] Audit logs captured the dry-run operations (if configured).
+

@@ -11,6 +11,7 @@
     "check:migrations": "node scripts/check-d1-migration-readiness.mjs",
     "test:smoke": "node scripts/smoke-worker-routes.mjs",
     "test:async-publish": "node scripts/smoke-async-publish.mjs",
+    "verify:level1": "node scripts/verify-level1-readonly.mjs",
     "build:admin": "npm --workspace apps/admin run build",
     "build:landing": "npm --workspace apps/landing run build",
     "build:basic": "npm --workspace examples/basic-blog run build",
