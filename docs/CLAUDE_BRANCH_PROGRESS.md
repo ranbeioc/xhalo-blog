@@ -1656,3 +1656,34 @@ None.
 |---|---|---|
 | `npm ci` | Passed | Package install clean |
 | `npm run check:all` | Passed | All builds, syntax checks, secrets scanning, fixtures, and unit tests pass (74/74 tests passed) |
+
+---
+
+## Step 043 - Phase 7.1 Integration Hardening
+
+### Executed by Model
+Antigravity
+
+### Type
+Test / Documentation / Tooling
+
+### Goal
+Add integration-level smoke coverage for the Phase 7.1 asynchronous publishing loop, write testing runbooks, and add API unit tests for task queueing, missing queues, and disabled writes behavior.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [package.json](../package.json) | Add `test:async-publish` script pointing to the new smoke test script | Integration testing ease |
+| [scripts/smoke-async-publish.mjs](../scripts/smoke-async-publish.mjs) [NEW] | Create a new Node.js smoke testing script to execute assertions for async publishing against target Workers | E2E smoke tests |
+| [tests/async-publish-api.test.mjs](../tests/async-publish-api.test.mjs) [NEW] | Create unit tests covering the API Worker enqueuing behavior, D1 queue records, missing TASK_QUEUE, and disabled live writes | API unit coverage |
+| [docs/async-publish-runbook.md](./async-publish-runbook.md) [NEW] | Operational guide for executing and evaluating the new async publish smoke script | Clear verification steps |
+| [docs/CLAUDE_BRANCH_PROGRESS.md](./CLAUDE_BRANCH_PROGRESS.md) | Append Step 043 log block | Tracking development steps |
+
+### Required external action
+None.
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm ci` | Passed | Package install clean |
+| `npm run check:all` | Passed | All builds, syntax checks, secrets scanning, fixtures, and unit tests pass (77/77 tests passed) |
