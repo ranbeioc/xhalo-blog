@@ -1557,3 +1557,36 @@ None.
 |---|---|---|
 | `npm ci` | Passed | Package install clean |
 | `npm run check:all` | Passed | All builds, syntax checks, secrets scanning, fixtures, and unit tests pass |
+
+---
+
+## Step 040 - Phase 7.1: Queue Worker Async Publish Execution
+
+### Executed by Model
+Antigravity
+
+### Type
+Feature / Refactoring / Test / Documentation
+
+### Goal
+Move the live GitHub publishing logic out of the API Worker and into the Queue Worker as an asynchronous background execution flow.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [packages/core/src/index.js](../packages/core/src/index.js) | Add `buildDraftPublishTaskPrototype` helper function and export it | Task creation encapsulation |
+| [workers/api/src/index.js](../workers/api/src/index.js) | Clean up redundant inline GitHub helpers, update `/api/drafts/publish` to write task, update posts_index status to `'queued'`, enqueue to queue, and return 202 Accepted | Transition publishing to async queueing |
+| [workers/queue/src/index.js](../workers/queue/src/index.js) | Import GitHub helper functions, implement `handleDraftPublishTask` with full async publishing execution, D1 updates, audit logging, and routing | Async publish task consumer |
+| [tests/queue-publish.test.mjs](../tests/queue-publish.test.mjs) [NEW] | Create a new test suite verifying success, idempotency, conflicts, missing configurations, and D1 task lifecycle state changes | Asynchronous behavior verification |
+| [tests/worker-security.test.mjs](../tests/worker-security.test.mjs) | Update tests to align with 202 Accepted queueing API response | Assertions alignment |
+| [docs/live-write-verification.md](./live-write-verification.md) | Update implementation boundary, diagrams, and expected outcomes to reflect Queue-driven publish loop | Documentation correctness |
+| [docs/CLAUDE_BRANCH_PROGRESS.md](./CLAUDE_BRANCH_PROGRESS.md) | Append Step 040 log block | Tracking development steps |
+
+### Required external action
+None.
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm ci` | Passed | Package install clean |
+| `npm run check:all` | Passed | All builds, syntax checks, secrets scanning, fixtures, and unit tests pass (74/74 tests passed) |

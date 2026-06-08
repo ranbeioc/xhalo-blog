@@ -6,16 +6,16 @@ This document details the verification plan and steps to execute a controlled, l
 
 ## Current Implementation Boundary
 
-As of `v0.1.0-alpha.0`:
-- **Synchronous API Execution**: The HTTP API Worker (`workers/api`) owns and directly executes request validation, GitHub API helper functions (including token generation, branch creation, file commits, and Pull Requests), R2 signed upload handling, webhook reconciliation, and D1 audit logging.
-- **Queue Worker Scaffolding**: The Queue Worker (`workers/queue`) currently provides background task reconciliation scaffolding only. It does *not* execute the GitHub API publishing logic.
-- **Testing Live-Writes**: Live-write publishing verification runs synchronously through the API Worker paths (which is how PR #39 was validated). Full async publishing via the Queue Worker is deferred to Phase 7.1.
+As of `v0.1.0-alpha.0` (with Phase 7.1 integrated):
+- **Asynchronous Publishing**: The HTTP API Worker (`workers/api`) owns and executes request validation, Turnstile verification, and admin authorization. It creates a task record in D1, pushes it to `TASK_QUEUE`, and returns `202 Accepted` immediately (no direct GitHub writes are executed in the API Worker for live publishing).
+- **Queue Worker Execution**: The Queue Worker (`workers/queue`) consumes the `draft_publish` task and executes the live GitHub API publishing logic asynchronously (including App JWT/token exchange, branch creation, file commits, PR creation, D1 status updates, and audit logging).
+- **Dry-run Planning**: Dry-run publishing requests (`mode != 'live'`) are still handled synchronously by the API Worker, returning the generated git operation plan without executing any writes.
 
 ---
 
 ## 1. Prerequisites & Environment State
 
-To run the live-write tests, the Cloudflare staging API Worker must be configured in the Cloudflare dashboard (or via local secrets) with the following environment variables:
+To run the live-write tests, the Cloudflare staging API Worker and Queue Worker must be configured in the Cloudflare dashboard (or via local secrets) with the following environment variables:
 
 ```bash
 LIVE_WRITES_ENABLED=true
@@ -38,38 +38,7 @@ Verify that the readiness API (`GET /api/readiness`) reports `status: "ready"` o
 
 ## 2. Step-by-Step Live Loop Verification
 
-### 2.1 Current Synchronous Staging Path (API Worker Direct Write)
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Admin as Blog Administrator
-    participant API as Staging API Worker
-    participant Github as Test GitHub Repo
-    participant Pages as Pages Preview Webhook
-    participant D1 as D1 Database (audit_logs)
-
-    Admin->>API: 1. POST /api/assets/r2-signed-upload (mode=live)
-    API-->>Admin: Returns signed upload URL & HMAC token
-    Admin->>API: 2. PUT /api/assets/r2-upload/:token (Image payload)
-    API->>D1: Log R2 Signed Upload success
-    API-->>Admin: 201 Created (Asset uploaded to R2 staging)
-
-    Admin->>API: 3. POST /api/drafts/publish (mode=live, target=github)
-    API->>Github: 4. Create branch, commit Markdown, open PR (Synchronous)
-    API->>D1: Log draft_publish success
-    API-->>Admin: 200 OK (Branch created & PR URL returned)
-
-    Pages->>API: 5. POST /webhooks/deployments/preview (Status update)
-    API->>D1: Reconcile post state & save preview_url
-    API->>D1: Log preview_deployment success
-    API-->>Pages: 200 Accepted
-
-    Admin->>API: 6. GET /api/audit-logs
-    API-->>Admin: Return complete audit log history
-```
-
-### 2.2 Future Asynchronous Target (Queue Worker async publish - Phase 7.1)
+### 2.1 Asynchronous Staging Path (Queue Worker Async Publish)
 
 ```mermaid
 sequenceDiagram
@@ -83,17 +52,25 @@ sequenceDiagram
     participant D1 as D1 Database (audit_logs)
 
     Admin->>API: 1. POST /api/drafts/publish (mode=live, target=github)
-    API->>Queue: Push publishing task to queue
-    API->>D1: Log draft_publish (enqueued)
-    API-->>Admin: 200 OK (Task enqueued)
+    API->>D1: Insert task record (status=queued) & upsert posts_index (status=queued)
+    API->>Queue: 2. Enqueue draft_publish task
+    API->>D1: Log draft_publish_queued success (status=202)
+    API-->>Admin: 202 Accepted (Task ID returned)
 
     Queue->>Consumer: Dispatch task
-    Consumer->>Github: 2. Create branch, commit Markdown, open PR (Asynchronous)
-    Consumer->>D1: Update task status to "completed" & log publish success
+    Consumer->>Github: 3. Create branch, commit Markdown, open PR (Asynchronous)
+    Consumer->>D1: Update task status to "completed" / "failed"
+    Consumer->>D1: Upsert posts_index (status=preview-ready / failed)
+    Consumer->>D1: Log draft_publish_completed / draft_publish_failed (Asynchronous)
 
-    Pages->>API: 3. POST /webhooks/deployments/preview (Status update)
+    Pages->>API: 4. POST /webhooks/deployments/preview (Status update)
     API->>D1: Reconcile post state & save preview_url
+    API->>D1: Log preview_deployment success (status=200)
     API-->>Pages: 200 Accepted
+
+    Admin->>API: 5. GET /api/audit-logs
+    API-->>Admin: Return complete audit log history
+```
 ```
 
 ---
@@ -167,13 +144,24 @@ sequenceDiagram
   ```
 
 #### 2. Expected Outcomes
-- **API Response**: `200 OK` with enqueued task metadata.
+- **API Response**: `202 Accepted` with payload:
+  ```json
+  {
+    "mode": "live",
+    "status": "queued",
+    "task_id": "<task-uuid>",
+    "preview": { ... },
+    "plan": { ... }
+  }
+  ```
 - **Test Repository PR**:
   - A branch named `drafts/staging-live-closed-loop-verification-post` is created.
   - A commit adding `source/_posts/2026-06-08-staging-live-closed-loop-verification-post.md` is pushed.
   - A Pull Request into `main` is opened by the GitHub App.
-- **Idempotency Check**: Re-running the identical publish request returns `200 OK` and references the **same** Pull Request URL (no duplicate PRs created).
-- **Audit Log Entry**: Check `audit_logs` has action `draft_publish` for resource `post` with `resource_id = staging-live-closed-loop-verification-post`.
+- **Idempotency Check**: Re-running the identical publish request returns `202 Accepted` with a new task ID. The Queue Worker will process the task, check the GitHub repository, and update task status to `completed` while reusing the **same** Pull Request URL (no duplicate PRs created).
+- **Audit Log Entries**:
+  - API Worker logs `draft_publish_queued` with `status_code = 202` for resource `post`.
+  - Queue Worker logs `draft_publish_completed` with `status_code = 200` for resource `post` upon successful asynchronous completion.
 
 ---
 

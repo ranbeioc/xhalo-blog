@@ -229,6 +229,15 @@ test('POST /api/drafts/publish with direct D1 target successfully persists and r
   let allSql = [];
   let prepBind = [];
   let prepRunCalled = false;
+  let enqueued = false;
+  let taskPayload = null;
+
+  const mockQueue = {
+    send: async (payload) => {
+      enqueued = true;
+      taskPayload = payload;
+    }
+  };
 
   const mockDb = {
     prepare: (sql) => {
@@ -265,14 +274,16 @@ test('POST /api/drafts/publish with direct D1 target successfully persists and r
   }, {
     ADMIN_API_SHARED_SECRET: adminSecret,
     LIVE_WRITES_ENABLED: 'true',
+    TASK_QUEUE: mockQueue,
     DB: mockDb
   });
 
-  assert.equal(response.status, 200);
+  assert.equal(response.status, 202);
   assert.equal(json.mode, 'live');
-  assert.equal(json.auth_mode, 'd1');
-  assert.equal(json.pull_request, null);
-  assert.equal(json.persisted, true);
+  assert.equal(json.status, 'queued');
+  assert.ok(json.task_id);
+  assert.ok(enqueued);
+  assert.equal(taskPayload.payload.publish_target, 'd1');
   assert.ok(prepRunCalled);
   assert.ok(allSql.some(sql => sql.includes('INSERT INTO posts_index')));
   assert.equal(prepBind[1], 'd1-only-post'); // slug
@@ -912,106 +923,26 @@ test('R2 Preview: filename with traversal is rejected with 400', async () => {
   assert.match(json.error, /invalid path traversal characters/);
 });
 
-test('GitHub Publish: standard successful flow', async () => {
-  let createdBranch = false;
-  let committedFile = false;
-  let createdPr = false;
-
-  const mockGithubFetch = async (url, init) => {
-    const parsedUrl = new URL(url);
-    const path = parsedUrl.pathname;
-
-    if (path.includes('/git/ref/heads/main')) {
-      return new Response(JSON.stringify({ object: { sha: 'base-sha' } }), { status: 200 });
+test('GitHub Publish: live publish enqueues task and returns 202', async () => {
+  let enqueued = false;
+  let taskPayload = null;
+  const mockQueue = {
+    send: async (payload) => {
+      enqueued = true;
+      taskPayload = payload;
     }
-    if (path.includes('/git/refs') && init.method === 'POST') {
-      createdBranch = true;
-      return new Response(JSON.stringify({ ref: 'refs/heads/draft/post-title' }), { status: 201 });
-    }
-    if (path.includes('/contents/') && (!init.method || init.method === 'GET')) {
-      return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
-    }
-    if (path.includes('/contents/') && init.method === 'PUT') {
-      committedFile = true;
-      return new Response(JSON.stringify({ content: { path: 'content/posts/post-title.md' }, commit: { sha: 'commit-sha' } }), { status: 201 });
-    }
-    if (path.includes('/pulls') && init.method === 'POST') {
-      createdPr = true;
-      return new Response(JSON.stringify({ number: 42, html_url: 'https://github.com/example/xhalo-blog/pull/42' }), { status: 201 });
-    }
-    return new Response(JSON.stringify({}), { status: 404 });
   };
 
-  const { response, json } = await requestJson('/api/drafts/publish', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-xhalo-admin-secret': adminSecret
-    },
-    body: JSON.stringify({
-      title: 'Post Title',
-      slug: 'post-title',
-      mode: 'live'
-    })
-  }, {
-    ADMIN_API_SHARED_SECRET: adminSecret,
-    LIVE_WRITES_ENABLED: 'true',
-    GITHUB_TOKEN: 'mock-token',
-    GITHUB_FETCH: mockGithubFetch,
-    DB: {
-      prepare: () => ({
-        bind: () => ({
+  let d1Binds = [];
+  const mockDb = {
+    prepare: (sql) => ({
+      bind: (...args) => {
+        d1Binds.push({ sql, args });
+        return {
           run: async () => ({ success: true })
-        })
-      })
-    }
-  });
-
-  assert.equal(response.status, 200);
-  assert.equal(json.pull_request.number, 42);
-  assert.ok(createdBranch);
-  assert.ok(committedFile);
-  assert.ok(createdPr);
-});
-
-test('GitHub Publish: branch and PR already exist (idempotency)', async () => {
-  let fetchedExistingPr = false;
-  let fileUpdatedWithSha = false;
-
-  const mockGithubFetch = async (url, init) => {
-    const parsedUrl = new URL(url);
-    const path = parsedUrl.pathname;
-
-    if (path.includes('/git/ref/heads/main')) {
-      return new Response(JSON.stringify({ object: { sha: 'base-sha' } }), { status: 200 });
-    }
-    if (path.includes('/git/refs') && init.method === 'POST') {
-      const errorResponse = {
-        message: 'Validation Failed',
-        errors: [{ resource: 'Reference', code: 'already_exists' }]
-      };
-      return new Response(JSON.stringify(errorResponse), { status: 422 });
-    }
-    if (path.includes('/contents/') && (!init.method || init.method === 'GET')) {
-      return new Response(JSON.stringify({ sha: 'existing-file-sha' }), { status: 200 });
-    }
-    if (path.includes('/contents/') && init.method === 'PUT') {
-      const body = JSON.parse(init.body);
-      if (body.sha === 'existing-file-sha') {
-        fileUpdatedWithSha = true;
+        };
       }
-      return new Response(JSON.stringify({ content: { path: 'content/posts/post-title.md' }, commit: { sha: 'commit-sha' } }), { status: 200 });
-    }
-    if (path.includes('/pulls') && init.method === 'POST') {
-      return new Response(JSON.stringify({ message: 'Validation Failed' }), { status: 422 });
-    }
-    if (path.includes('/pulls') && (!init.method || init.method === 'GET')) {
-      fetchedExistingPr = true;
-      return new Response(JSON.stringify([
-        { number: 42, html_url: 'https://github.com/example/xhalo-blog/pull/42' }
-      ]), { status: 200 });
-    }
-    return new Response(JSON.stringify({}), { status: 404 });
+    })
   };
 
   const { response, json } = await requestJson('/api/drafts/publish', {
@@ -1028,70 +959,23 @@ test('GitHub Publish: branch and PR already exist (idempotency)', async () => {
   }, {
     ADMIN_API_SHARED_SECRET: adminSecret,
     LIVE_WRITES_ENABLED: 'true',
-    GITHUB_TOKEN: 'mock-token',
-    GITHUB_FETCH: mockGithubFetch,
-    DB: {
-      prepare: () => ({
-        bind: () => ({
-          run: async () => ({ success: true })
-        })
-      })
-    }
+    TASK_QUEUE: mockQueue,
+    DB: mockDb
   });
 
-  assert.equal(response.status, 200);
-  assert.equal(json.pull_request.number, 42);
-  assert.ok(fileUpdatedWithSha);
-  assert.ok(fetchedExistingPr);
+  assert.equal(response.status, 202);
+  assert.equal(json.status, 'queued');
+  assert.ok(json.task_id);
+  assert.ok(enqueued);
+  assert.equal(taskPayload.type, 'draft_publish');
+  assert.equal(taskPayload.payload.preview.draft.title, 'Post Title');
+
+  // Verify D1 records
+  const hasTaskInsert = d1Binds.some(b => b.sql.includes('INSERT INTO tasks'));
+  const hasPostInsert = d1Binds.some(b => b.sql.includes('INSERT INTO posts_index'));
+  assert.ok(hasTaskInsert, 'Should insert task record');
+  assert.ok(hasPostInsert, 'Should insert post record');
 });
 
-test('GitHub Publish: commit conflict returns 409', async () => {
-  const mockGithubFetch = async (url, init) => {
-    const parsedUrl = new URL(url);
-    const path = parsedUrl.pathname;
-
-    if (path.includes('/git/ref/heads/main')) {
-      return new Response(JSON.stringify({ object: { sha: 'base-sha' } }), { status: 200 });
-    }
-    if (path.includes('/git/refs') && init.method === 'POST') {
-      return new Response(JSON.stringify({ ref: 'refs/heads/draft/post-title' }), { status: 201 });
-    }
-    if (path.includes('/contents/') && init.method === 'GET') {
-      return new Response(JSON.stringify({ sha: 'old-sha' }), { status: 200 });
-    }
-    if (path.includes('/contents/') && init.method === 'PUT') {
-      return new Response(JSON.stringify({ message: 'conflict' }), { status: 409 });
-    }
-    return new Response(JSON.stringify({}), { status: 404 });
-  };
-
-  const { response, json } = await requestJson('/api/drafts/publish', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-xhalo-admin-secret': adminSecret
-    },
-    body: JSON.stringify({
-      title: 'Post Title',
-      slug: 'post-title',
-      mode: 'live'
-    })
-  }, {
-    ADMIN_API_SHARED_SECRET: adminSecret,
-    LIVE_WRITES_ENABLED: 'true',
-    GITHUB_TOKEN: 'mock-token',
-    GITHUB_FETCH: mockGithubFetch,
-    DB: {
-      prepare: () => ({
-        bind: () => ({
-          run: async () => ({ success: true })
-        })
-      })
-    }
-  });
-
-  assert.equal(response.status, 409);
-  assert.match(json.error, /Commit conflict/);
-});
 
 
