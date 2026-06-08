@@ -66,3 +66,8 @@ Tokens have a configurable TTL (defaulting to **120 seconds**). The API Worker r
 ### Replay Risk Warning
 > [!WARNING]
 > While signed upload tokens are short-lived, they are **not** one-time-use by default unless a nonce storage mechanism (like Cloudflare KV or D1) is integrated to track used tokens. Operators must restrict the TTL to the minimum time required for a client to execute the PUT request.
+
+## Staging Security Verification
+
+For instructions on executing R2 upload tests and verifying boundary rejections (such as disallowed MIME types or path traversals) against the live staging environment, refer to the [Staging Live-Write Closed-Loop Verification](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/live-write-verification.md) guide.
+

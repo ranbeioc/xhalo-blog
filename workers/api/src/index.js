@@ -173,7 +173,8 @@ async function getGitHubAuthorization(env) {
       headers: {
         accept: 'application/vnd.github+json',
         authorization: `Bearer ${appJwt}`,
-        'x-github-api-version': '2022-11-28'
+        'x-github-api-version': '2022-11-28',
+        'user-agent': 'xhalo-blog-api'
       }
     });
 
@@ -334,6 +335,7 @@ async function githubApiRequest(env, path, init = {}) {
   const headers = new Headers(init.headers || {});
   headers.set('accept', 'application/vnd.github+json');
   headers.set('x-github-api-version', '2022-11-28');
+  headers.set('user-agent', 'xhalo-blog-api');
   const authorization = await getGitHubAuthorization(env);
   if (authorization.header) headers.set('authorization', authorization.header);
 

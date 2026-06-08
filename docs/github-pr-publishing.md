@@ -67,3 +67,8 @@ The scaffold now includes:
 - `POST /webhooks/deployments/preview` for preview deployment reconciliation
 
 These routes update D1 task rows and reconcile post status back into `posts_index`.
+
+## Live Publishing Verification
+
+For step-by-step instructions and request templates to verify the publishing flow against a test repository using staging resources, see the [Staging Live-Write Closed-Loop Verification](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/live-write-verification.md) guide.
+
