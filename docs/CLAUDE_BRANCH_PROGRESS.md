@@ -1385,9 +1385,44 @@ Staging secrets were set:
 
 Smoke tests results:
 ```bash
-SMOKE_TARGET_URL=https://xhalo-blog-staging-api.ranbei.workers.dev ADMIN_API_SHARED_SECRET=staging-secret-1234 npm run test:smoke
+SMOKE_TARGET_URL=https://xhalo-blog-staging-api.ranbei.workers.dev ADMIN_API_SHARED_SECRET=<redacted-staging-admin-secret> npm run test:smoke
 ```
 All 7 smoke tests passed successfully.
+
+### Security follow-up
+
+The staging admin shared secret shown in the previous smoke test command was treated as exposed and must be rotated in the Cloudflare staging API Worker. The progress log now uses a redacted placeholder only.
+
+---
+
+## Step 035 - Phase 6 follow-up: staging secret redaction and migration safety fix
+
+### Executed by Model
+Gemini 3.5 Flash / Antigravity
+
+### Type
+Security / Migration Safety / Documentation
+
+### Goal
+Remove secret-like values from progress logs and make audit log migration non-destructive.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| workers/api/migrations/0005_create_audit_logs.sql | Remove destructive DROP TABLE from forward migration | Preserve audit log data |
+| docs/CLAUDE_BRANCH_PROGRESS.md | Redact staging admin secret-like value | Avoid committing secret-like values |
+| scripts/check-no-production-markers.mjs | Expand secret-like value detection | Prevent recurrence |
+
+### Required external action
+Rotate `ADMIN_API_SHARED_SECRET` in the Cloudflare staging API Worker.
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm ci` | Passed | Package install clean |
+| `npm run check:all` | Passed | Static checks and unit tests pass |
+| `npm run check:secrets` | Passed | No secrets or placeholders violations found |
+| `npm test` | Passed | 72/72 tests pass cleanly |
 
 
 
