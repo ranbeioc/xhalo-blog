@@ -526,6 +526,33 @@ export function buildDraftTaskPrototype(input = {}, options = {}) {
   };
 }
 
+export function buildDraftPublishTaskPrototype(input = {}, options = {}) {
+  const preview = buildPullRequestPreview(input, options);
+  const createdAt = nowIso();
+  const task = buildQueueTaskEnvelope({
+    type: 'draft_publish',
+    stage: options.stage || '4-release-candidate',
+    created_at: createdAt,
+    idempotency_key: crypto.randomUUID(),
+    publish_target: input.publish_target || null,
+    preview
+  });
+
+  return {
+    preview,
+    queuedTask: task,
+    taskRecord: {
+      id: task.idempotency_key,
+      type: task.type,
+      status: 'queued',
+      payload: task,
+      created_at: createdAt,
+      updated_at: createdAt
+    }
+  };
+}
+
+
 export function sanitizeAssetSegment(input = '') {
   return String(input)
     .trim()
@@ -853,3 +880,5 @@ export function buildGitHubWritePlan(input = {}, options = {}) {
 export function nowIso() {
   return new Date().toISOString();
 }
+
+export * from './github-publishing.js';
