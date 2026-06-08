@@ -1590,3 +1590,34 @@ None.
 |---|---|---|
 | `npm ci` | Passed | Package install clean |
 | `npm run check:all` | Passed | All builds, syntax checks, secrets scanning, fixtures, and unit tests pass (74/74 tests passed) |
+
+---
+
+## Step 041 - Phase 10-Prep: Production Integration Evaluation Boundaries
+
+### Executed by Model
+Antigravity
+
+### Type
+Documentation
+
+### Goal
+Draft the production integration levels, PR generator mode, permission boundaries, and rollback plan documents in preparation for evaluating the production integration of xhalo-blog with ranbeis.com.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [docs/production-integration-levels.md](./production-integration-levels.md) [NEW] | Define Hold, Read-only verification, PR Generator Mode, and Full Workstation levels | Establish integration tiers |
+| [docs/production-pr-generator-mode.md](./production-pr-generator-mode.md) [NEW] | Detail the end-to-end user and system flow for Level 2, sequence diagram, and live writes disable policy | Document recommended flow |
+| [docs/production-permission-boundary.md](./production-permission-boundary.md) [NEW] | Specify GitHub App permissions, branch protection, Cloudflare Access token auth, and Turnstile CAPTCHA policy | Define permission and auth limits |
+| [docs/production-rollback-plan.md](./production-rollback-plan.md) [NEW] | Outlines D1 recovery, R2 bucket versioning, Worker script deployments, and Git commits rollbacks | Establish contingency protocols |
+| [docs/CLAUDE_BRANCH_PROGRESS.md](./CLAUDE_BRANCH_PROGRESS.md) | Append Step 041 log block | Tracking development steps |
+
+### Required external action
+None.
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm ci` | Passed | Package install clean |
+| `npm run check:all` | Passed | All builds, syntax checks, secrets scanning, fixtures, and unit tests pass (74/74 tests passed) |
