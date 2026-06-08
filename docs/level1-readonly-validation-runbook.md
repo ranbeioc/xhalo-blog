@@ -1,0 +1,127 @@
+# Level 1 Read-Only Compatibility Validation Runbook
+
+This runbook guides operators through executing a **Level 1 (Read-Only)** compatibility validation. In this mode, the worker environment reads configuration and repository data from the target production repository, but is strictly prohibited from executing writes, creating branches, or opening pull requests.
+
+---
+
+## 1. Prerequisites and Objectives
+
+### Objectives
+* Verify that the API Worker can authenticate and parse the configuration/structure of the target repository.
+* Confirm that all dry-run routes function correctly.
+* Ensure that no write operations are attempted or executed.
+
+### Target Environment Requirements
+* Staging/Pre-production API Worker instance running at `<production-api-url>` (protected by Cloudflare Access).
+* Target Repository: Production Hexo Blog repository (`<owner>/<production-repo>`).
+
+---
+
+## 2. Configuration Settings
+
+Ensure the following environment variables are bound/configured in the target Cloudflare Worker environment:
+
+| Variable | Staging Value | Rationale |
+|---|---|---|
+| `LIVE_WRITES_ENABLED` | `false` | **Mandatory**. Rejects all write actions at the gateway level. |
+| `GITHUB_REPO_OWNER` | `<owner>` | Target repository owner. |
+| `GITHUB_REPO_NAME` | `<production-repo>` | Target repository name. |
+| `GITHUB_TOKEN` | `<read-only-token>` | GitHub Personal Access Token or App Installation Token with **read-only** contents access. |
+| `ADMIN_API_SHARED_SECRET` | `your-admin-shared-secret` | For admin authentication. |
+
+---
+
+## 3. Verification Procedures
+
+### Step 1: Readiness Verification
+Execute a GET request to the readiness endpoint to verify auth and DB connection:
+```bash
+curl -X GET "https://<production-api-url>/api/readiness" \
+  -H "x-xhalo-admin-secret: your-admin-shared-secret"
+```
+**Expected Response (200 OK)**:
+```json
+{
+  "status": "ready",
+  "d1": "available"
+}
+```
+
+### Step 2: Dry-run Draft Publish Execution
+Submit a publish request specifying `mode: "dry-run"` to test parsing and structural compatibility:
+```bash
+curl -X POST "https://<production-api-url>/api/drafts/publish" \
+  -H "x-xhalo-admin-secret: your-admin-shared-secret" \
+  -H "content-type: application/json" \
+  -d '{
+    "title": "Staging Post",
+    "slug": "staging-post",
+    "body": "This is a compatibility check draft.",
+    "mode": "dry-run",
+    "publish_target": "github"
+  }'
+```
+**Expected Response (200 OK)**:
+```json
+{
+  "mode": "dry-run",
+  "auth_mode": "token",
+  "preview": {
+    "draft": {
+      "title": "Staging Post",
+      "slug": "staging-post"
+    },
+    "filePath": "source/_posts/staging-post.md",
+    "branchName": "drafts/staging-post"
+  },
+  "plan": {
+    "ops": [
+      {
+        "op": "create_branch",
+        "branch": "drafts/staging-post"
+      },
+      {
+        "op": "commit_file",
+        "path": "source/_posts/staging-post.md"
+      },
+      {
+        "op": "create_pull_request",
+        "title": "draft: Staging Post"
+      }
+    ]
+  },
+  "note": "Dry-run draft publish only. No branch, commit, or PR has been created."
+}
+```
+
+### Step 3: Verify Gateway Safety (Write Attempt Check)
+Force a write request by sending `mode: "live"`. The gateway must intercept and reject the request:
+```bash
+curl -X POST "https://<production-api-url>/api/drafts/publish" \
+  -H "x-xhalo-admin-secret: your-admin-shared-secret" \
+  -H "content-type: application/json" \
+  -d '{
+    "title": "Staging Post",
+    "slug": "staging-post",
+    "body": "This is an unauthorized live write attempt.",
+    "mode": "live",
+    "publish_target": "github"
+  }'
+```
+**Expected Response (403 Forbidden)**:
+```json
+{
+  "error": "Live writes are disabled in this environment.",
+  "required_env": "LIVE_WRITES_ENABLED=true"
+}
+```
+
+---
+
+## 4. Compatibility Report Checklist
+
+After executing the validation, operators must check off the following items:
+- [ ] No branches starting with `drafts/` were created in the target repository on GitHub.
+- [ ] No pull requests were opened.
+- [ ] The API correctly generated files matching the Hexo path syntax (`source/_posts/<slug>.md`).
+- [ ] Audit logs captured the dry-run operations (if configured).
