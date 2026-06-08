@@ -1424,5 +1424,37 @@ Rotate `ADMIN_API_SHARED_SECRET` in the Cloudflare staging API Worker.
 | `npm run check:secrets` | Passed | No secrets or placeholders violations found |
 | `npm test` | Passed | 72/72 tests pass cleanly |
 
+---
+
+## Step 036 - Phase 6.1: Expand Staging Smoke Test Matrix
+
+### Executed by Model
+Antigravity
+
+### Type
+Testing / Documentation
+
+### Goal
+Expand the API Worker smoke test suite to cover 17 distinct endpoints, query types, authorization rejections, Turnstile checks, and R2 validation error routes, and document the smoke test matrix.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [smoke-worker-routes.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/scripts/smoke-worker-routes.mjs) | Expand automated smoke test script to cover 17 cases and support configurable env vars | Comprehensive route and boundary validation |
+| [deployment-smoke-test-matrix.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/deployment-smoke-test-matrix.md) | Document the 17 smoke test cases, headers, inputs, and expected outcomes | Reference documentation for smoke verification |
+| [deployment-integration-runbook.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/deployment-integration-runbook.md) | Link to the new smoke test matrix and reference the automated test command | Documented runbook correctness |
+| [CLAUDE_BRANCH_PROGRESS.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/CLAUDE_BRANCH_PROGRESS.md) | Append Step 036 log block | Tracking development steps |
+
+### Required external action
+None.
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm ci` | Passed | Package install clean |
+| `npm run check:all` | Passed | Static checks and unit tests pass |
+| `npm run test:smoke` | Passed | All 17 smoke tests pass successfully against local dev server and staging |
+
+
 
 

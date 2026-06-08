@@ -119,45 +119,58 @@ Refer to [github-app-setup.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blo
 
 ## 6. Remote Deployment Verification (Smoke Tests)
 
-Use the following curl commands to verify that routes behave correctly. Replace `<api-worker-domain>` with your live Worker staging/preview URL.
+To verify that the deployed API Worker operates correctly, we use both automated verification scripts and manual curl queries. 
 
-### 6.1 Public Health Check
+For a complete reference of all tested routes, inputs, and expected response codes, refer to the [Staging API Worker Smoke Test Matrix](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/deployment-smoke-test-matrix.md).
+
+### 6.1 Automated Smoke Testing
+
+We provide a Node.js verification script to execute the full suite of 17 validation assertions against a running endpoint.
+
+Run the test suite against your staging worker (ensure `LIVE_WRITES_ENABLED` is `false` or dry-run modes are selected):
+```bash
+# Run against staging API Worker
+SMOKE_TARGET_URL=https://<api-worker-domain> \
+ADMIN_API_SHARED_SECRET=your-admin-shared-secret \
+SMOKE_TURNSTILE_TOKEN=dummy-token \
+SMOKE_EXPECT_LIVE_WRITES=false \
+npm run test:smoke
+```
+
+### 6.2 Manual Verification Examples
+
+You can also run manual curl commands to check key endpoints:
+
+#### Public Health Check
 ```bash
 curl -i https://<api-worker-domain>/api/health
 ```
-- **Expected response**: `200 OK` with JSON `{"ok":true,"version":"..."}`.
+- **Expected response**: `200 OK` with JSON `{"ok":true,"service":"..."}`.
 
-### 6.2 Readiness Check (Requires Admin Shared Secret)
+#### Readiness Check (Requires Admin Shared Secret)
 ```bash
 curl -i https://<api-worker-domain>/api/readiness \
   -H "x-xhalo-admin-secret: your-admin-shared-secret"
 ```
 - **Expected response**: `200 OK` with a JSON overview of bindings connectivity.
 
-### 6.3 Audit Logs Retrieval
+#### Audit Logs Retrieval
 ```bash
 curl -i https://<api-worker-domain>/api/audit-logs \
   -H "x-xhalo-admin-secret: your-admin-shared-secret"
 ```
 - **Expected response**: `200 OK` showing recent audit logs array.
 
-### 6.4 Draft Preview (Dry-run)
+#### Draft Preview (Dry-run)
 ```bash
 curl -i -X POST https://<api-worker-domain>/api/drafts/preview \
   -H "content-type: application/json" \
   -H "x-xhalo-admin-secret: your-admin-shared-secret" \
+  -H "cf-turnstile-token: dummy-token" \
   --data '{"title":"Smoke Test","slug":"smoke-test","body":"This is a dry-run test post."}'
 ```
 - **Expected response**: `200 OK` returning the built pull request metadata envelope.
 
-### 6.5 Draft Publish (Dry-run)
-```bash
-curl -i -X POST https://<api-worker-domain>/api/drafts/publish \
-  -H "content-type: application/json" \
-  -H "x-xhalo-admin-secret: your-admin-shared-secret" \
-  --data '{"mode":"dry-run","title":"Smoke Test","slug":"smoke-test","body":"This is a dry-run publish."}'
-```
-- **Expected response**: `200 OK` showing publish plans without altering git files.
 
 ---
 

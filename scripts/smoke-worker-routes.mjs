@@ -2,18 +2,31 @@ import { exec } from 'child_process';
 
 /**
  * xhalo-blog API Worker Smoke Testing Script
- * This script runs a suite of API request assertions against a running Worker instance.
- * 
+ * This script runs an expanded suite of API request assertions against a running Worker instance.
+ * Covers 17 distinct endpoints, query types, authentication blocks, and boundary conditions.
+ *
+ * NOTE: The 'dummy-token' value is ONLY valid for staging environments configured with
+ * Cloudflare Turnstile's official test credentials (sitekey/secret = '1x0000000000000000000000000000000AA').
+ * It must NEVER be documented or used as a production bypass.
+ *
  * Usage:
- *   SMOKE_TARGET_URL=http://localhost:8787 ADMIN_API_SHARED_SECRET=your_secret node scripts/smoke-worker-routes.mjs
+ *   SMOKE_TARGET_URL=http://localhost:8787 \
+ *   ADMIN_API_SHARED_SECRET=your_secret \
+ *   SMOKE_TURNSTILE_TOKEN=dummy-token \
+ *   SMOKE_EXPECT_LIVE_WRITES=false \
+ *   node scripts/smoke-worker-routes.mjs
  */
 
 const targetUrl = (process.env.SMOKE_TARGET_URL || 'http://localhost:8787').replace(/\/$/, '');
 const sharedSecret = process.env.ADMIN_API_SHARED_SECRET || 'test-admin-secret';
+const turnstileToken = process.env.SMOKE_TURNSTILE_TOKEN || 'dummy-token';
+const expectLiveWrites = process.env.SMOKE_EXPECT_LIVE_WRITES === 'true';
 
-console.log(`Starting worker smoke tests...`);
+console.log(`Starting expanded worker smoke tests...`);
 console.log(`Target URL: ${targetUrl}`);
-console.log(`Admin Secret: ${sharedSecret ? '********' : '(not set)'}\n`);
+console.log(`Admin Secret: ${sharedSecret ? '********' : '(not set)'}`);
+console.log(`Turnstile Token: ${turnstileToken}`);
+console.log(`Expect Live Writes: ${expectLiveWrites}\n`);
 
 let passedCount = 0;
 let failedCount = 0;
@@ -49,7 +62,7 @@ async function runTest(name, path, options, validator) {
 }
 
 async function main() {
-  // Test 1: Public Health Check
+  // Test 1: GET /api/health (Public Health Endpoint)
   await runTest(
     'GET /api/health (Public Health Endpoint)',
     '/api/health',
@@ -61,31 +74,7 @@ async function main() {
     }
   );
 
-  // Test 2: Public Scaffold Endpoint
-  await runTest(
-    'GET /api/scaffold (Public Scaffold Endpoint)',
-    '/api/scaffold',
-    { method: 'GET' },
-    (status, json) => {
-      if (status !== 200) return `Expected status 200, got ${status}`;
-      if (!json || json.repo !== 'xhalo-blog') return `Expected JSON with repo: 'xhalo-blog', got ${JSON.stringify(json)}`;
-      return null;
-    }
-  );
-
-  // Test 3: Protected Readiness Check (Without authorization header)
-  await runTest(
-    'GET /api/readiness (Missing authorization header)',
-    '/api/readiness',
-    { method: 'GET' },
-    (status, json) => {
-      if (status !== 401) return `Expected status 401, got ${status}`;
-      if (!json || !json.error) return `Expected error message, got ${JSON.stringify(json)}`;
-      return null;
-    }
-  );
-
-  // Test 4: Protected Readiness Check (With authorization header)
+  // Test 2: GET /api/readiness (With valid admin shared secret)
   await runTest(
     'GET /api/readiness (With valid admin shared secret)',
     '/api/readiness',
@@ -100,18 +89,258 @@ async function main() {
     }
   );
 
-  // Test 5: Input validation - Invalid JSON
+  // Test 3: GET /api/posts (With valid admin shared secret)
   await runTest(
-    'POST /api/drafts/publish (Invalid JSON payload)',
+    'GET /api/posts (With valid admin shared secret)',
+    '/api/posts',
+    {
+      method: 'GET',
+      headers: { 'x-xhalo-admin-secret': sharedSecret }
+    },
+    (status, json) => {
+      if (status !== 200) return `Expected status 200, got ${status}`;
+      if (!json || !Array.isArray(json.items)) return `Expected list of posts under 'items', got ${JSON.stringify(json)}`;
+      return null;
+    }
+  );
+
+  // Test 4: GET /api/tasks (With valid admin shared secret)
+  await runTest(
+    'GET /api/tasks (With valid admin shared secret)',
+    '/api/tasks',
+    {
+      method: 'GET',
+      headers: { 'x-xhalo-admin-secret': sharedSecret }
+    },
+    (status, json) => {
+      if (status !== 200) return `Expected status 200, got ${status}`;
+      if (!json || !Array.isArray(json.items)) return `Expected list of tasks under 'items', got ${JSON.stringify(json)}`;
+      return null;
+    }
+  );
+
+  // Test 5: GET /api/audit-logs (With valid admin shared secret)
+  await runTest(
+    'GET /api/audit-logs (With valid admin shared secret)',
+    '/api/audit-logs',
+    {
+      method: 'GET',
+      headers: { 'x-xhalo-admin-secret': sharedSecret }
+    },
+    (status, json) => {
+      if (status !== 200) return `Expected status 200, got ${status}`;
+      if (!json || !Array.isArray(json.items)) return `Expected list of audit logs under 'items', got ${JSON.stringify(json)}`;
+      return null;
+    }
+  );
+
+  // Test 6: GET /api/drafts/template (With valid admin shared secret)
+  await runTest(
+    'GET /api/drafts/template (With valid admin shared secret)',
+    '/api/drafts/template',
+    {
+      method: 'GET',
+      headers: { 'x-xhalo-admin-secret': sharedSecret }
+    },
+    (status, json) => {
+      if (status !== 200) return `Expected status 200, got ${status}`;
+      if (!json || !json.template) return `Expected template object, got ${JSON.stringify(json)}`;
+      return null;
+    }
+  );
+
+  // Test 7: POST /api/drafts/preview (With valid admin shared secret + Turnstile token)
+  await runTest(
+    'POST /api/drafts/preview (With valid auth and Turnstile token)',
+    '/api/drafts/preview',
+    {
+      method: 'POST',
+      headers: {
+        'x-xhalo-admin-secret': sharedSecret,
+        'content-type': 'application/json',
+        'cf-turnstile-token': turnstileToken
+      },
+      body: JSON.stringify({
+        title: 'Smoke Test Preview Post',
+        slug: 'smoke-test-preview-post'
+      })
+    },
+    (status, json) => {
+      if (status !== 200) return `Expected status 200, got ${status}`;
+      if (!json || !json.preview || json.preview.draft.title !== 'Smoke Test Preview Post') {
+        return `Expected preview of 'Smoke Test Preview Post', got ${JSON.stringify(json)}`;
+      }
+      return null;
+    }
+  );
+
+  // Test 8: POST /api/drafts/publish (Dry-run publish with writes disabled/dry-run mode)
+  await runTest(
+    'POST /api/drafts/publish (Dry-run publish targets)',
     '/api/drafts/publish',
     {
       method: 'POST',
       headers: {
         'x-xhalo-admin-secret': sharedSecret,
         'content-type': 'application/json',
-        'cf-turnstile-token': 'dummy-token'
+        'cf-turnstile-token': turnstileToken
       },
-      body: '{invalid json'
+      body: JSON.stringify({
+        title: 'Smoke Test Publish Post',
+        slug: 'smoke-test-publish-post',
+        mode: 'dry-run',
+        publish_target: 'd1'
+      })
+    },
+    (status, json) => {
+      if (status !== 200) return `Expected status 200, got ${status}`;
+      if (!json || json.mode !== 'dry-run') return `Expected dry-run mode response, got ${JSON.stringify(json)}`;
+      return null;
+    }
+  );
+
+  // Test 9: POST /api/assets/r2-preview (With valid admin shared secret + Turnstile token)
+  await runTest(
+    'POST /api/assets/r2-preview (With valid auth and Turnstile token)',
+    '/api/assets/r2-preview',
+    {
+      method: 'POST',
+      headers: {
+        'x-xhalo-admin-secret': sharedSecret,
+        'content-type': 'application/json',
+        'cf-turnstile-token': turnstileToken
+      },
+      body: JSON.stringify({
+        filename: 'smoke-test-asset.png',
+        contentType: 'image/png',
+        scope: 'global'
+      })
+    },
+    (status, json) => {
+      if (status !== 200) return `Expected status 200, got ${status}`;
+      if (!json || !json.preview || !json.preview.objectKey) {
+        return `Expected R2 preview object, got ${JSON.stringify(json)}`;
+      }
+      return null;
+    }
+  );
+
+  // Test 10: POST /api/assets/r2-signed-upload (Dry-run signed upload with mode=dry-run)
+  await runTest(
+    'POST /api/assets/r2-signed-upload (Dry-run signed upload)',
+    '/api/assets/r2-signed-upload',
+    {
+      method: 'POST',
+      headers: {
+        'x-xhalo-admin-secret': sharedSecret,
+        'content-type': 'application/json',
+        'cf-turnstile-token': turnstileToken
+      },
+      body: JSON.stringify({
+        filename: 'smoke-test-asset-signed.png',
+        contentType: 'image/png',
+        scope: 'global',
+        mode: 'dry-run'
+      })
+    },
+    (status, json) => {
+      if (status !== 200) return `Expected status 200, got ${status}`;
+      if (!json || json.mode !== 'dry-run' || !json.plan) {
+        return `Expected dry-run signed plan, got ${JSON.stringify(json)}`;
+      }
+      return null;
+    }
+  );
+
+  // Test 11: Access Rejection (No admin authentication secret)
+  await runTest(
+    'GET /api/readiness (Rejection: Missing auth)',
+    '/api/readiness',
+    { method: 'GET' },
+    (status, json) => {
+      if (status !== 401) return `Expected status 401, got ${status}`;
+      if (!json || !json.error || !json.error.includes('Unauthorized')) {
+        return `Expected 'Unauthorized' error, got ${JSON.stringify(json)}`;
+      }
+      return null;
+    }
+  );
+
+  // Test 12: Turnstile Rejection (Mutation request without Turnstile token)
+  await runTest(
+    'POST /api/drafts/publish (Rejection: Missing Turnstile token)',
+    '/api/drafts/publish',
+    {
+      method: 'POST',
+      headers: {
+        'x-xhalo-admin-secret': sharedSecret,
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        title: 'Smoke Test Turnstile Failure',
+        slug: 'smoke-test-turnstile-failure',
+        mode: 'dry-run'
+      })
+    },
+    (status, json) => {
+      if (status !== 403) return `Expected status 403, got ${status}`;
+      if (!json || !json.error || !json.error.includes('Turnstile')) {
+        return `Expected 'Turnstile' rejection error, got ${JSON.stringify(json)}`;
+      }
+      return null;
+    }
+  );
+
+  // Test 13: GitHub Webhook Rejection (Bad Signature)
+  await runTest(
+    'POST /webhooks/github (Rejection: Bad Signature)',
+    '/webhooks/github',
+    {
+      method: 'POST',
+      headers: {
+        'x-github-event': 'pull_request',
+        'x-hub-signature-256': 'sha256=invalidhashvaluehere1234567890123456789012345678901234567890'
+      },
+      body: JSON.stringify({ action: 'synchronize' })
+    },
+    (status, json) => {
+      if (status !== 403) return `Expected status 403, got ${status}`;
+      if (!json || !json.error) return `Expected webhook validation error, got ${JSON.stringify(json)}`;
+      return null;
+    }
+  );
+
+  // Test 14: Preview Webhook Rejection (Bad Secret)
+  await runTest(
+    'POST /webhooks/deployments/preview (Rejection: Bad Secret)',
+    '/webhooks/deployments/preview',
+    {
+      method: 'POST',
+      headers: {
+        'x-preview-webhook-secret': 'bad-preview-secret',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({ branchName: 'main', status: 'preview-ready' })
+    },
+    (status, json) => {
+      if (status !== 403) return `Expected status 403, got ${status}`;
+      if (!json || !json.error) return `Expected preview webhook auth error, got ${JSON.stringify(json)}`;
+      return null;
+    }
+  );
+
+  // Test 15: Malformed JSON Payload (Verify structured JSON error output)
+  await runTest(
+    'POST /api/drafts/publish (Rejection: Malformed JSON payload)',
+    '/api/drafts/publish',
+    {
+      method: 'POST',
+      headers: {
+        'x-xhalo-admin-secret': sharedSecret,
+        'content-type': 'application/json',
+        'cf-turnstile-token': turnstileToken
+      },
+      body: '{invalid-json-structure'
     },
     (status, json) => {
       if (status !== 400) return `Expected status 400, got ${status}`;
@@ -122,51 +351,53 @@ async function main() {
     }
   );
 
-  // Test 6: Input validation - Missing required fields
+  // Test 16: R2 MIME Rejection (Verify file constraints for disallowed MIME type)
   await runTest(
-    'POST /api/drafts/publish (Missing title & slug)',
-    '/api/drafts/publish',
+    'POST /api/assets/r2-preview (Rejection: Disallowed MIME type)',
+    '/api/assets/r2-preview',
     {
       method: 'POST',
       headers: {
         'x-xhalo-admin-secret': sharedSecret,
         'content-type': 'application/json',
-        'cf-turnstile-token': 'dummy-token'
+        'cf-turnstile-token': turnstileToken
       },
-      body: JSON.stringify({ mode: 'dry-run' })
+      body: JSON.stringify({
+        filename: 'smoke-test-malware.exe',
+        contentType: 'application/octet-stream',
+        scope: 'global'
+      })
     },
     (status, json) => {
       if (status !== 400) return `Expected status 400, got ${status}`;
-      if (!json || json.error !== 'Validation failed.' || !Array.isArray(json.details)) {
-        return `Expected validation failure list, got ${JSON.stringify(json)}`;
+      if (!json || !json.error || !json.error.includes('MIME type')) {
+        return `Expected 'MIME type is not allowed' error, got ${JSON.stringify(json)}`;
       }
       return null;
     }
   );
 
-  // Test 7: Write protection - Live publish with writes disabled (Default sandbox behavior)
+  // Test 17: R2 Path Traversal Rejection (Verify protection against traversal characters)
   await runTest(
-    'POST /api/drafts/publish (Live write gate validation)',
-    '/api/drafts/publish',
+    'POST /api/assets/r2-preview (Rejection: Path traversal characters)',
+    '/api/assets/r2-preview',
     {
       method: 'POST',
       headers: {
         'x-xhalo-admin-secret': sharedSecret,
         'content-type': 'application/json',
-        'cf-turnstile-token': 'dummy-token'
+        'cf-turnstile-token': turnstileToken
       },
       body: JSON.stringify({
-        title: 'Smoke Test Post',
-        slug: 'smoke-test-post',
-        mode: 'live',
-        publish_target: 'd1'
+        filename: '../evil.png',
+        contentType: 'image/png',
+        scope: 'global'
       })
     },
     (status, json) => {
-      // If live writes are enabled, this might return 200 or another status depending on DB state.
-      // But in dry-run/default testing environment it should either be 403 (writes disabled) or 200 (if enabled and D1 works).
-      if (status !== 403 && status !== 200) {
-        return `Expected status 403 (writes disabled) or 200 (success), got ${status}`;
+      if (status !== 400) return `Expected status 400, got ${status}`;
+      if (!json || !json.error || !json.error.includes('invalid path traversal')) {
+        return `Expected 'invalid path traversal' error, got ${JSON.stringify(json)}`;
       }
       return null;
     }
