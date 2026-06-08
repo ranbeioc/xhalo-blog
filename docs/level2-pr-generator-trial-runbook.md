@@ -22,19 +22,20 @@ Temporarily adjust the target Worker environment variables to enable writes:
 |---|---|---|
 | `LIVE_WRITES_ENABLED` | `true` | Enables active write and queue processing loops. |
 | `ADMIN_API_SHARED_SECRET` | `your-admin-shared-secret` | For admin route authorization. |
-| `SMOKE_TURNSTILE_TOKEN` | `dummy-token` | Bypass token for testing challenge verification. |
+| `TURNSTILE_TOKEN` | `<operator-completed-turnstile-token>` | Turnstile challenge token for validating the request. |
 
-*Note: Immediately after the trial completes, `LIVE_WRITES_ENABLED` must be reverted to `false`.*
+*Note: For staging/testing environments utilizing Cloudflare Turnstile test keys, the sitekey bypass token `dummy-token` may be used. For production-like trials, use a real Turnstile challenge token. Immediately after the trial completes, `LIVE_WRITES_ENABLED` must be reverted to `false`.*
 
 ---
 
 ## 3. Execution Steps
 
 ### Step 1: Trigger Live Publish Request
-Submit a POST request with `mode: "live"` to enqueue the publish task:
+Submit a POST request with `mode: "live"` to enqueue the publish task. A valid Turnstile challenge token must be included:
 ```bash
 curl -X POST "https://<production-api-url>/api/drafts/publish" \
   -H "x-xhalo-admin-secret: your-admin-shared-secret" \
+  -H "cf-turnstile-token: <turnstile-token>" \
   -H "content-type: application/json" \
   -d '{
     "title": "Level 2 Trial Post",

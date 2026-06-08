@@ -28,15 +28,18 @@ Thank you for your interest in contributing to xhalo-blog. This document outline
 
 ## Pull Request Requirements
 
-Every PR must include:
+Every pull request must fully document the changes to ensure auditability and maintain security standards. Use the PR template provided in `.github/pull_request_template.md`.
 
-- A clear summary of changes
-- Security impact assessment (if applicable)
-- Migration impact assessment (if applicable)
-- Validation results
-- Updated progress documentation (for tracked tasks)
+### Strict Completeness Policy (Merge Blockers)
 
-Use the PR template provided in `.github/pull_request_template.md`.
+A PR **MUST NOT** be merged if:
+- The PR body still contains template comments (e.g. `<!-- What does this PR do? -->`).
+- The **Summary** is empty or uninformative.
+- The **Changes** section contains only placeholders or placeholder items (e.g., `-`).
+- The **Validation** checkboxes are not updated/checked.
+- The **Test Results** section still contains `npm test output here`.
+- **Security Impact** or **Migration Impact** is left as `None` for code or config changes.
+
 
 ## Validation Checklist
 

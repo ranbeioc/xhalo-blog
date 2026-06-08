@@ -74,6 +74,9 @@
 
 > [!IMPORTANT]
 > This section must be completed only after running the Queue Worker async publish loop against staging-only resources.
+> 
+> **Current status: Pending real staging execution.**  
+> *This table is a required evidence template and is not itself proof of completion.*
 
 | Field | Value |
 |---|---|

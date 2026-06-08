@@ -16,6 +16,10 @@ It is controlled via the following environment variables:
 | `ADMIN_API_SHARED_SECRET` | The administrative key matched with the worker secret. | `test-admin-secret` | Required to bypass authentication limits. |
 | `SMOKE_TURNSTILE_TOKEN` | The Turnstile challenge token passed in the headers. | `dummy-token` | Cloudflare staging/testing sitekey bypass token. |
 | `ASYNC_PUBLISH_EXPECT_LIVE_WRITES` | Boolean flag enabling or disabling live enqueue testing. | `false` | **Critical safety gate**; must default to `false` to block writes. |
+| `ASYNC_PUBLISH_MODE` | Execution mode defining assertions and loops. | `local` | Supports `local` (safeguard/scaffold checks), `staging` (expects enqueue 202 status), and `e2e` (E2E async processing loop checks with D1/GitHub polling). |
+| `ASYNC_PUBLISH_POLL_TIMEOUT_MS` | Max polling timeout for `e2e` terminal state checks. | `120000` | Gated timeout boundary for async queue processing. |
+| `ASYNC_PUBLISH_POLL_INTERVAL_MS` | Polling interval for `e2e` check queries. | `5000` | Throttles checking query frequency. |
+| `ASYNC_PUBLISH_EXPECT_FAILURE` | Expect failure in the e2e queue task processing. | `false` | Verifies the Queue Worker error logging and failure states. |
 
 ---
 
@@ -31,6 +35,7 @@ $env:ASYNC_PUBLISH_TARGET_URL="http://localhost:8787"
 $env:ADMIN_API_SHARED_SECRET="your-admin-shared-secret"
 $env:SMOKE_TURNSTILE_TOKEN="dummy-token"
 $env:ASYNC_PUBLISH_EXPECT_LIVE_WRITES="false"
+$env:ASYNC_PUBLISH_MODE="local"
 
 # Execute the smoke script
 node scripts/smoke-async-publish.mjs
@@ -43,6 +48,7 @@ Target URL: http://localhost:8787
 Admin Secret: ********
 Turnstile Token: dummy-token
 Expect Live Writes: false
+Publish Mode: local
 
 ✓ [PASS] POST /api/drafts/publish (Rejection: expectLiveWrites is false)
 
@@ -71,6 +77,7 @@ $env:ASYNC_PUBLISH_TARGET_URL="<staging-api-worker-url>"
 $env:ADMIN_API_SHARED_SECRET="your-admin-shared-secret"
 $env:SMOKE_TURNSTILE_TOKEN="dummy-token"
 $env:ASYNC_PUBLISH_EXPECT_LIVE_WRITES="true"
+$env:ASYNC_PUBLISH_MODE="staging" # Use "e2e" for full async queue completion checks
 
 # Run testing script
 node scripts/smoke-async-publish.mjs

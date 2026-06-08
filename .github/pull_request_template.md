@@ -39,3 +39,16 @@ npm test output here
 ## Additional Notes
 
 <!-- Any context reviewers should know -->
+
+---
+
+> [!WARNING]
+> ## Merge Blockers / Audit Gaps Enforcement
+> A PR must **NOT** be merged if:
+> - The PR body still contains template comments (e.g. `<!-- What does this PR do? -->`).
+> - The **Summary** is empty or uninformative.
+> - The **Changes** section contains only placeholders or placeholder items.
+> - The **Validation** checkboxes are not updated/checked.
+> - The **Test Results** section still contains `npm test output here`.
+> - **Security Impact** or **Migration Impact** is left as `None` for code or config changes.
+
