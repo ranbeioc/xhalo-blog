@@ -160,9 +160,9 @@ async function main() {
           'cf-turnstile-token': turnstileToken
         },
         body: JSON.stringify({
-          title: 'Staging Async E2E Smoke Test',
-          slug: 'staging-async-e2e-smoke',
-          body: 'This is a synthetic staging async E2E smoke test post. It must not be merged into production.',
+          title: 'Level 2 Single PR Trial',
+          slug: 'level2-single-pr-trial',
+          body: 'This is a synthetic Level 2 Single PR Trial post. It must not be merged into production.',
           mode: 'live',
           publish_target: 'github'
         })
@@ -224,8 +224,8 @@ async function main() {
         (status, json) => {
           if (status !== 200) return `Expected status 200, got ${status}`;
           if (!json || !Array.isArray(json.items)) return `Expected items list, got ${JSON.stringify(json)}`;
-          const found = json.items.some(item => item.action === 'draft_publish_queued' && item.resource_id === 'staging-async-e2e-smoke');
-          if (!found) return `Audit log action 'draft_publish_queued' was not found for slug 'staging-async-e2e-smoke'.`;
+          const found = json.items.some(item => item.action === 'draft_publish_queued' && item.resource_id === 'level2-single-pr-trial');
+          if (!found) return `Audit log action 'draft_publish_queued' was not found for slug 'level2-single-pr-trial'.`;
           return null;
         }
       );
@@ -256,8 +256,8 @@ async function main() {
             (status, json) => {
               if (status !== 200) return `Expected status 200, got ${status}`;
               if (!json || !Array.isArray(json.items)) return `Expected items list, got ${JSON.stringify(json)}`;
-              const found = json.items.some(item => item.action === expectedAction && item.resource_id === 'staging-async-e2e-smoke');
-              if (!found) return `Audit log action '${expectedAction}' was not found for slug 'staging-async-e2e-smoke'.`;
+              const found = json.items.some(item => item.action === expectedAction && item.resource_id === 'level2-single-pr-trial');
+              if (!found) return `Audit log action '${expectedAction}' was not found for slug 'level2-single-pr-trial'.`;
               return null;
             }
           );
