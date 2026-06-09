@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const rootDir = process.cwd();
 const skippedDirs = new Set([
@@ -24,33 +25,42 @@ const forbiddenMarkers = [
   'c:/Users',
   'C:/Users'
 ];
-const allowlist = new Set([
+
+// Split allowlist: progress docs may contain path markers, but MUST NOT contain secrets.
+export const markerAllowlist = new Set([
   'scripts/check-no-production-markers.mjs',
   'docs/CLAUDE_BRANCH_PROGRESS.md'
 ]);
-const findings = [];
 
-function isTextFile(content) {
+export const secretAllowlist = new Set([
+  'scripts/check-no-production-markers.mjs'
+]);
+
+export const findings = [];
+
+export function isTextFile(content) {
   return !content.includes('\u0000');
 }
 
-function checkSecretLikeValues(relativePath, content) {
+export function checkSecretLikeValues(relativePath, content, localFindings = findings) {
   // Skip unit test files as they are allowed to contain dummy/mock secrets
   if (relativePath.startsWith('tests/')) return;
 
   // Regex to match assignments in shell/env/toml/markdown/toml.example (with = or :)
   // 1. MATCH: key = value (without space or quotes, or with quotes)
-  // 2. MATCH: "key": "value" or 'key': 'value' (with quotes)
+  // 2. MATCH: "key": "value" or 'key': 'value' (with optional quotes)
   // We use [ \t] instead of \s to prevent matching across newlines.
   const regexes = [
     /(ADMIN_API_SHARED_SECRET|TURNSTILE_SECRET_KEY|GITHUB_WEBHOOK_SECRET|PREVIEW_WEBHOOK_SECRET|ASSETS_SIGNING_SECRET|GITHUB_TOKEN|GITHUB_APP_PRIVATE_KEY)[ \t]*=[ \t]*['"`]?([^'"\r\n\s#]+)['"`]?/gi,
-    /(ADMIN_API_SHARED_SECRET|TURNSTILE_SECRET_KEY|GITHUB_WEBHOOK_SECRET|PREVIEW_WEBHOOK_SECRET|ASSETS_SIGNING_SECRET|GITHUB_TOKEN|GITHUB_APP_PRIVATE_KEY)[ \t]*:[ \t]*['"`]([^'"\r\n]+)['"`]/gi
+    /(ADMIN_API_SHARED_SECRET|TURNSTILE_SECRET_KEY|GITHUB_WEBHOOK_SECRET|PREVIEW_WEBHOOK_SECRET|ASSETS_SIGNING_SECRET|GITHUB_TOKEN|GITHUB_APP_PRIVATE_KEY)[ \t]*:[ \t]*['"`]?([^'"\r\n\s#]+)['"`]?/gi
   ];
 
   const safeValues = new Set([
     '<placeholder>',
     '<redacted>',
+    '<redacted-admin-shared-secret>',
     '<redacted-staging-admin-secret>',
+    '<admin-shared-secret>',
     '<read-only-token>',
     'your-secret',
     'example',
@@ -73,7 +83,7 @@ function checkSecretLikeValues(relativePath, content) {
     let match;
     while ((match = regex.exec(content)) !== null) {
       const key = match[1];
-      const val = (match[2] || match[3] || '').trim();
+      const val = (match[2] || '').trim();
       if (!val) continue;
 
       if (val === 'dummy-github-webhook-secret' || val === 'dummy-preview-webhook-secret') {
@@ -83,20 +93,21 @@ function checkSecretLikeValues(relativePath, content) {
         ];
         const isAllowed = allowedPaths.includes(relativePath) || relativePath.startsWith('tests/');
         if (!isAllowed) {
-          findings.push(`${relativePath}: dummy secret "${val}" is only allowed in docs/live-write-verification.md, docs/deployment-smoke-test-matrix.md, or tests/`);
+          localFindings.push(`${relativePath}: dummy secret "${val}" is only allowed in docs/live-write-verification.md, docs/deployment-smoke-test-matrix.md, or tests/`);
         }
         continue;
       }
 
+      if (val.includes('***') || val.includes('****')) continue;
+
       if (!safeValues.has(val) && !safeValues.has(val.toLowerCase())) {
-        findings.push(`${relativePath}: secret-like value found for ${key} = "${val}"`);
+        localFindings.push(`${relativePath}: secret-like value found for ${key} = "${val}"`);
       }
     }
   }
 }
 
-
-function walk(dirPath) {
+export function walk(dirPath, localFindings = findings) {
   for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
     if (skippedDirs.has(entry.name)) continue;
 
@@ -104,7 +115,7 @@ function walk(dirPath) {
     const relativePath = path.relative(rootDir, absolutePath).replace(/\\/g, '/');
 
     if (entry.isDirectory()) {
-      walk(absolutePath);
+      walk(absolutePath, localFindings);
       continue;
     }
 
@@ -120,38 +131,47 @@ function walk(dirPath) {
     if (!isTextFile(content)) continue;
 
     // Check for forbidden production markers (skipping allowlisted files)
-    if (!allowlist.has(relativePath)) {
+    if (!markerAllowlist.has(relativePath)) {
       for (const marker of forbiddenMarkers) {
         if (content.includes(marker)) {
-          findings.push(`${relativePath}: forbidden production marker found: "${marker}"`);
+          localFindings.push(`${relativePath}: forbidden production marker found: "${marker}"`);
         }
       }
     }
 
     // Check for concrete .workers.dev staging subdomains (excluding allowed placeholder)
-    if (!allowlist.has(relativePath)) {
+    if (!markerAllowlist.has(relativePath)) {
       const workerDevMatch = content.match(/[a-zA-Z0-9-]+\.workers\.dev/g);
       if (workerDevMatch) {
         for (const url of workerDevMatch) {
           if (url !== '<your-account>.workers.dev' && url !== 'your-account.workers.dev' && url !== 'workers.dev') {
-            findings.push(`${relativePath}: concrete staging URL found: "${url}"`);
+            localFindings.push(`${relativePath}: concrete staging URL found: "${url}"`);
           }
         }
       }
     }
 
-    // Check for secret-like values in ALL files
-    checkSecretLikeValues(relativePath, content);
+    // Check for secret-like values in files NOT in secretAllowlist
+    if (!secretAllowlist.has(relativePath)) {
+      checkSecretLikeValues(relativePath, content, localFindings);
+    }
   }
 }
 
-walk(rootDir);
+// Entry point when run directly
+const isMain = process.argv[1] && (
+  fileURLToPath(import.meta.url) === fs.realpathSync(process.argv[1]) ||
+  fs.realpathSync(process.argv[1]).replace(/\\/g, '/').endsWith('scripts/check-no-production-markers.mjs')
+);
 
-if (findings.length > 0) {
-  console.error('Forbidden production markers or secret-like values found:');
-  for (const finding of findings) console.error(`- ${finding}`);
-  process.exit(1);
+if (isMain) {
+  walk(rootDir);
+
+  if (findings.length > 0) {
+    console.error('Forbidden production markers or secret-like values found:');
+    for (const finding of findings) console.error(`- ${finding}`);
+    process.exit(1);
+  }
+
+  console.log('No forbidden production markers or secret-like values found.');
 }
-
-console.log('No forbidden production markers or secret-like values found.');
-
