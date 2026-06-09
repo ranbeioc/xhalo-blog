@@ -28,8 +28,7 @@ const forbiddenMarkers = [
 
 export const markerAllowlist = new Set([
   'scripts/check-no-production-markers.mjs',
-  'docs/CLAUDE_BRANCH_PROGRESS.md',
-  'docs/level1-report-security-fix.md'
+  'docs/CLAUDE_BRANCH_PROGRESS.md'
 ]);
 
 export const secretAllowlist = new Set([
