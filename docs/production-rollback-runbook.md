@@ -76,3 +76,20 @@ Record object count only, not sensitive URLs
 ```text
 docs/production-incident-report-YYYYMMDD.md
 ```
+
+---
+
+## 8. Dry-run / Shadow-mode Rollback
+
+Dry-run should not create production branches, PRs, or R2 objects.
+
+If any mutation occurs unexpectedly:
+
+1. Set `LIVE_WRITES_ENABLED=false`.
+2. Stop further requests.
+3. Record incident.
+4. Close unexpected PR without merge.
+5. Delete unexpected branch if created.
+6. Remove unexpected R2 object only under explicit owner confirmation.
+7. Preserve sanitized evidence.
+8. Keep production live writes blocked.
