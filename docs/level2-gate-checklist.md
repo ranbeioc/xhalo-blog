@@ -43,15 +43,15 @@ Level 2 allows exactly one controlled PR-generation trial against the approved t
 - [ ] staging API Worker and Queue Worker are deployed.
 - [ ] test repo target is `ranbeioc/xhalo-blog-test`.
 - [ ] `LIVE_WRITES_ENABLED=true` is enabled only temporarily for the authorized staging E2E run.
-- [ ] API returns `202`.
-- [ ] task record transitions to terminal state.
-- [ ] Queue Worker processes the task.
-- [ ] GitHub draft branch is created in the test repo.
-- [ ] GitHub PR is created in the test repo.
-- [ ] audit logs include queued and completed actions.
-- [ ] cleanup is completed.
-- [ ] `LIVE_WRITES_ENABLED=false` is restored.
-- [ ] sanitized evidence is written to docs.
+- [x] API returns `202`.
+- [x] task record transitions to terminal state.
+- [x] Queue Worker processes the task.
+- [x] GitHub draft branch is created in the test repo.
+- [x] GitHub PR is created in the test repo.
+- [x] audit logs include queued and completed actions.
+- [x] cleanup is completed.
+- [x] `LIVE_WRITES_ENABLED=false` is restored.
+- [x] sanitized evidence is written to docs.
 - [x] staging async E2E execution approval document completed.
 - [x] staging async E2E preflight checklist completed.
 - [x] owner approval statement recorded before execution.
