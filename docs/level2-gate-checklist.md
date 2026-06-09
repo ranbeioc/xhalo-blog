@@ -109,6 +109,15 @@ Level 2 allows exactly one controlled PR-generation trial against the approved t
 - [ ] Approval includes exact target repo, branch prefix, test slug, operator, time window.
 - [ ] Approval explicitly says this is not production publishing.
 
+### G8 - Level 2 Single PR Trial approval
+
+- [ ] Level 2 Single PR Trial approval document completed.
+- [ ] Level 2 Single PR Trial preflight checklist completed.
+- [ ] Owner approval statement recorded before trial.
+- [ ] Trial execution window recorded.
+- [ ] Trial operator recorded.
+- [ ] Cleanup and rollback reviewed.
+
 ---
 
 ## 3. Current Gate Decision

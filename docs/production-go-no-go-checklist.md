@@ -7,7 +7,7 @@ This document records the formal Go / No-Go decision and readiness checklist for
 ## 1. Current Gate Decision
 
 * **Current Decision**: **NO-GO for live production writes**.
-* **Approved Scope**: **Staging E2E completed after branch-prefix reconciliation; pending Level 2 Trial review only**.
+* **Approved Scope**: **Level 2 Single PR Trial Approval Review only**.
 * **Reasoning**:
   1. The API and Queue Worker architecture has successfully passed staging unit and integration smoke testing.
   2. Level 1 read-only connection compatibility validation has been completed successfully and sanitized.
@@ -47,6 +47,10 @@ This document records the formal Go / No-Go decision and readiness checklist for
 - [x] `LIVE_WRITES_ENABLED` is set to `false` by default on all environments except during active authorized testing.
 - [x] Staging async E2E branch-prefix deviation resolved.
 - [x] Branch prefix standard reconciled across docs and runtime.
+- [ ] Level 2 Single PR Trial approval document completed.
+- [ ] Level 2 Single PR Trial preflight checklist completed.
+- [ ] Owner has approved the exact Level 2 Trial execution window and operator.
+- [ ] Level 2 Trial cleanup runbook reviewed.
 - [ ] Repository owner has explicitly reviewed and approved this checklist.
 
 ### 2.3 Prohibited Configurations

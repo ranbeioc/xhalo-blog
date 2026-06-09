@@ -1,7 +1,8 @@
 # Level 2 Single PR Trial Plan
 
 > Status: Planning only  
-> Execution: Forbidden until Level 2 gate checklist is fully approved.
+> Execution: Forbidden until Level 2 gate checklist is fully approved.  
+> Note: This plan is not execution approval. Execution requires docs/level2-single-pr-trial-approval.md and docs/level2-single-pr-trial-preflight-checklist.md.
 
 ---
 
