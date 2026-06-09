@@ -1876,5 +1876,39 @@ None.
 | `npm run check:secrets` | Passed | No secrets or markers found |
 | `npm test` | Passed | 80 tests passed |
 
+---
+
+## Step 050 - Scanner Fixture Sanitization
+
+### Executed by Model
+Antigravity
+
+### Type
+Security Hygiene / Test Fixture Cleanup / Scanner Regression Maintenance
+
+### Goal
+Replace historical leaked-value scanner fixtures and real staging Worker URL fragments with synthetic examples while preserving scanner regression coverage.
+
+### Files changed
+
+| File | Change summary | Reason |
+|---|---|---|
+| [tests/no-production-markers.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/no-production-markers.test.mjs) | Replace historical leaked secret string with synthetic secret-like fixture; replace real staging Worker URL with synthetic `.workers.dev` fixture | Avoid retaining real historical values in source tree |
+| [docs/CLAUDE_BRANCH_PROGRESS.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/CLAUDE_BRANCH_PROGRESS.md) | Add Step 050 progress entry | Track remediation |
+
+### Validation
+
+| Command | Result | Notes |
+|---|---|---|
+| `npm ci` | Passed | Clean package install |
+| `npm run check:all` | Passed | All tests, syntax checks, and builds pass cleanly |
+| `npm run check:secrets` | Passed | No secrets or forbidden markers found in workspace |
+| `npm test` | Passed | Unit test suite passes |
+| `npm run test:secrets-fixture` | Passed | Fixture tests run and assert successfully |
+
+### Gate decision
+
+Level 2 remains blocked. After this PR, the next allowed step is Level 2 Gate Prep documentation only.
+
 
 
