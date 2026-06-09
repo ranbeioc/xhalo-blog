@@ -38,12 +38,12 @@ production GitHub token
 ### P1 - Repository Boundary
 
 - [x] `hexo-blog` is read-only unless separately approved.
-- [ ] Production repo target is explicitly named.
-- [ ] Production base branch is explicitly named.
+- [x] Production repo target is explicitly named.
+- [x] Production base branch is explicitly named.
 - [x] No direct main write.
 - [x] No auto merge.
-- [ ] PR-only workflow documented.
-- [ ] Rollback branch strategy documented.
+- [x] PR-only workflow documented.
+- [x] Rollback branch strategy documented.
 
 ### P2 - Cloudflare Production Runtime
 
@@ -67,19 +67,19 @@ production GitHub token
 
 ### P4 - Backup and Rollback
 
-- [ ] Current production repo backup strategy documented.
-- [ ] D1 backup/export runbook documented.
-- [ ] R2 backup/restore policy documented.
-- [ ] Worker rollback runbook documented.
-- [ ] Queue drain/pause runbook documented.
-- [ ] Incident owner assigned.
+- [x] Current production repo backup strategy documented.
+- [x] D1 backup/export runbook documented.
+- [x] R2 backup/restore policy documented.
+- [x] Worker rollback runbook documented.
+- [x] Queue drain/pause runbook documented.
+- [x] Incident owner assigned.
 
 ### P5 - Monitoring
 
-- [ ] Worker logs review path documented.
-- [ ] Queue failure visibility documented.
-- [ ] D1 task/audit query documented.
-- [ ] Alerting or manual observation window documented.
+- [x] Worker logs review path documented.
+- [x] Queue failure visibility documented.
+- [x] D1 task/audit query documented.
+- [x] Alerting or manual observation window documented.
 - [x] Post-run evidence template prepared.
 
 ---

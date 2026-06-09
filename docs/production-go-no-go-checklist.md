@@ -7,7 +7,7 @@ This document records the formal Go / No-Go decision and readiness checklist for
 ## 1. Current Gate Decision
 
 * **Current Decision**: **NO-GO for live production writes**.
-* **Approved Scope**: **Production readiness checklist completion and dry-run approval review only**.
+* **Approved Scope**: **Production boundary verification and dry-run preflight completion only**.
 * **Reasoning**:
   1. The API and Queue Worker architecture has successfully passed staging unit and integration smoke testing.
   2. Level 1 read-only connection compatibility validation has been completed successfully and sanitized.
@@ -75,6 +75,16 @@ This document records the formal Go / No-Go decision and readiness checklist for
 - [ ] Worker configured to auto-merge Pull Requests (Prohibited).
 - [ ] Exposing unauthenticated or public live-write publish endpoints (Prohibited).
 - [ ] Committing production secrets or URLs to documentation or code (Prohibited).
+
+### 2.5 Pre-requisites for Production Dry-run
+
+- [ ] Production boundary inventory verified.
+- [ ] Production dry-run preflight checklist passed.
+- [ ] Production dry-run owner approval completed.
+- [ ] Production dry-run execution window recorded.
+- [ ] Production dry-run operator recorded.
+- [x] Production shadow-mode approval remains blocked.
+- [x] Production live-write approval remains blocked.
 
 ---
 

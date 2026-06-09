@@ -36,29 +36,29 @@ production analytics/logs
 
 | Resource | Expected | Actual | Status | Notes |
 |---|---|---|---|---|
-| Production site | `<production-site-url>` | TBD | Pending | Do not record sensitive URL if considered private |
-| Production content repo | `ranbeioc/hexo-blog` or TBD | TBD | Pending | Must remain read-only unless separately approved |
-| Production app repo | `ranbeioc/xhalo-blog` or TBD | TBD | Pending | PR-only |
-| Production base branch | `main` or TBD | TBD | Pending | No direct main write |
-| Production Worker | `<production-worker-name>` | TBD | Pending | Do not commit secret URL |
-| Production queue | `<production-queue-name>` | TBD | Pending | No execution until approved |
-| Production D1 | `<production-d1-name>` | TBD | Pending | No destructive operation |
-| Production R2 | `<production-r2-bucket>` | TBD | Pending | No write until separately approved |
-| Production GitHub credential | GitHub App / token | TBD | Pending | Least privilege required |
-| Production domain | `<domain>` | TBD | Pending | Placeholder only if sensitive |
-| Production Access/Auth | Cloudflare Access / Turnstile / admin secret | TBD | Pending | Secrets never committed |
+| Production site | `<production-site-url>` | `<placeholder>` | Pending | Sensitive URL should remain placeholder if needed |
+| Production content repo | `ranbeioc/hexo-blog` | `ranbeioc/hexo-blog` | Pass | Read-only unless separately approved |
+| Production app repo | `ranbeioc/xhalo-blog` | `ranbeioc/xhalo-blog` | Pass | PR-only |
+| Production base branch | `main` | `main` | Pass | No direct main write |
+| Production Worker | `<production-worker-name>` | `<redacted-placeholder>` | Pending | Do not commit secret endpoint |
+| Production queue | `<production-queue-name>` | `<redacted-placeholder>` | Pending | No execution until approved |
+| Production D1 | `<production-d1-name>` | `<redacted-placeholder>` | Pending | No destructive operation |
+| Production R2 | `<production-r2-bucket>` | `<redacted-placeholder>` | Pending | No write until separately approved |
+| Production GitHub credential | GitHub App / token | `<credential-type-only>` | Pending | Least privilege required |
+| Production domain | `<domain>` | `<redacted-placeholder>` | Pending | Placeholder allowed |
+| Production Access/Auth | Cloudflare Access / Turnstile / admin secret | `<policy-only>` | Pending | Secrets never committed |
 
 ---
 
 ## 4. Repository Boundary
 
-- [ ] `hexo-blog` is explicitly read-only.
-- [ ] `xhalo-blog` is the application repo.
-- [ ] Production content repo write is blocked.
-- [ ] Production branch creation is blocked.
-- [ ] Production PR creation is blocked.
-- [ ] Direct main write is blocked.
-- [ ] Auto merge is blocked.
+- [x] `hexo-blog` is explicitly read-only.
+- [x] `xhalo-blog` is the application repo.
+- [x] Production content repo write is blocked.
+- [x] Production branch creation is blocked.
+- [x] Production PR creation is blocked.
+- [x] Direct main write is blocked.
+- [x] Auto merge is blocked.
 
 ---
 

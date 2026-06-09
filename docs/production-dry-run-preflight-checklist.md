@@ -7,26 +7,26 @@
 
 ## 1. Repository Hygiene
 
-- [ ] `npm run check:all` passes.
-- [ ] `npm run check:secrets` passes.
-- [ ] `npm run test:secrets-fixture` passes.
-- [ ] No raw secret in current source tree.
-- [ ] No concrete production secret URL in current source tree.
-- [ ] No local absolute Windows file scheme marker in current source tree except explicitly marker-allowlisted historical progress docs.
-- [ ] Smoke script parameterized and dry-run capable.
+- [x] `npm run check:all` passes.
+- [x] `npm run check:secrets` passes.
+- [x] `npm run test:secrets-fixture` passes.
+- [x] No raw secret in current source tree.
+- [x] No concrete production secret URL in current source tree.
+- [x] No local absolute Windows file scheme marker in current source tree except explicitly marker-allowlisted historical progress docs.
+- [x] Smoke script parameterized and dry-run capable.
 
 ---
 
 ## 2. Prior Evidence
 
-- [ ] Level 1 read-only validation passed.
-- [ ] Staging Async E2E passed.
-- [ ] Level 2 Single PR Trial passed.
-- [ ] Level 2 cleanup completed.
-- [ ] Post-Level2 evidence review completed.
-- [ ] Production readiness checklist prepared.
+- [x] Level 1 read-only validation passed.
+- [x] Staging Async E2E passed.
+- [x] Level 2 Single PR Trial passed.
+- [x] Level 2 cleanup completed.
+- [x] Post-Level2 evidence review completed.
+- [x] Production readiness checklist prepared.
 - [ ] Production boundary inventory completed.
-- [ ] Production rollback runbook reviewed.
+- [x] Production rollback runbook reviewed.
 
 ---
 
@@ -34,14 +34,14 @@
 
 | Field | Expected | Actual | Status |
 |---|---|---|---|
-| Production content repo | read-only | TBD | TBD |
-| `hexo-blog` write | no | TBD | TBD |
-| Production branch creation | no | TBD | TBD |
-| Production PR creation | no | TBD | TBD |
-| Production R2 write | no | TBD | TBD |
-| Destructive D1 operation | no | TBD | TBD |
-| Direct main write | no | TBD | TBD |
-| Auto merge | no | TBD | TBD |
+| Production content repo | read-only | read-only | Pass |
+| `hexo-blog` write | no | no | Pass |
+| Production branch creation | no | no | Pass |
+| Production PR creation | no | no | Pass |
+| Production R2 write | no | no | Pass |
+| Destructive D1 operation | no | no | Pass |
+| Direct main write | no | no | Pass |
+| Auto merge | no | no | Pass |
 
 ---
 
@@ -62,14 +62,14 @@
 
 ## 5. Execution Limits
 
-- [ ] exactly one dry-run request.
-- [ ] no branch creation.
-- [ ] no PR creation.
-- [ ] no production content mutation.
-- [ ] no R2 mutation.
-- [ ] no destructive D1 operation.
-- [ ] no repeated batch dry-run.
-- [ ] sanitized evidence only.
+- [x] exactly one dry-run request.
+- [x] no branch creation.
+- [x] no PR creation.
+- [x] no production content mutation.
+- [x] no R2 mutation.
+- [x] no destructive D1 operation.
+- [x] no repeated batch dry-run.
+- [x] sanitized evidence only.
 
 ---
 
