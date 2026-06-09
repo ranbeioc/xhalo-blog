@@ -1,7 +1,7 @@
 # Level 2 PR Generator Gate Checklist
 
-> Status: Draft / Not approved  
-> Current decision: Level 2 Trial is blocked until all required gates are checked and approved.
+> Status: Approved  
+> Current decision: Approved for one controlled Level 2 Single PR Trial in the approved next stage.
 
 ---
 
@@ -15,34 +15,34 @@ Level 2 allows exactly one controlled PR-generation trial against the approved t
 
 ### G0 - Repository and source hygiene
 
-- [ ] Source tree contains no raw secrets.
-- [ ] Source tree contains no concrete staging Worker URL.
-- [ ] Source tree contains no local absolute Windows file scheme links except explicitly marker-allowlisted historical progress docs.
-- [ ] PR #50 metadata has been redacted.
-- [ ] `npm run check:all` passes.
-- [ ] `npm run check:secrets` passes.
-- [ ] `npm run test:secrets-fixture` passes.
+- [x] Source tree contains no raw secrets.
+- [x] Source tree contains no concrete staging Worker URL.
+- [x] Source tree contains no local absolute Windows file scheme links except explicitly marker-allowlisted historical progress docs.
+- [x] PR #50 metadata has been redacted.
+- [x] `npm run check:all` passes.
+- [x] `npm run check:secrets` passes.
+- [x] `npm run test:secrets-fixture` passes.
 
 ### G1 - Level 1 read-only validation
 
-- [ ] Level 1 report exists.
-- [ ] Level 1 report uses placeholders only.
-- [ ] `/api/readiness` passed.
-- [ ] `/api/posts` passed.
-- [ ] dry-run publish passed.
-- [ ] live publish blocked with 403 under `LIVE_WRITES_ENABLED=false`.
-- [ ] no test branch was created.
-- [ ] no test PR was created.
-- [ ] D1/R2 evidence limitation is acknowledged.
+- [x] Level 1 report exists.
+- [x] Level 1 report uses placeholders only.
+- [x] `/api/readiness` passed.
+- [x] `/api/posts` passed.
+- [x] dry-run publish passed.
+- [x] live publish blocked with 403 under `LIVE_WRITES_ENABLED=false`.
+- [x] no test branch was created.
+- [x] no test PR was created.
+- [x] D1/R2 evidence limitation is acknowledged.
 
 ### G2 - Staging async E2E evidence
 
 *Related documents: [docs/staging-async-e2e-evidence-plan.md](./staging-async-e2e-evidence-plan.md) and [docs/staging-async-e2e-evidence-template.md](./staging-async-e2e-evidence-template.md)*
 
-- [ ] `ASYNC_PUBLISH_MODE=e2e` runbook is ready.
-- [ ] staging API Worker and Queue Worker are deployed.
-- [ ] test repo target is `ranbeioc/xhalo-blog-test`.
-- [ ] `LIVE_WRITES_ENABLED=true` is enabled only temporarily for the authorized staging E2E run.
+- [x] `ASYNC_PUBLISH_MODE=e2e` runbook is ready.
+- [x] staging API Worker and Queue Worker are deployed.
+- [x] test repo target is `ranbeioc/xhalo-blog-test`.
+- [x] `LIVE_WRITES_ENABLED=true` is enabled only temporarily for the authorized staging E2E run.
 - [x] API returns `202`.
 - [x] task record transitions to terminal state.
 - [x] Queue Worker processes the task.
@@ -62,67 +62,67 @@ Level 2 allows exactly one controlled PR-generation trial against the approved t
 
 *Related document: [docs/branch-protection-verification.md](./branch-protection-verification.md)*
 
-- [ ] Target repository branch protection verified.
-- [ ] `main` blocks direct push where applicable.
-- [ ] force push disabled where applicable.
-- [ ] auto-merge not enabled.
-- [ ] PR merge requires manual owner action.
-- [ ] test branch naming prefix is restricted to `draft/`.
+- [x] Target repository branch protection verified.
+- [x] `main` blocks direct push where applicable.
+- [x] force push disabled where applicable.
+- [x] auto-merge not enabled.
+- [x] PR merge requires manual owner action.
+- [x] test branch naming prefix is restricted to `draft/`.
 
 ### G4 - GitHub App / token permissions
 
 *Related document: [docs/level2-permission-verification.md](./level2-permission-verification.md)*
 
-- [ ] GitHub App or token is scoped to the test repository only.
-- [ ] Contents permission is minimum required for branch/file creation.
-- [ ] Pull Requests permission is minimum required for PR creation.
-- [ ] Metadata read permission is available.
-- [ ] No broad org-wide write token is used.
-- [ ] Token is not logged.
-- [ ] Token is not committed.
-- [ ] Token is not present in PR body or issue comments.
+- [x] GitHub App or token is scoped to the test repository only.
+- [x] Contents permission is minimum required for branch/file creation.
+- [x] Pull Requests permission is minimum required for PR creation.
+- [x] Metadata read permission is available.
+- [x] No broad org-wide write token is used.
+- [x] Token is not logged.
+- [x] Token is not committed.
+- [x] Token is not present in PR body or issue comments.
 
 ### G5 - Cloudflare runtime protection
 
 *Related document: [docs/cloudflare-runtime-safety-checklist.md](./cloudflare-runtime-safety-checklist.md)*
 
-- [ ] Cloudflare Access policy protects admin/API endpoints.
-- [ ] Admin shared secret configured through Worker secret only.
-- [ ] Turnstile configured or explicit staging test-token policy documented.
-- [ ] `LIVE_WRITES_ENABLED=false` default verified.
-- [ ] Temporary `LIVE_WRITES_ENABLED=true` window is documented and bounded.
-- [ ] Rollback path is documented.
+- [x] Cloudflare Access policy protects admin/API endpoints.
+- [x] Admin shared secret configured through Worker secret only.
+- [x] Turnstile configured or explicit staging test-token policy documented.
+- [x] `LIVE_WRITES_ENABLED=false` default verified.
+- [x] Temporary `LIVE_WRITES_ENABLED=true` window is documented and bounded.
+- [x] Rollback path is documented.
 
 ### G6 - Cleanup and rollback readiness
 
-- [ ] Cleanup runbook exists.
-- [ ] Test PR close procedure exists.
-- [ ] Draft branch deletion procedure exists.
-- [ ] D1 test task cleanup or retention policy exists.
-- [ ] R2 test object cleanup policy exists.
-- [ ] Audit evidence retention policy exists.
-- [ ] Worker rollback instructions exist.
+- [x] Cleanup runbook exists.
+- [x] Test PR close procedure exists.
+- [x] Draft branch deletion procedure exists.
+- [x] D1 test task cleanup or retention policy exists.
+- [x] R2 test object cleanup policy exists.
+- [x] Audit evidence retention policy exists.
+- [x] Worker rollback instructions exist.
 
 ### G7 - Owner approval
 
-- [ ] Repository owner explicitly approves Level 2 Single PR Trial.
-- [ ] Approval includes exact target repo, branch prefix, test slug, operator, time window.
-- [ ] Approval explicitly says this is not production publishing.
+- [x] Repository owner explicitly approves Level 2 Single PR Trial.
+- [x] Approval includes exact target repo, branch prefix, test slug, operator, time window.
+- [x] Approval explicitly says this is not production publishing.
 
 ### G8 - Level 2 Single PR Trial approval
 
-- [ ] Level 2 Single PR Trial approval document completed.
-- [ ] Level 2 Single PR Trial preflight checklist completed.
-- [ ] Owner approval statement recorded before trial.
-- [ ] Trial execution window recorded.
-- [ ] Trial operator recorded.
-- [ ] Cleanup and rollback reviewed.
+- [x] Level 2 Single PR Trial approval document completed.
+- [x] Level 2 Single PR Trial preflight checklist completed.
+- [x] Owner approval statement recorded before trial.
+- [x] Trial execution window recorded.
+- [x] Trial operator recorded.
+- [x] Cleanup and rollback reviewed.
 
 ---
 
 ## 3. Current Gate Decision
 
-- [ ] Approved for Level 2 Single PR Trial
-- [x] Not approved yet
+- [x] Approved for Level 2 Single PR Trial
+- [ ] Not approved yet
 
-Reason: gate checklist is being prepared. Trial must not execute until all gates are complete and owner approval is recorded.
+Reason: Owner approval and preflight have been completed. Trial is limited to one controlled next-stage run against ranbeioc/xhalo-blog-test using branch draft/level2-single-pr-trial.
