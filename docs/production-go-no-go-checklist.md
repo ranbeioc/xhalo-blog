@@ -7,7 +7,7 @@ This document records the formal Go / No-Go decision and readiness checklist for
 ## 1. Current Gate Decision
 
 * **Current Decision**: **NO-GO for live production writes**.
-* **Approved Scope**: **Approved for one controlled Staging Async E2E Execution only**.
+* **Approved Scope**: **Staging Async E2E completed; pending Level 2 Trial review only**.
 * **Reasoning**:
   1. The API and Queue Worker architecture has successfully passed staging unit and integration smoke testing.
   2. Level 1 read-only connection compatibility validation has been completed successfully and sanitized.
@@ -43,8 +43,8 @@ This document records the formal Go / No-Go decision and readiness checklist for
 - [x] Owner has approved the exact execution window and operator.
 - [ ] Target repository has branch protection enabled on `main` (blocking direct push/force-push).
 - [ ] GitHub App installation verified with least-privilege permissions (Contents: Read/Write, PRs: Read/Write, Metadata: Read-only).
-- [ ] Staging async E2E evidence completed and logged.
-- [ ] `LIVE_WRITES_ENABLED` is set to `false` by default on all environments except during active authorized testing.
+- [x] Staging async E2E evidence completed and logged.
+- [x] `LIVE_WRITES_ENABLED` is set to `false` by default on all environments except during active authorized testing.
 - [ ] Repository owner has explicitly reviewed and approved this checklist.
 
 ### 2.3 Prohibited Configurations
