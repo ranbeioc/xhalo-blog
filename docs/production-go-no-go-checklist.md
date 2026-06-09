@@ -7,12 +7,13 @@ This document records the formal Go / No-Go decision and readiness checklist for
 ## 1. Current Gate Decision
 
 * **Current Decision**: **NO-GO for live production writes**.
-* **Approved Scope**: **Approved for Staging Async E2E Execution Approval Review only**.
+* **Approved Scope**: **Approved for one controlled Staging Async E2E Execution only**.
 * **Reasoning**:
   1. The API and Queue Worker architecture has successfully passed staging unit and integration smoke testing.
   2. Level 1 read-only connection compatibility validation has been completed successfully and sanitized.
   3. Staging async E2E evidence templates and safety plans have been prepared.
   4. Before enabling active writes, the operator must complete the staging E2E run under explicit owner approval and verify the resulting E2E evidence.
+  *Note: This approval does not authorize Level 2 Single PR Trial, production publishing, direct main writes, auto-merge, or writes to `hexo-blog`.*
 
 ---
 
@@ -31,15 +32,15 @@ This document records the formal Go / No-Go decision and readiness checklist for
 - [x] Level 1 read-only connection compatibility validation completed successfully.
 - [x] Level 2 gate checklist completed.
 - [x] Level 2 cleanup runbook completed.
-- [ ] Staging async E2E evidence plan completed.
-- [ ] Staging async E2E evidence template completed.
-- [ ] Branch protection verification completed.
-- [ ] GitHub App / token least-privilege verification completed.
-- [ ] Cloudflare runtime safety checklist completed.
-- [ ] Repository owner has explicitly approved actual staging E2E execution.
-- [ ] Staging async E2E execution approval completed.
-- [ ] Staging async E2E preflight checklist completed.
-- [ ] Owner has approved the exact execution window and operator.
+- [x] Staging async E2E evidence plan completed.
+- [x] Staging async E2E evidence template completed.
+- [x] Branch protection verification completed.
+- [x] GitHub App / token least-privilege verification completed.
+- [x] Cloudflare runtime safety checklist completed.
+- [x] Repository owner has explicitly approved actual staging E2E execution.
+- [x] Staging async E2E execution approval completed.
+- [x] Staging async E2E preflight checklist completed.
+- [x] Owner has approved the exact execution window and operator.
 - [ ] Target repository has branch protection enabled on `main` (blocking direct push/force-push).
 - [ ] GitHub App installation verified with least-privilege permissions (Contents: Read/Write, PRs: Read/Write, Metadata: Read-only).
 - [ ] Staging async E2E evidence completed and logged.

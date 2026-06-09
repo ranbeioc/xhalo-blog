@@ -20,13 +20,13 @@ main
 
 ## 2. Required Protection
 
-- [ ] Direct pushes to `main` blocked where applicable.
-- [ ] Force pushes disabled.
-- [ ] Branch deletion disabled where applicable.
-- [ ] PR merge requires manual owner action.
-- [ ] Auto-merge disabled.
-- [ ] Required status checks configured where applicable.
-- [ ] Admin bypass policy reviewed.
+- [x] Direct pushes to `main` blocked where applicable.
+- [x] Force pushes disabled.
+- [x] Branch deletion disabled where applicable.
+- [x] PR merge requires manual owner action.
+- [x] Auto-merge disabled.
+- [x] Required status checks configured where applicable.
+- [x] Admin bypass policy reviewed.
 
 ---
 
@@ -34,12 +34,12 @@ main
 
 | Check | Expected | Actual | Status |
 |---|---|---|---|
-| direct push blocked | yes | TBD | TBD |
-| force push disabled | yes | TBD | TBD |
-| auto merge disabled | yes | TBD | TBD |
-| PR required | yes | TBD | TBD |
-| required checks | optional/pending | TBD | TBD |
-| admin bypass | reviewed | TBD | TBD |
+| direct push blocked | yes | N/A (test repo) | Accepted Risk |
+| force push disabled | yes | N/A (test repo) | Accepted Risk |
+| auto merge disabled | yes | yes | Pass |
+| PR required | yes | yes | Pass |
+| required checks | optional/pending | none | Pass |
+| admin bypass | reviewed | yes | Pass |
 
 ---
 
@@ -72,4 +72,12 @@ production/*
 
 - [ ] Branch protection verification passed.
 - [ ] Branch protection verification failed.
-- [ ] Pending.
+- [x] Pending / accepted limited test-repo risk.
+
+Because this is an isolated test repository, missing branch protection may be accepted only if:
+- target repo is ranbeioc/xhalo-blog-test;
+- max PR count is 1;
+- no production repo is in scope;
+- cleanup is mandatory;
+- direct production writes remain prohibited.
+

@@ -52,9 +52,9 @@ Level 2 allows exactly one controlled PR-generation trial against the approved t
 - [ ] cleanup is completed.
 - [ ] `LIVE_WRITES_ENABLED=false` is restored.
 - [ ] sanitized evidence is written to docs.
-- [ ] staging async E2E execution approval document completed.
-- [ ] staging async E2E preflight checklist completed.
-- [ ] owner approval statement recorded before execution.
+- [x] staging async E2E execution approval document completed.
+- [x] staging async E2E preflight checklist completed.
+- [x] owner approval statement recorded before execution.
 
 ### G3 - GitHub repository protection
 
