@@ -7,11 +7,24 @@
  * It must NEVER be documented or used as a production bypass.
  *
  * Usage:
- *   ASYNC_PUBLISH_TARGET_URL=http://localhost:8787 \
- *   ADMIN_API_SHARED_SECRET=your_secret \
- *   SMOKE_TURNSTILE_TOKEN=dummy-token \
- *   ASYNC_PUBLISH_EXPECT_LIVE_WRITES=false \
+ *   # Safe local smoke
  *   ASYNC_PUBLISH_MODE=local \
+ *   ASYNC_PUBLISH_EXPECT_LIVE_WRITES=false \
+ *   SMOKE_POST_SLUG=smoke-test-async-publish \
+ *   node scripts/smoke-async-publish.mjs
+ * 
+ *   # Staging E2E
+ *   ASYNC_PUBLISH_MODE=e2e \
+ *   ASYNC_PUBLISH_EXPECT_LIVE_WRITES=true \
+ *   SMOKE_POST_SLUG=staging-async-e2e-smoke \
+ *   SMOKE_POST_TITLE="Staging Async E2E Smoke Test" \
+ *   node scripts/smoke-async-publish.mjs
+ * 
+ *   # Level 2 Single PR Trial
+ *   ASYNC_PUBLISH_MODE=e2e \
+ *   ASYNC_PUBLISH_EXPECT_LIVE_WRITES=true \
+ *   SMOKE_POST_SLUG=level2-single-pr-trial \
+ *   SMOKE_POST_TITLE="Level 2 Single PR Trial" \
  *   node scripts/smoke-async-publish.mjs
  */
 
@@ -24,12 +37,25 @@ const pollTimeout = parseInt(process.env.ASYNC_PUBLISH_POLL_TIMEOUT_MS || '12000
 const pollInterval = parseInt(process.env.ASYNC_PUBLISH_POLL_INTERVAL_MS || '5000', 10);
 const expectFailure = process.env.ASYNC_PUBLISH_EXPECT_FAILURE === 'true';
 
+// Parameterized Smoke Post variables
+const smokePostTitle = process.env.SMOKE_POST_TITLE || 'Smoke Test Async Publish';
+const smokePostSlug = process.env.SMOKE_POST_SLUG || 'smoke-test-async-publish';
+const smokePostBody = process.env.SMOKE_POST_BODY || 'Synthetic smoke test content. It must not be merged into production.';
+const smokeExpectedAuditResourceId = process.env.SMOKE_EXPECTED_AUDIT_RESOURCE_ID || smokePostSlug;
+const smokePublishTarget = process.env.SMOKE_PUBLISH_TARGET || 'github';
+const smokeDryRunOnly = process.env.SMOKE_DRY_RUN_ONLY === 'true';
+
 console.log(`Starting asynchronous publish smoke tests...`);
 console.log(`Target URL: ${targetUrl}`);
 console.log(`Admin Secret: ${sharedSecret ? '********' : '(not set)'}`);
 console.log(`Turnstile Token: ${turnstileToken}`);
 console.log(`Expect Live Writes: ${expectLiveWrites}`);
-console.log(`Publish Mode: ${publishMode}\n`);
+console.log(`Publish Mode: ${publishMode}`);
+console.log(`Smoke Post Title: ${smokePostTitle}`);
+console.log(`Smoke Post Slug: ${smokePostSlug}`);
+console.log(`Smoke Expected Audit Resource ID: ${smokeExpectedAuditResourceId}`);
+console.log(`Smoke Publish Target: ${smokePublishTarget}`);
+console.log(`Smoke Dry Run Only: ${smokeDryRunOnly}\n`);
 
 let passedCount = 0;
 let failedCount = 0;
@@ -160,11 +186,11 @@ async function main() {
           'cf-turnstile-token': turnstileToken
         },
         body: JSON.stringify({
-          title: 'Level 2 Single PR Trial',
-          slug: 'level2-single-pr-trial',
-          body: 'This is a synthetic Level 2 Single PR Trial post. It must not be merged into production.',
-          mode: 'live',
-          publish_target: 'github'
+          title: smokePostTitle,
+          slug: smokePostSlug,
+          body: smokePostBody,
+          mode: smokeDryRunOnly ? 'dry-run' : 'live',
+          publish_target: smokePublishTarget
         })
       },
       (status, json, text) => {
@@ -224,8 +250,8 @@ async function main() {
         (status, json) => {
           if (status !== 200) return `Expected status 200, got ${status}`;
           if (!json || !Array.isArray(json.items)) return `Expected items list, got ${JSON.stringify(json)}`;
-          const found = json.items.some(item => item.action === 'draft_publish_queued' && item.resource_id === 'level2-single-pr-trial');
-          if (!found) return `Audit log action 'draft_publish_queued' was not found for slug 'level2-single-pr-trial'.`;
+          const found = json.items.some(item => item.action === 'draft_publish_queued' && item.resource_id === smokeExpectedAuditResourceId);
+          if (!found) return `Audit log action 'draft_publish_queued' was not found for slug '${smokeExpectedAuditResourceId}'.`;
           return null;
         }
       );
@@ -256,8 +282,8 @@ async function main() {
             (status, json) => {
               if (status !== 200) return `Expected status 200, got ${status}`;
               if (!json || !Array.isArray(json.items)) return `Expected items list, got ${JSON.stringify(json)}`;
-              const found = json.items.some(item => item.action === expectedAction && item.resource_id === 'level2-single-pr-trial');
-              if (!found) return `Audit log action '${expectedAction}' was not found for slug 'level2-single-pr-trial'.`;
+              const found = json.items.some(item => item.action === expectedAction && item.resource_id === smokeExpectedAuditResourceId);
+              if (!found) return `Audit log action '${expectedAction}' was not found for slug '${smokeExpectedAuditResourceId}'.`;
               return null;
             }
           );

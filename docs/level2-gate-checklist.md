@@ -141,3 +141,14 @@ Level 2 allows exactly one controlled PR-generation trial against the approved t
 - [ ] Level 2 Single PR Trial inconclusive.
 
 Reason: Level 2 Single PR Trial has been executed, verified, and cleaned up under owner approval. Staging evidence report generated successfully. Production live writes remain blocked.
+
+---
+
+## 4. Post-Level2 Follow-up
+
+- [ ] Post-Level2 Trial evidence review completed.
+- [ ] Smoke script parameterized after Level 2 Trial.
+- [ ] Production readiness checklist created.
+- [ ] Production dry-run / shadow-mode plan created.
+- [ ] Production rollback runbook created.
+- [x] Production live writes remain blocked.

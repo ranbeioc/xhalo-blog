@@ -7,7 +7,7 @@ This document records the formal Go / No-Go decision and readiness checklist for
 ## 1. Current Gate Decision
 
 * **Current Decision**: **NO-GO for live production writes**.
-* **Approved Scope**: **Level 2 Single PR Trial completed; pending production-readiness review only**.
+* **Approved Scope**: **Production readiness gate preparation only**.
 * **Reasoning**:
   1. The API and Queue Worker architecture has successfully passed staging unit and integration smoke testing.
   2. Level 1 read-only connection compatibility validation has been completed successfully and sanitized.
@@ -58,7 +58,19 @@ This document records the formal Go / No-Go decision and readiness checklist for
 - [x] Trial branch deleted.
 - [x] `LIVE_WRITES_ENABLED=false` restored after trial.
 
-### 2.3 Prohibited Configurations
+### 2.3 Pre-requisites for Production Readiness
+
+- [ ] Post-Level2 Trial evidence review completed.
+- [ ] Smoke script parameterized.
+- [ ] Production readiness checklist created.
+- [ ] Production dry-run plan created.
+- [ ] Production owner approval template created.
+- [ ] Production rollback runbook created.
+- [ ] Production dry-run approval remains blocked.
+- [ ] Production shadow-mode approval remains blocked.
+- [ ] Production live-write approval remains blocked.
+
+### 2.4 Prohibited Configurations
 - [ ] Worker configured to commit directly to `main` (Prohibited).
 - [ ] Worker configured to auto-merge Pull Requests (Prohibited).
 - [ ] Exposing unauthenticated or public live-write publish endpoints (Prohibited).
