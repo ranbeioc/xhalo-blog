@@ -8,7 +8,7 @@ This document records the analysis, remediation, and process corrections perform
 
 During **Phase C: Level 1 Read-only Validation Run** (logged in Step 047), the automated verification script `verify:level1` was successfully executed against the online staging environment. However, the generated report `docs/level1-readonly-validation-report-20260609.md` accidentally contained the raw value of the `ADMIN_API_SHARED_SECRET` variable:
 ```bash
-$env:ADMIN_API_SHARED_SECRET="staging-sec-9f7a5b3c-rotated"
+$env:ADMIN_API_SHARED_SECRET="<redacted-admin-shared-secret>"
 ```
 Additionally, the concrete Cloudflare staging domain (`xhalo-blog-staging-api.ranbei.workers.dev`) was exposed, and the Level 2 promo verdict was marked candidate without satisfying the prerequisite validation gates (such as staging E2E async evidence, branch protection verification, and owner approvals).
 
