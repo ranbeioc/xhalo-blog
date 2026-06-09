@@ -1,7 +1,7 @@
 # Level 2 Single PR Trial Approval
 
-> Status: Pending approval  
-> Current decision: Level 2 Single PR Trial is blocked until this document is explicitly approved by the repository owner.
+> Status: Approved  
+> Current decision: Level 2 Single PR Trial may proceed in the approved next stage.
 
 ---
 
@@ -73,48 +73,80 @@ logging secrets
 
 Approval status:
 
-- [ ] Approved for one Level 2 Single PR Trial.
-- [x] Not approved yet.
+- [x] Approved for one Level 2 Single PR Trial.
+- [ ] Not approved yet.
 
 Approver:
 
 ```text
-TBD
+ranbeioc
 ```
 
 Approval timestamp:
 
 ```text
-TBD
+2026-06-09 21:06 UTC+8
 ```
 
 Approved execution window:
 
 ```text
-TBD
+2026-06-09 21:00-23:00 UTC+8
 ```
 
 Operator:
 
 ```text
-TBD
+Antigravity
 ```
 
 Approval statement:
 
 ```text
-TBD
+I approve exactly one controlled Level 2 Single PR Trial for xhalo-blog.
+
+Approved scope:
+- target repository: ranbeioc/xhalo-blog-test
+- base branch: main
+- trial branch: draft/level2-single-pr-trial
+- branch prefix: draft/
+- trial slug: level2-single-pr-trial
+- maximum publish request count: 1
+- maximum task count: 1
+- maximum branch count: 1
+- maximum PR count: 1
+- execution window: 2026-06-09 21:00-23:00 UTC+8
+- operator: Antigravity
+
+I approve temporarily setting LIVE_WRITES_ENABLED=true in the staging environment only for this execution window.
+
+I require the operator to restore LIVE_WRITES_ENABLED=false immediately after the trial.
+
+I do not approve:
+- production live publish
+- hexo-blog write
+- production repo write
+- direct main write
+- auto merge
+- batch publish
+- production R2 write
+- destructive D1 operation
+- multiple PR generation
+- multiple branch generation
+- logging secrets
+
+The operator must execute cleanup and record sanitized evidence after the run.
 ```
 
 ---
 
 ## 6. Execution Gate Decision
 
-- [ ] Level 2 Single PR Trial may proceed in the approved next stage.
-- [x] Level 2 Single PR Trial remains blocked.
+- [x] Level 2 Single PR Trial may proceed in the approved next stage.
+- [ ] Level 2 Single PR Trial remains blocked.
 
 Reason:
 
 ```text
-Pending owner approval and preflight completion.
+Owner approval has been recorded, preflight checklist has been completed, and execution is limited to one controlled Level 2 Single PR Trial in the approved window.
 ```

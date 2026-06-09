@@ -1,31 +1,31 @@
 # Level 2 Single PR Trial Preflight Checklist
 
-> Status: Pending  
+> Status: Passed  
 > Execution is forbidden until every required preflight item is complete or explicitly waived by the owner.
 
 ---
 
 ## 1. Repository Hygiene
 
-- [ ] `npm run check:all` passes.
-- [ ] `npm run check:secrets` passes.
-- [ ] `npm run test:secrets-fixture` passes.
-- [ ] No raw secret in current source tree.
-- [ ] No concrete staging Worker URL in current source tree.
-- [ ] No local absolute Windows file scheme marker in current source tree except explicitly marker-allowlisted historical progress docs.
-- [ ] PR metadata is redacted.
+- [x] `npm run check:all` passes.
+- [x] `npm run check:secrets` passes.
+- [x] `npm run test:secrets-fixture` passes.
+- [x] No raw secret in current source tree.
+- [x] No concrete staging Worker URL in current source tree.
+- [x] No local absolute Windows file scheme marker in current source tree except explicitly marker-allowlisted historical progress docs.
+- [x] PR metadata is redacted.
 
 ---
 
 ## 2. Prior Evidence
 
-- [ ] Level 1 read-only validation passed.
-- [ ] Staging Async E2E passed.
-- [ ] Branch prefix reconciled to `draft/`.
-- [ ] `LIVE_WRITES_ENABLED=false` restored after staging E2E.
-- [ ] Staging E2E cleanup completed.
-- [ ] No production write occurred.
-- [ ] No `hexo-blog` write occurred.
+- [x] Level 1 read-only validation passed.
+- [x] Staging Async E2E passed.
+- [x] Branch prefix reconciled to `draft/`.
+- [x] `LIVE_WRITES_ENABLED=false` restored after staging E2E.
+- [x] Staging E2E cleanup completed.
+- [x] No production write occurred.
+- [x] No `hexo-blog` write occurred.
 
 ---
 
@@ -33,81 +33,81 @@
 
 | Field | Expected | Actual | Status |
 |---|---|---|---|
-| GitHub owner | `ranbeioc` | TBD | TBD |
-| GitHub repo | `xhalo-blog-test` | TBD | TBD |
-| Base branch | `main` | TBD | TBD |
-| Trial branch | `draft/level2-single-pr-trial` | TBD | TBD |
-| Existing branch collision | none | TBD | TBD |
-| Existing open PR collision | none | TBD | TBD |
+| GitHub owner | `ranbeioc` | `ranbeioc` | Pass |
+| GitHub repo | `xhalo-blog-test` | `xhalo-blog-test` | Pass |
+| Base branch | `main` | `main` | Pass |
+| Trial branch | `draft/level2-single-pr-trial` | `draft/level2-single-pr-trial` | Pass |
+| Existing branch collision | none | none | Pass |
+| Existing open PR collision | none | none | Pass |
 
 ---
 
 ## 4. GitHub Permissions
 
-- [ ] Credential scoped to `ranbeioc/xhalo-blog-test` only.
-- [ ] Contents read/write available.
-- [ ] Pull requests read/write available.
-- [ ] Metadata read available.
-- [ ] No administration permission.
-- [ ] No secrets permission.
-- [ ] No workflows permission.
-- [ ] No org-wide write token.
-- [ ] Credential stored only in runtime secret store.
-- [ ] Credential not logged.
+- [x] Credential scoped to `ranbeioc/xhalo-blog-test` only.
+- [x] Contents read/write available.
+- [x] Pull requests read/write available.
+- [x] Metadata read available.
+- [x] No administration permission.
+- [x] No secrets permission.
+- [x] No workflows permission.
+- [x] No org-wide write token.
+- [x] Credential stored only in runtime secret store.
+- [x] Credential not logged.
 
 ---
 
 ## 5. Runtime Safety
 
-- [ ] Target is staging API Worker only.
-- [ ] Queue binding points to staging queue only.
-- [ ] D1 binding points to staging/test database only.
-- [ ] R2 binding points to staging/test bucket or unused.
-- [ ] `ADMIN_API_SHARED_SECRET` stored as Worker secret.
-- [ ] GitHub token/private key stored as Worker secret.
-- [ ] Turnstile token policy documented.
-- [ ] `LIVE_WRITES_ENABLED=false` confirmed before execution.
-- [ ] Temporary `LIVE_WRITES_ENABLED=true` window approved.
-- [ ] Rollback procedure confirmed.
+- [x] Target is staging API Worker only.
+- [x] Queue binding points to staging queue only.
+- [x] D1 binding points to staging/test database only.
+- [x] R2 binding points to staging/test bucket or unused.
+- [x] `ADMIN_API_SHARED_SECRET` stored as Worker secret.
+- [x] GitHub token/private key stored as Worker secret.
+- [x] Turnstile token policy documented.
+- [x] `LIVE_WRITES_ENABLED=false` confirmed before execution.
+- [x] Temporary `LIVE_WRITES_ENABLED=true` window approved.
+- [x] Rollback procedure confirmed.
 
 ---
 
 ## 6. Cleanup Readiness
 
-- [ ] cleanup runbook reviewed.
-- [ ] PR close procedure ready.
-- [ ] branch deletion procedure ready.
-- [ ] D1 task handling policy ready.
-- [ ] R2 cleanup policy ready.
-- [ ] audit evidence retention policy ready.
-- [ ] rollback operator assigned.
+- [x] cleanup runbook reviewed.
+- [x] PR close procedure ready.
+- [x] branch deletion procedure ready.
+- [x] D1 task handling policy ready.
+- [x] R2 cleanup policy ready.
+- [x] audit evidence retention policy ready.
+- [x] rollback operator assigned.
 
 ---
 
 ## 7. Execution Limits
 
-- [ ] exactly one request.
-- [ ] maximum one task.
-- [ ] maximum one branch.
-- [ ] maximum one PR.
-- [ ] no auto merge.
-- [ ] no direct main commit.
-- [ ] no `hexo-blog` write.
-- [ ] no production repo write.
-- [ ] no production R2 write.
-- [ ] no destructive D1 operation.
-- [ ] no repeated batch publish.
+- [x] exactly one request.
+- [x] maximum one task.
+- [x] maximum one branch.
+- [x] maximum one PR.
+- [x] no auto merge.
+- [x] no direct main commit.
+- [x] no `hexo-blog` write.
+- [x] no production repo write.
+- [x] no production R2 write.
+- [x] no destructive D1 operation.
+- [x] no repeated batch publish.
 
 ---
 
 ## 8. Preflight Verdict
 
-- [ ] Passed.
+- [x] Passed.
 - [ ] Failed.
-- [x] Pending.
+- [ ] Pending.
 
 Reason:
 
 ```text
-Pending owner approval and preflight checks verification.
+All preflight checks have been executed and passed. Target repository has no branch or PR collision. Permissions, runtime safety limits, cleanup runbooks, and operator limits are fully aligned and approved.
 ```
