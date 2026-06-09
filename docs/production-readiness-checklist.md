@@ -28,20 +28,20 @@ production GitHub token
 
 ### P0 - Evidence Baseline
 
-- [ ] Level 1 read-only validation completed.
-- [ ] Staging async E2E completed.
-- [ ] Level 2 Single PR Trial completed.
-- [ ] Level 2 cleanup completed.
-- [ ] Smoke script parameterized.
-- [ ] Production Go/No-Go remains NO-GO.
+- [x] Level 1 read-only validation completed.
+- [x] Staging async E2E completed.
+- [x] Level 2 Single PR Trial completed.
+- [x] Level 2 cleanup completed.
+- [x] Smoke script parameterized.
+- [x] Production Go/No-Go remains NO-GO.
 
 ### P1 - Repository Boundary
 
-- [ ] `hexo-blog` is read-only unless separately approved.
+- [x] `hexo-blog` is read-only unless separately approved.
 - [ ] Production repo target is explicitly named.
 - [ ] Production base branch is explicitly named.
-- [ ] No direct main write.
-- [ ] No auto merge.
+- [x] No direct main write.
+- [x] No auto merge.
 - [ ] PR-only workflow documented.
 - [ ] Rollback branch strategy documented.
 
@@ -59,11 +59,11 @@ production GitHub token
 
 ### P3 - Content Safety
 
-- [ ] Test content cannot be published to real site.
-- [ ] Dry-run mode cannot create production PR.
-- [ ] Shadow-mode cannot mutate production repo.
-- [ ] Production publish requires separate owner approval.
-- [ ] Audit logs do not contain secrets.
+- [x] Test content cannot be published to real site.
+- [x] Dry-run mode cannot create production PR.
+- [x] Shadow-mode cannot mutate production repo.
+- [x] Production publish requires separate owner approval.
+- [x] Audit logs do not contain secrets.
 
 ### P4 - Backup and Rollback
 
@@ -80,7 +80,7 @@ production GitHub token
 - [ ] Queue failure visibility documented.
 - [ ] D1 task/audit query documented.
 - [ ] Alerting or manual observation window documented.
-- [ ] Post-run evidence template prepared.
+- [x] Post-run evidence template prepared.
 
 ---
 

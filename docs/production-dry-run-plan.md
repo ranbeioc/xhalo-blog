@@ -101,3 +101,18 @@ Each mode must record sanitized evidence:
 ```text
 docs/production-dry-run-evidence-YYYYMMDD.md
 ```
+
+---
+
+## 5. Next-stage Dry-run Gate
+
+Production dry-run may only proceed after:
+
+- [ ] `docs/production-boundary-inventory.md` completed.
+- [ ] `docs/production-readiness-checklist.md` reviewed.
+- [ ] `docs/production-dry-run-approval.md` approved.
+- [ ] `docs/production-dry-run-preflight-checklist.md` passed.
+- [ ] owner execution window recorded.
+- [ ] operator recorded.
+
+No approval here authorizes production live write.
