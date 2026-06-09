@@ -11,11 +11,14 @@
 |---|---|
 | Test repo | `ranbeioc/xhalo-blog-test` |
 | Test branch | `draft/level2-single-pr-trial` |
-| Test PR | One PR created by trial |
+| Test PR | one PR created by the trial |
+| Auto merge | must be disabled |
+| PR final state | closed without merge |
+| Branch final state | deleted |
 | D1 task | One `draft_publish` task |
 | D1 post/index record | One synthetic test slug |
 | R2 objects | Only if assets were generated |
-| Worker flag | `LIVE_WRITES_ENABLED=false` |
+| `LIVE_WRITES_ENABLED` | restored to `false` |
 
 ---
 
