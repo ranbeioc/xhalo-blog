@@ -6,9 +6,9 @@ import { checkSecretLikeValues, walk } from '../scripts/check-no-production-mark
 
 test('secrets scanner rejects concrete staging or production secrets', () => {
   const cases = [
-    'ADMIN_API_SHARED_SECRET="staging-sec-9f7a5b3c-rotated"',
-    '$env:ADMIN_API_SHARED_SECRET="staging-sec-9f7a5b3c-rotated"',
-    'ADMIN_API_SHARED_SECRET: "staging-sec-9f7a5b3c-rotated"',
+    'ADMIN_API_SHARED_SECRET="scanner-fixture-secret-value"',
+    '$env:ADMIN_API_SHARED_SECRET="scanner-fixture-secret-value"',
+    'ADMIN_API_SHARED_SECRET: "scanner-fixture-secret-value"',
     'GITHUB_TOKEN="gho_fakeToken1234567890abcdefghijklmnopqr"',
     'ADMIN_API_SHARED_SECRET=my-real-secret-123'
   ];
@@ -56,7 +56,7 @@ test('scanner detects forbidden markers, concrete staging URLs, and secrets via 
 
     // Write a file with concrete staging URL
     const file2 = path.join(tempDir, 'fail-url.md');
-    fs.writeFileSync(file2, 'Target is xhalo-blog-staging-api.' + 'ranbei' + '.workers' + '.dev');
+    fs.writeFileSync(file2, 'Target is scanner-fixture-worker.' + 'demo' + '.workers' + '.dev');
 
     // Write a file with allowed values
     const file3 = path.join(tempDir, 'pass-safe.md');
@@ -64,7 +64,7 @@ test('scanner detects forbidden markers, concrete staging URLs, and secrets via 
 
     // Write a file with a secret
     const file4 = path.join(tempDir, 'fail-secret.md');
-    fs.writeFileSync(file4, 'ADMIN_API_SHARED_SECRET="staging-sec-9f7a5b3c-rotated"');
+    fs.writeFileSync(file4, 'ADMIN_API_SHARED_SECRET="scanner-fixture-secret-value"');
 
     const localFindings = [];
     walk(tempDir, localFindings);
