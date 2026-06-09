@@ -1838,5 +1838,43 @@ Remediate the staging admin shared secret leak in the Level 1 validation report,
 |---|---|---|
 | `npm run check:all` | Passed | All syntax, builds, compatibility tests, scanner tests, and secrets check passed cleanly |
 
+---
+
+## Step 049 - Security Report Hygiene Follow-up
+
+### Executed by Model
+Antigravity
+
+### Type
+Security / Documentation Hygiene / Scanner Hardening / PR Metadata Cleanup
+
+### Goal
+Remove remaining local file markers and concrete staging URL references from the security fix report, remove unnecessary marker allowlist entries, and ensure PR #50 metadata no longer contains the previously exposed staging admin secret.
+
+### Files changed
+
+| File | Change summary | Reason |
+|---|---|---|
+| [docs/level1-report-security-fix.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/level1-report-security-fix.md) | Replace local file links and concrete staging URL with placeholders / relative paths | Open-source documentation hygiene |
+| [scripts/check-no-production-markers.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/scripts/check-no-production-markers.mjs) | Remove `docs/level1-report-security-fix.md` from marker allowlist | Ensure normal marker scan coverage |
+| [tests/no-production-markers.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/no-production-markers.test.mjs) | Add scanner walker tests for local paths, concrete URLs, and secrets | Prevent recurrence |
+| [docs/CLAUDE_BRANCH_PROGRESS.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/CLAUDE_BRANCH_PROGRESS.md) | Add Step 049 | Track remediation |
+
+### GitHub metadata action
+
+- PR #50 body was edited to replace the previously exposed staging admin secret with `<redacted-admin-shared-secret>` and concrete staging Worker domain with `<staging-api-worker-url>`.
+
+### Required external action
+None.
+
+### Validation
+
+| Command | Result | Notes |
+|---|---|---|
+| `npm ci` | Passed | Clean install |
+| `npm run check:all` | Passed | Full validation pass |
+| `npm run check:secrets` | Passed | No secrets or markers found |
+| `npm test` | Passed | 80 tests passed |
+
 
 
