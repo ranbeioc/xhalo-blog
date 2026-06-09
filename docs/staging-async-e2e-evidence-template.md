@@ -12,6 +12,8 @@
 | Run date | TBD |
 | Operator | TBD |
 | Approval reference | TBD |
+| Approval document | `docs/staging-async-e2e-execution-approval.md` |
+| Preflight checklist | `docs/staging-async-e2e-preflight-checklist.md` |
 | Target API Worker | `<staging-api-worker-url>` |
 | Queue Worker | `<staging-queue-worker>` |
 | Target repo | `ranbeioc/xhalo-blog-test` |
@@ -74,6 +76,15 @@ Do not record secrets.
 | PR number | `<number-only-or-redacted>` |
 | Branch | `drafts/staging-async-e2e-smoke` |
 | Commit SHA | `<redacted-or-short-sha>` |
+
+---
+
+## Approval Confirmation
+
+- [ ] Owner approval was recorded before execution.
+- [ ] Preflight checklist passed before execution.
+- [ ] Execution stayed within approved window.
+- [ ] `LIVE_WRITES_ENABLED=true` was used only during approved window.
 
 ---
 

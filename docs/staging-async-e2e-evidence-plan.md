@@ -164,3 +164,17 @@ Any of the following blocks Level 2 Trial:
 - Queue Worker retries create duplicate output;
 - cleanup cannot be completed;
 - `LIVE_WRITES_ENABLED=true` remains enabled.
+
+---
+
+## 10. Approval Review Requirement
+
+The next step after this evidence prep is `Staging Async E2E Execution Approval Review`.
+
+Actual staging E2E execution remains blocked until:
+
+- `docs/staging-async-e2e-execution-approval.md` is completed;
+- `docs/staging-async-e2e-preflight-checklist.md` is completed;
+- owner approval is explicitly recorded;
+- execution window and operator are recorded;
+- cleanup runbook is ready.
