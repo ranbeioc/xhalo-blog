@@ -48,13 +48,13 @@ main
 Allowed test branch prefix:
 
 ```text
-drafts/
+draft/
 ```
 
 Allowed test branch for staging E2E:
 
 ```text
-drafts/staging-async-e2e-smoke
+draft/staging-async-e2e-smoke
 ```
 
 Forbidden:

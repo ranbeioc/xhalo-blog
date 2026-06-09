@@ -110,7 +110,7 @@ Asynchronous Smoke Test Summary:
 ## 3. Post-Test Cleanup Checklist
 
 Whenever a live writes test is executed:
-* [ ] **Delete Git Branch**: Go to the testing repository on GitHub, delete the generated branch `drafts/smoke-test-async-live`.
+* [ ] **Delete Git Branch**: Go to the testing repository on GitHub, delete the generated branch `draft/smoke-test-async-live`.
 * [ ] **Close Pull Request**: Close the generated Pull Request on GitHub.
 * [ ] **Clean D1 Records**: Connect to your database shell and purge the test post/task:
   ```sql

@@ -22,7 +22,7 @@ This approval is required because the execution will temporarily allow live writ
 | Target GitHub owner | `ranbeioc` |
 | Target GitHub repo | `xhalo-blog-test` |
 | Base branch | `main` |
-| Draft branch | `drafts/staging-async-e2e-smoke` |
+| Draft branch | `draft/staging-async-e2e-smoke` |
 | Test slug | `staging-async-e2e-smoke` |
 | Max branch count | 1 |
 | Max PR count | 1 |
@@ -62,8 +62,8 @@ Before actual execution:
 - [ ] `docs/level2-permission-verification.md` completed.
 - [ ] `docs/cloudflare-runtime-safety-checklist.md` completed.
 - [ ] `docs/level2-cleanup-runbook.md` reviewed.
-- [ ] no existing `drafts/staging-async-e2e-smoke` branch.
-- [ ] no existing open PR for `drafts/staging-async-e2e-smoke`.
+- [ ] no existing `draft/staging-async-e2e-smoke` branch.
+- [ ] no existing open PR for `draft/staging-async-e2e-smoke`.
 - [ ] `LIVE_WRITES_ENABLED=false` confirmed before test.
 - [ ] rollback operator identified.
 - [ ] owner approval recorded below.
@@ -109,7 +109,7 @@ I approve exactly one controlled staging async E2E execution for xhalo-blog.
 Approved scope:
 - target repository: ranbeioc/xhalo-blog-test
 - base branch: main
-- test branch: drafts/staging-async-e2e-smoke
+- test branch: draft/staging-async-e2e-smoke
 - test slug: staging-async-e2e-smoke
 - maximum branch count: 1
 - maximum PR count: 1

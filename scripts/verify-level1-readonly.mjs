@@ -82,7 +82,7 @@ async function verifyGitHubState() {
   }
 
   const slug = 'level1-smoke-test-dry-run';
-  const branchName = `drafts/${slug}`;
+  const branchName = `draft/${slug}`;
   const headers = {
     'Accept': 'application/vnd.github+json',
     'Authorization': `Bearer ${githubToken}`,

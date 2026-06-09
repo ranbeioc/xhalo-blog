@@ -18,7 +18,7 @@
 | Queue Worker | `<staging-queue-worker>` |
 | Target repo | `ranbeioc/xhalo-blog-test` |
 | Base branch | `main` |
-| Test branch | `drafts/staging-async-e2e-smoke` |
+| Test branch | `draft/staging-async-e2e-smoke` |
 | Test slug | `staging-async-e2e-smoke` |
 | Expected PR count | 1 |
 | Actual PR count | TBD |
@@ -45,7 +45,7 @@
 | API publish request | `202` | TBD | TBD |
 | D1 task created | one task | TBD | TBD |
 | Queue Worker processed | terminal status | TBD | TBD |
-| GitHub branch created | one `drafts/` branch | TBD | TBD |
+| GitHub branch created | one `draft/` branch | TBD | TBD |
 | GitHub PR created | one PR | TBD | TBD |
 | Audit queued | recorded | TBD | TBD |
 | Audit completed | recorded | TBD | TBD |
@@ -74,7 +74,7 @@ Do not record secrets.
 |---|---|
 | Task id | `<redacted-task-id>` |
 | PR number | `<number-only-or-redacted>` |
-| Branch | `drafts/staging-async-e2e-smoke` |
+| Branch | `draft/staging-async-e2e-smoke` |
 | Commit SHA | `<redacted-or-short-sha>` |
 
 ---

@@ -10,7 +10,7 @@
 | Resource | Expected test value |
 |---|---|
 | Test repo | `ranbeioc/xhalo-blog-test` |
-| Test branch | `drafts/level2-single-pr-trial` |
+| Test branch | `draft/level2-single-pr-trial` |
 | Test PR | One PR created by trial |
 | D1 task | One `draft_publish` task |
 | D1 post/index record | One synthetic test slug |
@@ -38,7 +38,7 @@ Confirm:
 ## 3. GitHub Cleanup
 
 - [ ] Close test PR without merge.
-- [ ] Delete `drafts/level2-single-pr-trial` branch.
+- [ ] Delete `draft/level2-single-pr-trial` branch.
 - [ ] Confirm branch no longer exists.
 - [ ] Confirm no open PR remains for the branch.
 - [ ] Confirm no direct `main` commit occurred.
@@ -86,7 +86,7 @@ Record sanitized evidence only:
 
 ```text
 task id: <redacted-task-id>
-branch: drafts/level2-single-pr-trial
+branch: draft/level2-single-pr-trial
 pr: <redacted-or-number-only>
 status: completed / cleaned
 live writes restored: false

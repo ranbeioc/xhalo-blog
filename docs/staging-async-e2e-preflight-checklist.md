@@ -24,7 +24,7 @@
 | GitHub owner | `ranbeioc` | `ranbeioc` | Pass |
 | GitHub repo | `xhalo-blog-test` | `xhalo-blog-test` | Pass |
 | Base branch | `main` | `main` | Pass |
-| Draft branch | `drafts/staging-async-e2e-smoke` | `drafts/staging-async-e2e-smoke` | Pass |
+| Draft branch | `draft/staging-async-e2e-smoke` | `draft/staging-async-e2e-smoke` | Pass |
 | Existing branch collision | none | none | Pass |
 | Existing open PR collision | none | none | Pass |
 

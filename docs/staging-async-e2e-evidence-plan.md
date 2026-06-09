@@ -30,7 +30,7 @@ The purpose is to verify that the async publishing pipeline can:
 | GitHub owner | `ranbeioc` |
 | GitHub repo | `xhalo-blog-test` |
 | Base branch | `main` |
-| Draft branch prefix | `drafts/` |
+| Draft branch prefix | `draft/` |
 | Test slug | `staging-async-e2e-smoke` |
 | Expected branch count | 1 |
 | Expected PR count | 1 |
@@ -69,7 +69,7 @@ Before executing the E2E run, the owner must explicitly approve:
 | Operator | TBD |
 | Target repo | `ranbeioc/xhalo-blog-test` |
 | Test slug | `staging-async-e2e-smoke` |
-| Branch prefix | `drafts/` |
+| Branch prefix | `draft/` |
 | Max PR count | 1 |
 | Cleanup required | Yes |
 | Auto merge allowed | No |
@@ -108,8 +108,8 @@ LIVE_WRITES_ENABLED="true"
 - [ ] branch protection verification exists.
 - [ ] Cloudflare runtime safety checklist exists.
 - [ ] owner approval exists.
-- [ ] no existing `drafts/staging-async-e2e-smoke` branch.
-- [ ] no existing open PR for `drafts/staging-async-e2e-smoke`.
+- [ ] no existing `draft/staging-async-e2e-smoke` branch.
+- [ ] no existing open PR for `draft/staging-async-e2e-smoke`.
 
 ---
 
@@ -141,7 +141,7 @@ Do not execute until approved.
 - [ ] exactly one branch created;
 - [ ] exactly one PR created;
 - [ ] PR targets `ranbeioc/xhalo-blog-test`;
-- [ ] PR uses `drafts/` prefix;
+- [ ] PR uses `draft/` prefix;
 - [ ] no direct main commit;
 - [ ] no auto merge;
 - [ ] audit logs recorded;

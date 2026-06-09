@@ -38,8 +38,8 @@ npm run verify:level1
 | **L1-02** | `/api/posts` call | Returns `200 OK` containing post items indexing list. | [x] Pass |
 | **L1-03** | dry-run publish request | Returns `200 OK` with structured file operation plan. | [x] Pass |
 | **L1-04** | live publish request | Blocked with `403 Forbidden` early gateway rejection. | [x] Pass |
-| **L1-05** | GitHub branch check | Remote branch `drafts/level1-smoke-test-dry-run` does not exist. | [x] Pass |
-| **L1-06** | GitHub PR check | No Pull Request exists for `drafts/level1-smoke-test-dry-run`. | [x] Pass |
+| **L1-05** | GitHub branch check | Remote branch `draft/level1-smoke-test-dry-run` does not exist. | [x] Pass |
+| **L1-06** | GitHub PR check | No Pull Request exists for `draft/level1-smoke-test-dry-run`. | [x] Pass |
 | **L1-07** | D1 write verification | Inferred from early `403` live-write gateway block. No direct D1 diff query was recorded in this run. | [x] Pass (Inferred) |
 | **L1-08** | R2 write verification | Inferred from early `403` live-write gateway block. No direct R2 object diff query was recorded in this run. | [x] Pass (Inferred) |
 
