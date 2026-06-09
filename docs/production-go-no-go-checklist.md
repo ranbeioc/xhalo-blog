@@ -7,7 +7,7 @@ This document records the formal Go / No-Go decision and readiness checklist for
 ## 1. Current Gate Decision
 
 * **Current Decision**: **NO-GO for live production writes**.
-* **Approved Scope**: **Approved for Staging Async E2E Evidence Prep only**.
+* **Approved Scope**: **Approved for Staging Async E2E Execution Approval Review only**.
 * **Reasoning**:
   1. The API and Queue Worker architecture has successfully passed staging unit and integration smoke testing.
   2. Level 1 read-only connection compatibility validation has been completed successfully and sanitized.
@@ -37,6 +37,9 @@ This document records the formal Go / No-Go decision and readiness checklist for
 - [ ] GitHub App / token least-privilege verification completed.
 - [ ] Cloudflare runtime safety checklist completed.
 - [ ] Repository owner has explicitly approved actual staging E2E execution.
+- [ ] Staging async E2E execution approval completed.
+- [ ] Staging async E2E preflight checklist completed.
+- [ ] Owner has approved the exact execution window and operator.
 - [ ] Target repository has branch protection enabled on `main` (blocking direct push/force-push).
 - [ ] GitHub App installation verified with least-privilege permissions (Contents: Read/Write, PRs: Read/Write, Metadata: Read-only).
 - [ ] Staging async E2E evidence completed and logged.
