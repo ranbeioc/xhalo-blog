@@ -1779,8 +1779,34 @@ Prepare validation scripts, templates, and runbooks for Level 1 read-only compat
 None.
 
 ### Validation
+| `npm run check:all` | Passed | All builds, syntax checks, secrets scanning, fixtures, and unit tests pass (77/77 tests passed) |
+
+---
+
+## Step 047 - Level 1 Read-only Validation Run
+
+### Executed by Model
+Antigravity
+
+### Type
+Testing / Verification / Documentation
+
+### Goal
+Execute Level 1 compatibility verification against the staging environment, update the script to handle cold start retries and actions/ops plan compatibility, and output the validation report.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [scripts/verify-level1-readonly.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/scripts/verify-level1-readonly.mjs) | Add connection retries and support both actions/ops plan formats | Resilience and schema compatibility |
+| [docs/level1-readonly-validation-report-20260609.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/level1-readonly-validation-report-20260609.md) [NEW] | Create report documenting Level 1 run details, matrix results, and verdicts | Compliance auditing |
+| [docs/CLAUDE_BRANCH_PROGRESS.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/CLAUDE_BRANCH_PROGRESS.md) | Append Step 047 progress block | Tracking development steps |
+
+### Required external action
+None.
+
+### Validation
 | Command | Result | Notes |
 |---|---|---|
-| `npm ci` | Passed | Package install clean |
-| `npm run check:all` | Passed | All builds, syntax checks, secrets scanning, fixtures, and unit tests pass (77/77 tests passed) |
+| `npm run verify:level1` | Passed | Completed successfully with 6 passed assertions and 0 failures |
+
 

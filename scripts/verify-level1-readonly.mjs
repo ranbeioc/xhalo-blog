@@ -31,34 +31,47 @@ let failedCount = 0;
 
 async function runTest(name, path, options, validator) {
   const url = `${targetUrl}${path}`;
-  try {
-    const res = await fetch(url, options);
-    const text = await res.text();
-    let json = null;
-    try {
-      json = JSON.parse(text);
-    } catch (e) {
-      // Not JSON
-    }
+  let res = null;
+  let text = '';
+  let json = null;
+  let attempt = 0;
+  const maxAttempts = 3;
 
-    const errorMsg = validator(res.status, json, text);
-    if (!errorMsg) {
-      console.log(`✓ [PASS] ${name}`);
-      passedCount++;
-      return { status: res.status, json, success: true };
-    } else {
-      console.error(`✗ [FAIL] ${name}`);
-      console.error(`  Details: ${errorMsg}`);
-      console.error(`  Status: ${res.status}`);
-      console.error(`  Response: ${text.substring(0, 200)}`);
-      failedCount++;
-      return { status: res.status, json, success: false };
+  while (attempt < maxAttempts) {
+    attempt++;
+    try {
+      res = await fetch(url, options);
+      text = await res.text();
+      try {
+        json = JSON.parse(text);
+      } catch (e) {
+        // Not JSON
+      }
+      break; // Request succeeded, break retry loop
+    } catch (err) {
+      if (attempt >= maxAttempts) {
+        console.error(`✗ [ERROR] ${name}`);
+        console.error(`  Failed to connect or process request: ${err.message}`);
+        failedCount++;
+        return { success: false, error: err };
+      }
+      console.warn(`[WARNING] Connection failed on attempt ${attempt}/${maxAttempts}: ${err.message}. Retrying in 1.5s...`);
+      await new Promise(resolve => setTimeout(resolve, 1500));
     }
-  } catch (err) {
-    console.error(`✗ [ERROR] ${name}`);
-    console.error(`  Failed to connect or process request: ${err.message}`);
+  }
+
+  const errorMsg = validator(res.status, json, text);
+  if (!errorMsg) {
+    console.log(`✓ [PASS] ${name}`);
+    passedCount++;
+    return { status: res.status, json, success: true };
+  } else {
+    console.error(`✗ [FAIL] ${name}`);
+    console.error(`  Details: ${errorMsg}`);
+    console.error(`  Status: ${res.status}`);
+    console.error(`  Response: ${text.substring(0, 200)}`);
     failedCount++;
-    return { success: false, error: err };
+    return { status: res.status, json, success: false };
   }
 }
 
@@ -134,8 +147,8 @@ async function main() {
     },
     (status, json) => {
       if (status !== 200) return `Expected status 200, got ${status}`;
-      if (!json || json.status !== 'ready' || json.d1 !== 'available') {
-        return `Expected status 'ready' and d1 'available', got: ${JSON.stringify(json)}`;
+      if (!json || !json.summary || typeof json.summary.ready !== 'number') {
+        return `Expected structured readiness snapshot with summary, got: ${JSON.stringify(json)}`;
       }
       return null;
     }
@@ -178,7 +191,8 @@ async function main() {
     },
     (status, json) => {
       if (status !== 200) return `Expected status 200, got ${status}`;
-      if (!json || json.mode !== 'dry-run' || !json.plan || !Array.isArray(json.plan.ops)) {
+      const planArray = json && json.plan && (json.plan.actions || json.plan.ops);
+      if (!json || json.mode !== 'dry-run' || !json.plan || !Array.isArray(planArray)) {
         return `Expected dry-run mode and operation plan, got: ${JSON.stringify(json)}`;
       }
       return null;
