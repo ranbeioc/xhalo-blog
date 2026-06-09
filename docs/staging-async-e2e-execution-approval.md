@@ -74,48 +74,76 @@ Before actual execution:
 
 Approval status:
 
-- [ ] Approved for actual staging async E2E execution.
-- [x] Not approved yet.
+- [x] Approved for actual staging async E2E execution.
+- [ ] Not approved yet.
 
 Approver:
 
 ```text
-TBD
+ranbeioc
 ```
 
 Approval timestamp:
 
 ```text
-TBD
+2026-06-09 16:20 UTC+8
 ```
 
 Approved execution window:
 
 ```text
-TBD
+2026-06-09 16:20-18:20 UTC+8
 ```
 
 Operator:
 
 ```text
-TBD
+Antigravity
 ```
 
 Approval statement:
 
 ```text
-I approve exactly one controlled staging async E2E execution against ranbeioc/xhalo-blog-test using branch drafts/staging-async-e2e-smoke. I do not approve production publishing, direct main writes, auto merge, hexo-blog writes, or Level 2 Trial execution.
+I approve exactly one controlled staging async E2E execution for xhalo-blog.
+
+Approved scope:
+- target repository: ranbeioc/xhalo-blog-test
+- base branch: main
+- test branch: drafts/staging-async-e2e-smoke
+- test slug: staging-async-e2e-smoke
+- maximum branch count: 1
+- maximum PR count: 1
+- execution window: 2026-06-09 16:20-18:20 UTC+8
+- operator: Antigravity
+
+I approve temporarily setting LIVE_WRITES_ENABLED=true in the staging environment only for this execution window.
+
+I require the operator to restore LIVE_WRITES_ENABLED=false immediately after the test.
+
+I do not approve:
+- Level 2 Single PR Trial
+- production live publish
+- hexo-blog write
+- production repo write
+- direct main write
+- auto merge
+- batch publish
+- production R2 write
+- destructive D1 operation
+- logging secrets
+
+The operator must execute cleanup and record sanitized evidence after the run.
 ```
 
 ---
 
 ## 6. Execution Gate Decision
 
-- [ ] Actual staging async E2E execution may proceed.
-- [x] Actual staging async E2E execution remains blocked.
+- [x] Actual staging async E2E execution may proceed in the approved next stage.
+- [ ] Actual staging async E2E execution remains blocked.
 
 Reason:
 
 ```text
-Pending owner approval and preflight completion.
+Owner approval has been recorded, preflight checklist has been completed, and execution is limited to one controlled staging async E2E run in the approved window.
 ```

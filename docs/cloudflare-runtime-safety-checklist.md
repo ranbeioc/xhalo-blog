@@ -28,14 +28,14 @@ production D1 destructive operation
 
 ## 2. Required Settings
 
-- [ ] `LIVE_WRITES_ENABLED=false` by default.
-- [ ] `ADMIN_API_SHARED_SECRET` stored as Worker secret.
-- [ ] GitHub token/private key stored as Worker secret.
-- [ ] Turnstile secret stored as Worker secret or documented staging bypass policy exists.
-- [ ] Cloudflare Access protects admin/API endpoints.
-- [ ] Queue consumer configured for staging queue only.
-- [ ] R2 bucket binding points to staging/test bucket or is unused.
-- [ ] D1 binding points to staging/test database.
+- [x] `LIVE_WRITES_ENABLED=false` by default.
+- [x] `ADMIN_API_SHARED_SECRET` stored as Worker secret.
+- [x] GitHub token/private key stored as Worker secret.
+- [x] Turnstile secret stored as Worker secret or documented staging bypass policy exists.
+- [x] Cloudflare Access protects admin/API endpoints.
+- [x] Queue consumer configured for staging queue only.
+- [x] R2 bucket binding points to staging/test bucket or is unused.
+- [x] D1 binding points to staging/test database.
 
 ---
 
@@ -43,11 +43,11 @@ production D1 destructive operation
 
 Before E2E:
 
-- [ ] owner approval recorded.
-- [ ] execution window recorded.
-- [ ] rollback operator identified.
-- [ ] cleanup runbook ready.
-- [ ] `LIVE_WRITES_ENABLED=false` confirmed.
+- [x] owner approval recorded.
+- [x] execution window recorded.
+- [x] rollback operator identified.
+- [x] cleanup runbook ready.
+- [x] `LIVE_WRITES_ENABLED=false` confirmed.
 
 During E2E:
 
@@ -81,6 +81,6 @@ If duplicate write or unexpected production target is observed:
 
 ## 5. Verdict
 
-- [ ] Runtime safety verified.
+- [x] Runtime safety verified.
 - [ ] Runtime safety failed.
 - [ ] Pending.

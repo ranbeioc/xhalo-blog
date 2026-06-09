@@ -30,24 +30,24 @@ Allowed minimum permissions:
 
 ## 3. Repository Scope
 
-- [ ] Credential is limited to `ranbeioc/xhalo-blog-test`.
-- [ ] Credential is not org-wide write.
-- [ ] Credential does not include `hexo-blog`.
-- [ ] Credential does not include production repositories.
-- [ ] Credential cannot push directly to protected `main`.
+- [x] Credential is limited to `ranbeioc/xhalo-blog-test`.
+- [x] Credential is not org-wide write.
+- [x] Credential does not include `hexo-blog`.
+- [x] Credential does not include production repositories.
+- [x] Credential cannot push directly to protected `main`.
 
 ---
 
 ## 4. Verification Checklist
 
-- [ ] Credential owner/type identified as GitHub App installation or fine-grained token.
-- [ ] Repository scope verified.
-- [ ] Permission scope verified.
-- [ ] Token is stored only in runtime secret store.
-- [ ] Token is not printed in logs.
-- [ ] Token is not present in PR body.
-- [ ] Token is not committed.
-- [ ] Token rotation procedure exists.
+- [x] Credential owner/type identified as GitHub App installation or fine-grained token.
+- [x] Repository scope verified.
+- [x] Permission scope verified.
+- [x] Token is stored only in runtime secret store.
+- [x] Token is not printed in logs.
+- [x] Token is not present in PR body.
+- [x] Token is not committed.
+- [x] Token rotation procedure exists.
 
 ---
 
@@ -69,6 +69,6 @@ token_logged: no
 
 ## 6. Verdict
 
-- [ ] Permission verification passed.
+- [x] Permission verification passed.
 - [ ] Permission verification failed.
 - [ ] Pending.
