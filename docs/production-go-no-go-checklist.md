@@ -7,11 +7,11 @@ This document records the formal Go / No-Go decision and readiness checklist for
 ## 1. Current Gate Decision
 
 * **Current Decision**: **NO-GO for live production writes**.
-* **Approved Scope**: **Approved for Level 1 read-only compatibility validation only**.
+* **Approved Scope**: **Approved for Level 2 Gate Prep documentation only**.
 * **Reasoning**:
   1. The API and Queue Worker architecture has successfully passed staging unit and integration smoke testing.
-  2. Before enabling active writes, the operator must execute Level 1 read-only verification against the production repository to verify content parsing and authentication connections.
-  3. Transitioning to Level 2 requires separate manual authorization and verification of branch protection rules on the production repository.
+  2. Level 1 read-only connection compatibility validation has been completed successfully and sanitized.
+  3. Before enabling active writes, the operator must review and approve all Level 2 gates, verify least-privilege permissions, and complete staging E2E async evidence.
 
 ---
 
@@ -20,16 +20,19 @@ This document records the formal Go / No-Go decision and readiness checklist for
 ### 2.1 Pre-requisites for Level 1 (Read-Only Validation)
 - [x] README aligned with the current Queue Worker asynchronous publishing capability.
 - [x] Integration smoke tests (`smoke-async-publish.mjs`) pass successfully.
-- [x] All unit tests (77/77) pass cleanly.
+- [x] All unit tests (80/80) pass cleanly.
 - [x] Secrets scanning checks pass with no raw tokens or credentials committed.
 - [x] Admin token headers (`x-xhalo-admin-secret` / `cf-turnstile-token`) standardized in code and docs.
 - [ ] Staging async publish verification evidence generated and logged.
   *Note: Phase 7.1 async evidence template exists; real sanitized staging evidence remains pending.*
 
 ### 2.2 Pre-requisites for Level 2 (PR Generator Trial Mode)
-- [ ] Level 1 read-only connection compatibility validation completed successfully.
+- [x] Level 1 read-only connection compatibility validation completed successfully.
+- [ ] Level 2 gate checklist completed.
+- [ ] Level 2 cleanup runbook completed.
 - [ ] Target repository has branch protection enabled on `main` (blocking direct push/force-push).
 - [ ] GitHub App installation verified with least-privilege permissions (Contents: Read/Write, PRs: Read/Write, Metadata: Read-only).
+- [ ] Staging async E2E evidence completed and logged.
 - [ ] `LIVE_WRITES_ENABLED` is set to `false` by default on all environments except during active authorized testing.
 - [ ] Repository owner has explicitly reviewed and approved this checklist.
 
