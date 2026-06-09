@@ -1805,8 +1805,38 @@ Execute Level 1 compatibility verification against the staging environment, upda
 None.
 
 ### Validation
+| `npm run verify:level1` | Passed | Completed successfully with 6 passed assertions and 0 failures |
+
+---
+
+## Step 048 - Level 1 Report Security Fix
+
+### Executed by Model
+Antigravity
+
+### Type
+Security / Hardening / Testing / Documentation
+
+### Goal
+Remediate the staging admin shared secret leak in the Level 1 validation report, redact worker URLs, downgrade Level 2 trial candidate verdict, separate the scanner allowlist into marker vs secret scopes, and add regression scanner unit test coverage.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [docs/level1-readonly-validation-report-20260609.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/level1-readonly-validation-report-20260609.md) | Redact staging URL and staging secret, downgrade Level 2 trial candidate status, and update checks to inferred | Secret exposure remediation |
+| [scripts/check-no-production-markers.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/scripts/check-no-production-markers.mjs) | Split allowlist into marker vs secret scopes, correct colon regex, allow asterisk-based masked values | Hardening secrets scanner |
+| [tests/no-production-markers.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/no-production-markers.test.mjs) [NEW] | Create regression tests asserting correct detection of secret assignments and acceptance of safe placeholders | Scanner regression coverage |
+| [package.json](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/package.json) | Register `"test:secrets-fixture"` command and integrate it into `"check:all"` | Automated checks execution |
+| [docs/level1-report-security-fix.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/level1-report-security-fix.md) [NEW] | Document problem identification, code/config remediation, and verdicts | Security remediation auditing |
+| [docs/CLAUDE_BRANCH_PROGRESS.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/CLAUDE_BRANCH_PROGRESS.md) | Append Step 048 progress block | Tracking development steps |
+
+### Required external action
+- Rotate `ADMIN_API_SHARED_SECRET` in Cloudflare for `xhalo-blog-staging-api` (completed).
+
+### Validation
 | Command | Result | Notes |
 |---|---|---|
-| `npm run verify:level1` | Passed | Completed successfully with 6 passed assertions and 0 failures |
+| `npm run check:all` | Passed | All syntax, builds, compatibility tests, scanner tests, and secrets check passed cleanly |
+
 
 
