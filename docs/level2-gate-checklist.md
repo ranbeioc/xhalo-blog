@@ -1,7 +1,7 @@
 # Level 2 PR Generator Gate Checklist
 
-> Status: Approved  
-> Current decision: Approved for one controlled Level 2 Single PR Trial in the approved next stage.
+> Status: Completed  
+> Current decision: Level 2 Single PR Trial completed.
 
 ---
 
@@ -118,11 +118,26 @@ Level 2 allows exactly one controlled PR-generation trial against the approved t
 - [x] Trial operator recorded.
 - [x] Cleanup and rollback reviewed.
 
+### G9 - Level 2 Single PR Trial execution evidence
+
+- [x] Level 2 Single PR Trial evidence report completed.
+- [x] exactly one request was executed.
+- [x] exactly one task was created.
+- [x] exactly one branch was created in the test repo.
+- [x] exactly one PR was created in the test repo.
+- [x] PR was closed without merge.
+- [x] branch was deleted.
+- [x] `LIVE_WRITES_ENABLED=false` was restored.
+- [x] no production write occurred.
+- [x] no `hexo-blog` write occurred.
+- [x] sanitized evidence was recorded.
+
 ---
 
 ## 3. Current Gate Decision
 
-- [x] Approved for Level 2 Single PR Trial
-- [ ] Not approved yet
+- [x] Level 2 Single PR Trial completed.
+- [ ] Level 2 Single PR Trial failed.
+- [ ] Level 2 Single PR Trial inconclusive.
 
-Reason: Owner approval and preflight have been completed. Trial is limited to one controlled next-stage run against ranbeioc/xhalo-blog-test using branch draft/level2-single-pr-trial.
+Reason: Level 2 Single PR Trial has been executed, verified, and cleaned up under owner approval. Staging evidence report generated successfully. Production live writes remain blocked.
