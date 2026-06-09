@@ -37,6 +37,8 @@ Level 2 allows exactly one controlled PR-generation trial against the approved t
 
 ### G2 - Staging async E2E evidence
 
+*Related documents: [docs/staging-async-e2e-evidence-plan.md](./staging-async-e2e-evidence-plan.md) and [docs/staging-async-e2e-evidence-template.md](./staging-async-e2e-evidence-template.md)*
+
 - [ ] `ASYNC_PUBLISH_MODE=e2e` runbook is ready.
 - [ ] staging API Worker and Queue Worker are deployed.
 - [ ] test repo target is `ranbeioc/xhalo-blog-test`.
@@ -53,6 +55,8 @@ Level 2 allows exactly one controlled PR-generation trial against the approved t
 
 ### G3 - GitHub repository protection
 
+*Related document: [docs/branch-protection-verification.md](./branch-protection-verification.md)*
+
 - [ ] Target repository branch protection verified.
 - [ ] `main` blocks direct push where applicable.
 - [ ] force push disabled where applicable.
@@ -61,6 +65,8 @@ Level 2 allows exactly one controlled PR-generation trial against the approved t
 - [ ] test branch naming prefix is restricted to `drafts/`.
 
 ### G4 - GitHub App / token permissions
+
+*Related document: [docs/level2-permission-verification.md](./level2-permission-verification.md)*
 
 - [ ] GitHub App or token is scoped to the test repository only.
 - [ ] Contents permission is minimum required for branch/file creation.
@@ -72,6 +78,8 @@ Level 2 allows exactly one controlled PR-generation trial against the approved t
 - [ ] Token is not present in PR body or issue comments.
 
 ### G5 - Cloudflare runtime protection
+
+*Related document: [docs/cloudflare-runtime-safety-checklist.md](./cloudflare-runtime-safety-checklist.md)*
 
 - [ ] Cloudflare Access policy protects admin/API endpoints.
 - [ ] Admin shared secret configured through Worker secret only.

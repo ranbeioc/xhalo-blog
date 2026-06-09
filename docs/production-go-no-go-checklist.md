@@ -7,11 +7,12 @@ This document records the formal Go / No-Go decision and readiness checklist for
 ## 1. Current Gate Decision
 
 * **Current Decision**: **NO-GO for live production writes**.
-* **Approved Scope**: **Approved for Level 2 Gate Prep documentation only**.
+* **Approved Scope**: **Approved for Staging Async E2E Evidence Prep only**.
 * **Reasoning**:
   1. The API and Queue Worker architecture has successfully passed staging unit and integration smoke testing.
   2. Level 1 read-only connection compatibility validation has been completed successfully and sanitized.
-  3. Before enabling active writes, the operator must review and approve all Level 2 gates, verify least-privilege permissions, and complete staging E2E async evidence.
+  3. Staging async E2E evidence templates and safety plans have been prepared.
+  4. Before enabling active writes, the operator must complete the staging E2E run under explicit owner approval and verify the resulting E2E evidence.
 
 ---
 
@@ -28,8 +29,14 @@ This document records the formal Go / No-Go decision and readiness checklist for
 
 ### 2.2 Pre-requisites for Level 2 (PR Generator Trial Mode)
 - [x] Level 1 read-only connection compatibility validation completed successfully.
-- [ ] Level 2 gate checklist completed.
-- [ ] Level 2 cleanup runbook completed.
+- [x] Level 2 gate checklist completed.
+- [x] Level 2 cleanup runbook completed.
+- [ ] Staging async E2E evidence plan completed.
+- [ ] Staging async E2E evidence template completed.
+- [ ] Branch protection verification completed.
+- [ ] GitHub App / token least-privilege verification completed.
+- [ ] Cloudflare runtime safety checklist completed.
+- [ ] Repository owner has explicitly approved actual staging E2E execution.
 - [ ] Target repository has branch protection enabled on `main` (blocking direct push/force-push).
 - [ ] GitHub App installation verified with least-privilege permissions (Contents: Read/Write, PRs: Read/Write, Metadata: Read-only).
 - [ ] Staging async E2E evidence completed and logged.
