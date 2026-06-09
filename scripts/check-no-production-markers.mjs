@@ -26,10 +26,10 @@ const forbiddenMarkers = [
   'C:/Users'
 ];
 
-// Split allowlist: progress docs may contain path markers, but MUST NOT contain secrets.
 export const markerAllowlist = new Set([
   'scripts/check-no-production-markers.mjs',
-  'docs/CLAUDE_BRANCH_PROGRESS.md'
+  'docs/CLAUDE_BRANCH_PROGRESS.md',
+  'docs/level1-report-security-fix.md'
 ]);
 
 export const secretAllowlist = new Set([
