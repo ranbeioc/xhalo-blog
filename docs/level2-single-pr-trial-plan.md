@@ -20,7 +20,7 @@ GITHUB_BRANCH=main
 Allowed output:
 
 ```text
-drafts/<test-slug>
+draft/<test-slug>
 ```
 
 Allowed PR count:
@@ -70,7 +70,7 @@ destructive D1 operations
 | Date / Time | TBD |
 | Target repo | `ranbeioc/xhalo-blog-test` |
 | Target branch | `main` |
-| Draft branch prefix | `drafts/` |
+| Draft branch prefix | `draft/` |
 | Test slug | `level2-single-pr-trial` |
 | Expected PR count | 1 |
 | Auto merge | No |
@@ -106,7 +106,7 @@ Do not execute these steps until approved.
 1. Confirm gate checklist approved.
 2. Confirm test repo target.
 3. Confirm branch protection.
-4. Confirm no existing `drafts/level2-single-pr-trial` branch.
+4. Confirm no existing `draft/level2-single-pr-trial` branch.
 5. Temporarily enable `LIVE_WRITES_ENABLED=true` in staging only.
 6. Submit one synthetic publish request.
 7. Confirm API returns `202`.
@@ -126,7 +126,7 @@ Do not execute these steps until approved.
 
 - [ ] Exactly one PR created.
 - [ ] PR targets test repo only.
-- [ ] PR uses `drafts/` branch prefix.
+- [ ] PR uses `draft/` branch prefix.
 - [ ] No direct main commit.
 - [ ] No auto merge.
 - [ ] No production repo write.

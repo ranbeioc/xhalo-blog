@@ -55,6 +55,8 @@ Level 2 allows exactly one controlled PR-generation trial against the approved t
 - [x] staging async E2E execution approval document completed.
 - [x] staging async E2E preflight checklist completed.
 - [x] owner approval statement recorded before execution.
+- [x] Branch prefix standard reconciled after staging E2E.
+- [x] E2E branch prefix deviation reviewed.
 
 ### G3 - GitHub repository protection
 
@@ -65,7 +67,7 @@ Level 2 allows exactly one controlled PR-generation trial against the approved t
 - [ ] force push disabled where applicable.
 - [ ] auto-merge not enabled.
 - [ ] PR merge requires manual owner action.
-- [ ] test branch naming prefix is restricted to `drafts/`.
+- [ ] test branch naming prefix is restricted to `draft/`.
 
 ### G4 - GitHub App / token permissions
 

@@ -79,13 +79,13 @@ curl -X POST "https://<production-api-url>/api/drafts/publish" \
       "slug": "staging-post"
     },
     "filePath": "source/_posts/staging-post.md",
-    "branchName": "drafts/staging-post"
+    "branchName": "draft/staging-post"
   },
   "plan": {
     "ops": [
       {
         "op": "create_branch",
-        "branch": "drafts/staging-post"
+        "branch": "draft/staging-post"
       },
       {
         "op": "commit_file",
@@ -150,9 +150,9 @@ GitHub Repo: <owner>/<production-repo>
 ✓ [PASS] POST /api/drafts/publish (Dry-Run mode returns plan)
 ✓ [PASS] POST /api/drafts/publish (Live write is BLOCKED by gateway)
 
-Verifying remote GitHub state for branch 'drafts/level1-smoke-test-dry-run'...
-✓ [PASS] GitHub: branch 'drafts/level1-smoke-test-dry-run' does not exist (404 OK)
-✓ [PASS] GitHub: no Pull Request exists for branch 'drafts/level1-smoke-test-dry-run'
+Verifying remote GitHub state for branch 'draft/level1-smoke-test-dry-run'...
+✓ [PASS] GitHub: branch 'draft/level1-smoke-test-dry-run' does not exist (404 OK)
+✓ [PASS] GitHub: no Pull Request exists for branch 'draft/level1-smoke-test-dry-run'
 
 Level 1 Read-Only Validation Summary:
   Passed: 6
@@ -166,7 +166,7 @@ Level 1 Read-Only Validation Summary:
 ## 4. Compatibility Report Checklist
 
 After executing the validation, operators must check off the following items:
-- [ ] No branches starting with `drafts/` were created in the target repository on GitHub.
+- [ ] No branches starting with `draft/` were created in the target repository on GitHub.
 - [ ] No pull requests were opened.
 - [ ] The API correctly generated files matching the Hexo path syntax (`source/_posts/<slug>.md`).
 - [ ] Audit logs captured the dry-run operations (if configured).

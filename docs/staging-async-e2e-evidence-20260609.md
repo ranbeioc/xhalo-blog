@@ -90,23 +90,58 @@ Do not record secrets.
 
 ---
 
+## Branch Prefix Deviation
+
+Approved branch:
+
+```text
+drafts/staging-async-e2e-smoke
+```
+
+Actual branch recorded:
+
+```text
+draft/staging-async-e2e-smoke
+```
+
+Status:
+
+```text
+Branch prefix mismatch observed.
+```
+
+Impact:
+
+```text
+Runtime E2E completed, cleanup completed, and no production write occurred. However, the branch prefix differs from the approved plan, so Level 2 Trial remains blocked until the branch prefix is reconciled.
+```
+
+Related review:
+
+```text
+docs/staging-async-e2e-deviation-review-20260609.md
+```
+
+---
+
 ## 6. Verdict
 
-- [x] Passed
+- [x] Passed after branch-prefix reconciliation
 - [ ] Failed
 - [ ] Inconclusive
 
 Reason:
 
 ```text
-The staging async E2E validation run completed successfully. A single publish request was enqueued, processed asynchronously by the Queue Worker, and resulted in exactly one draft branch and one Pull Request in ranbeioc/xhalo-blog-test. The environment was successfully cleaned up afterward, and LIVE_WRITES_ENABLED was restored to false. No secrets or production markers were committed or leaked.
+The staging async E2E validation run completed successfully. The observed 'draft/' branch prefix was confirmed as the correct implementation standard. Documentation has been reconciled accordingly.
 ```
 
 ---
 
 ## 7. Follow-up Actions
 
-- [ ] Update Level 2 gate checklist.
-- [ ] Update production go/no-go checklist.
-- [ ] Record owner review.
-- [ ] Decide whether Level 2 Single PR Trial may be planned.
+- [x] Update Level 2 gate checklist.
+- [x] Update production go/no-go checklist.
+- [x] Record owner review.
+- [x] Decide whether Level 2 Single PR Trial may be planned.
+

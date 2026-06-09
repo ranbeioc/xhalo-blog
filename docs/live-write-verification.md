@@ -155,7 +155,7 @@ sequenceDiagram
   }
   ```
 - **Test Repository PR**:
-  - A branch named `drafts/staging-live-closed-loop-verification-post` is created.
+  - A branch named `draft/staging-live-closed-loop-verification-post` is created.
   - A commit adding `source/_posts/2026-06-08-staging-live-closed-loop-verification-post.md` is pushed.
   - A Pull Request into `main` is opened by the GitHub App.
 - **Idempotency Check**: Re-running the identical publish request returns `202 Accepted` with a new task ID. The Queue Worker will process the task, check the GitHub repository, and update task status to `completed` while reusing the **same** Pull Request URL (no duplicate PRs created).
@@ -178,7 +178,7 @@ sequenceDiagram
 - **Body**:
   ```json
   {
-    "branchName": "drafts/staging-live-closed-loop-verification-post",
+    "branchName": "draft/staging-live-closed-loop-verification-post",
     "postSlug": "staging-live-closed-loop-verification-post",
     "previewUrl": "https://preview-post-1234.pages.dev",
     "provider": "cloudflare-pages",
@@ -211,7 +211,7 @@ Verify the following security boundary rejections:
 ## 4. Rollback & Staging Clean-Up Guide
 
 After verification is complete, clean up the testing artifacts:
-1. **GitHub Repository**: Close the created Pull Request and delete the `drafts/staging-live-closed-loop-verification-post` branch in the `<owner>/<test-repo>` repository.
+1. **GitHub Repository**: Close the created Pull Request and delete the `draft/staging-live-closed-loop-verification-post` branch in the `<owner>/<test-repo>` repository.
 2. **R2 Bucket**: Delete the uploaded object `uploads/global/hello-world.png` in the `xhalo-blog-staging-assets` bucket.
 3. **D1 Database**: Run clean-up commands to remove test database records:
    ```sql

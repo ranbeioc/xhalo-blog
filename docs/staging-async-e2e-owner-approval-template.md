@@ -12,7 +12,7 @@ I approve exactly one controlled staging async E2E execution for xhalo-blog.
 Approved scope:
 - target repository: ranbeioc/xhalo-blog-test
 - base branch: main
-- test branch: drafts/staging-async-e2e-smoke
+- test branch: draft/staging-async-e2e-smoke
 - test slug: staging-async-e2e-smoke
 - maximum branch count: 1
 - maximum PR count: 1

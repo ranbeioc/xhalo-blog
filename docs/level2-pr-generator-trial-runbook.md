@@ -1,6 +1,6 @@
 # Level 2 PR Generator Mode Trial Runbook
 
-This document defines the instructions for conducting a **Level 2 (PR Generator Mode)** trial run against a production or staging Hexo blog repository. In Level 2, write privileges are enabled but strictly restricted to creating draft branches (`drafts/*`) and opening Pull Requests. Direct pushes to `main` and auto-merges are entirely prohibited.
+This document defines the instructions for conducting a **Level 2 (PR Generator Mode)** trial run against a production or staging Hexo blog repository. In Level 2, write privileges are enabled but strictly restricted to creating draft branches (`draft/*`) and opening Pull Requests. Direct pushes to `main` and auto-merges are entirely prohibited.
 
 ---
 
@@ -58,7 +58,7 @@ curl -X POST "https://<production-api-url>/api/drafts/publish" \
       "slug": "level-2-trial-post"
     },
     "filePath": "source/_posts/level-2-trial-post.md",
-    "branchName": "drafts/level-2-trial-post"
+    "branchName": "draft/level-2-trial-post"
   },
   "persisted": true
 }
@@ -75,8 +75,8 @@ Verify that the task with `<returned-task-id>` reaches `status: "completed"`.
 
 ### Step 3: Verify GitHub Changes
 1. Log in to GitHub and check the target repository.
-2. Confirm that a new branch named `drafts/level-2-trial-post` was created.
-3. Confirm that a Pull Request was opened to merge `drafts/level-2-trial-post` into `main`.
+2. Confirm that a new branch named `draft/level-2-trial-post` was created.
+3. Confirm that a Pull Request was opened to merge `draft/level-2-trial-post` into `main`.
 4. Inspect the PR content to verify that the Markdown file format, title metadata, and front-matter are correct.
 5. **Verify that no direct commits or merges to `main` took place.**
 
@@ -95,7 +95,7 @@ Verify that both `draft_publish_queued` and `draft_publish_completed` actions ex
 
 Immediately upon completing the trial:
 * [ ] **Revert Safety Gate**: Set `LIVE_WRITES_ENABLED=false` in the Cloudflare Worker settings.
-* [ ] **Delete Git Branch**: Go to GitHub and delete the generated branch `drafts/level-2-trial-post`.
+* [ ] **Delete Git Branch**: Go to GitHub and delete the generated branch `draft/level-2-trial-post`.
 * [ ] **Close Pull Request**: Close the generated Pull Request on GitHub. Do not merge it.
 * [ ] **Clean D1 Records**: Purge the test post index and task history records:
   ```sql
