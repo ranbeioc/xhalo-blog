@@ -1,7 +1,7 @@
 # Production Readiness Checklist
 
-> Status: Approved for production PR trial (executed)  
-> Current decision: Production PR trial completed successfully; live writes remain blocked.
+> Status: Approved for production live-write readiness (assessment complete)  
+> Current decision: CONDITIONAL GO — pending explicit live-write approval.
 
 ---
 
@@ -94,5 +94,5 @@ production GitHub token
 Reason:
 
 ```text
-Production PR trial completed successfully; one controlled execution evidence recorded; live writes remain blocked.
+CONDITIONAL GO — all pre-live-write verification stages (dry-run, shadow-mode, PR trial) completed successfully; one controlled live-write trial pending explicit owner approval.
 ```
