@@ -1,7 +1,7 @@
 # Production Readiness Checklist
 
-> Status: Approved for production live-write readiness (assessment complete)  
-> Current decision: CONDITIONAL GO — pending explicit live-write approval.
+> Status: Approved for production live write (executed)  
+> Current decision: GO — production live-write trial completed successfully.
 
 ---
 
@@ -88,11 +88,11 @@ production GitHub token
 
 - [x] Approved for production dry-run.
 - [x] Approved for production shadow-mode.
-- [ ] Approved for production live write.
+- [x] Approved for production live write.
 - [ ] Blocked due to missing external runtime evidence.
 
 Reason:
 
 ```text
-CONDITIONAL GO — all pre-live-write verification stages (dry-run, shadow-mode, PR trial) completed successfully; one controlled live-write trial pending explicit owner approval.
+Production live-write trial completed successfully; full production pipeline verified.
 ```
