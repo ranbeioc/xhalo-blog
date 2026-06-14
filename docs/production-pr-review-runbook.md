@@ -25,9 +25,9 @@ This runbook applies to generated production PRs in `ranbeioc/hexo-blog`.
 
 ---
 
-## 3. Forbidden PR Body Placeholders
+## 3. PR Body Rejection Rules
 
-Reject PR if body contains:
+Reject PR if body contains placeholders:
 
 ```text
 <!-- What does this PR do?
@@ -36,6 +36,16 @@ npm test output here
 Additional Notes
 TBD
 placeholder
+```
+
+Reject PR if body quality gate fails:
+
+```text
+Reject PR if body contains template replacement markers.
+Reject PR if Production Impact has zero or multiple selections.
+Reject production-impacting PR if Evidence is empty or N/A.
+Reject PR if Validation checkboxes are unchecked without N/A reason.
+Reject PR if Safety checkboxes are unchecked without N/A reason.
 ```
 
 ---

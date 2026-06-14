@@ -2733,4 +2733,50 @@ Solidify the production pipeline as a secure, audited, and manual-gated PR-only 
 
 Operational readiness passed successfully. PR-only production publishing pipeline solidified, runbooks documented, quality validation script/workflow added, and PR #26 owner review checklist established.
 
+---
+
+## Step 074 - Operational Readiness Consistency and PR Quality Gate Hardening
+
+### Executed by Model
+Antigravity
+
+### Type
+Operational Readiness Consistency / PR Quality Gate Hardening
+
+### Goal
+Harden the automated PR body quality gate check rules, update templates to use explicit replacement markers, and resolve operational readiness status inconsistencies.
+
+### Files changed
+
+| File | Change summary | Reason |
+|---|---|---|
+| docs/production-readiness-checklist.md | Correct readiness checklist status | Fix NO-GO contradiction and decision scopes |
+| docs/production-go-no-go-checklist.md | Fix historical blocked statuses | Update remaining remains blocked items to completed status |
+| docs/production-operational-readiness.md | Append Section 6 | Document Quality Gate Hardening details |
+| docs/production-post-livewrite-audit-20260614.md | Append Section 2.2 and update reason | Update remediation status and decision context |
+| docs/hexo-blog-pr26-owner-review-checklist.md | Update review metadata | Log open state and mergeability status of PR #26 |
+| scripts/check-pr-body-quality.mjs | Strengthen checking script | Expand placeholders, fail unchecked checks (w/ N/A bypass context), require evidence for production-impacting PRs |
+| .github/pull_request_template.md | Revise PR template | Use explicit replacement tags instead of descriptive sentences |
+| .github/workflows/pr-quality-gate.yml | Restrict permissions | Add read-only contents and pull-requests permissions |
+| docs/production-pr-review-runbook.md | Update Section 3 | Add hard rejection rules for quality gate failures |
+| README.md | Update Status line | Align with controlled PR-only verified status |
+| docs/CLAUDE_BRANCH_PROGRESS.md | Add Step 074 | Track progress |
+
+### Validation
+
+| Command | Result | Notes |
+|---|---|---|
+| npm ci | Passed | Clean package installation |
+| npm run check:all | Passed | Static syntax, builds, unit tests, fixture, and secrets scan pass |
+| npm run check:secrets | Passed | No secrets or forbidden markers found in workspace |
+| npm test | Passed | 80/80 tests pass cleanly |
+| npm run test:secrets-fixture | Passed | Fixture tests run and assert successfully |
+| PR body quality positive case | Passed | Validates correct structure successfully |
+| PR body quality negative cases | Passed | Rejects all four invalid bodies with exit code 1 |
+
+### Final Gate Decision
+
+Operational readiness consistency and PR body quality gate gaps have been successfully remediated. All checks passed. PR #26 remains open/unmerged for manual owner review.
+
+
 

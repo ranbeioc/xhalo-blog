@@ -70,9 +70,14 @@ This document records the formal Go / No-Go decision and readiness checklist for
 - [x] Production dry-run plan created.
 - [x] Production owner approval template created.
 - [x] Production rollback runbook created.
-- [x] Production dry-run approval remains blocked.
-- [x] Production shadow-mode approval remains blocked.
-- [x] Production live-write approval remains blocked.
+- [x] Production dry-run approval completed for one controlled dry-run.
+- [x] Production shadow-mode approval completed for one controlled shadow-mode execution.
+- [x] Production PR trial approval completed for one controlled PR trial.
+- [x] Production live-write trial approval completed for one controlled live-write trial.
+- [x] Future production writes require separate owner approval.
+- [x] Production direct main write remains blocked.
+- [x] Production auto-merge remains blocked.
+- [x] Unattended batch publish remains blocked.
 
 ### 2.4 Prohibited Configurations
 - [ ] Worker configured to commit directly to `main` (Prohibited).
@@ -87,8 +92,8 @@ This document records the formal Go / No-Go decision and readiness checklist for
 - [x] Production dry-run owner approval completed.
 - [x] Production dry-run execution window recorded.
 - [x] Production dry-run operator recorded.
-- [x] Production shadow-mode approval remains blocked.
-- [x] Production live-write approval remains blocked.
+- [x] Production shadow-mode approval completed for one controlled shadow-mode execution.
+- [x] Production live-write trial approval completed for one controlled live-write trial.
 
 ### 2.6 Pre-requisites for Production Shadow-mode
 - [x] Production dry-run completed.
@@ -99,7 +104,7 @@ This document records the formal Go / No-Go decision and readiness checklist for
 - [x] Production shadow-mode owner approval completed.
 - [x] Production shadow-mode execution window recorded.
 - [x] Production shadow-mode operator recorded.
-- [x] Production live-write approval remains blocked.
+- [x] Production live-write trial approval completed for one controlled live-write trial.
 
 ---
 
