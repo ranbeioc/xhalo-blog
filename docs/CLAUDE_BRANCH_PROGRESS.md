@@ -2487,3 +2487,44 @@ Import sanitized external production runtime evidence, record owner approval, an
 
 Production dry-run completed successfully. The single controlled dry-run request returned a 200 OK response with content preview and write plan payloads, with zero mutations in Cloudflare or GitHub. Production live writes remain blocked.
 
+---
+
+## Step 068 - Production Shadow-mode Approval Review
+
+### Executed by Model
+Antigravity
+
+### Type
+Documentation / Safety Gate / Disaster Recovery
+
+### Goal
+Define production shadow-mode scope and non-mutating constraints, create shadow-mode approval document, preflight checklist, and evidence template, complete remaining rollback/disaster recovery checklist in runbook, and update go/no-go status to blocked pending owner approval.
+
+### Files changed
+
+| File | Change summary | Reason |
+|---|---|---|
+| docs/production-shadow-mode-scope.md | Create shadow-mode scope document | Define allowed and forbidden actions for shadow-mode |
+| docs/production-shadow-mode-approval.md | Create shadow-mode approval document | Record status as blocked pending owner approval |
+| docs/production-shadow-mode-preflight-checklist.md | Create shadow-mode preflight checklist | Establish baseline safety controls before execution |
+| docs/production-shadow-mode-evidence-template.md | Create shadow-mode evidence template | Prepare reporting structure for future execution evidence |
+| docs/production-rollback-runbook.md | Complete rollback runbook and shadow-mode rollback conditions | Document full D1, R2, Queue, Worker disaster recovery and stop conditions |
+| docs/production-go-no-go-checklist.md | Update approved scope, preflight checklists, and next stage | Update gate status and complete disaster recovery checklists |
+| docs/production-readiness-checklist.md | Update readiness checklist current decision | Align decision status with blocked shadow-mode |
+| docs/CLAUDE_BRANCH_PROGRESS.md | Add Step 068 | Track progress |
+
+### Validation
+
+| Command | Result | Notes |
+|---|---|---|
+| npm ci | Passed | Clean package installation |
+| npm run check:all | Passed | Static syntax, builds, unit tests, fixture, and secrets scan pass |
+| npm run check:secrets | Passed | No secrets or forbidden markers found in workspace |
+| npm test | Passed | 80/80 tests pass cleanly |
+| npm run test:secrets-fixture | Passed | Fixture tests run and assert successfully |
+| grep check | Passed | Verified zero leaked secrets, staging domain, or absolute local paths |
+
+### Final Gate Decision
+
+Production dry-run completed successfully; production shadow-mode remains blocked pending owner approval; live writes remain blocked.
+

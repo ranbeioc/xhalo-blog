@@ -1,7 +1,7 @@
 # Production Readiness Checklist
 
 > Status: Approved for production dry-run  
-> Current decision: production dry-run completed successfully; shadow-mode and live writes remain blocked.
+> Current decision: Production dry-run completed successfully; production shadow-mode remains blocked; live writes remain blocked.
 
 ---
 
@@ -94,5 +94,5 @@ production GitHub token
 Reason:
 
 ```text
-Production dry-run has been successfully executed and evidence recorded. Staging and production runtime configurations are verified. Shadow-mode and live writes remain blocked.
+Production dry-run completed successfully; production shadow-mode remains blocked pending owner approval; live writes remain blocked.
 ```
