@@ -7,7 +7,7 @@ This document records the formal Go / No-Go decision and readiness checklist for
 ## 1. Current Gate Decision
 
 * **Current Decision**: **NO-GO for live production writes**.
-* **Approved Scope**: **Production shadow-mode completed; production live writes remain blocked**.
+* **Approved Scope**: **Production PR trial completed; production live writes remain blocked**.
 * **Reasoning**:
   1. The API and Queue Worker architecture has successfully passed staging unit and integration smoke testing.
   2. Level 1 read-only connection compatibility validation has been completed successfully and sanitized.
@@ -15,6 +15,7 @@ This document records the formal Go / No-Go decision and readiness checklist for
   4. Staging environment variable `LIVE_WRITES_ENABLED` was successfully restored to `false`, and all test branches/PRs deleted.
   5. **Production dry-run has been executed successfully** and evidence recorded. All production resources on Cloudflare are provisioned, and configurations validated under a non-mutating plan.
   6. **Production shadow-mode has been executed successfully** and evidence recorded. All production configuration bindings and routing have been validated under a non-mutating scope.
+  7. **Production PR trial has been executed successfully** and evidence recorded. Created a controlled draft branch and PR on the production `ranbeioc/hexo-blog` repository, verified async queue completion, closed the trial PR without merge, deleted the draft branch, and restored `LIVE_WRITES_ENABLED=false` safety baseline.
   *Note: This decision does not authorize production publishing, direct main writes, auto-merge, batch publishing, or writes to `hexo-blog`.*
 
 ---
@@ -111,9 +112,9 @@ This document records the formal Go / No-Go decision and readiness checklist for
 ## 4. Next Stage
 
 ```text
-Production PR Trial Approval + Execution Pack
+Production PR Trial Review + Live-write Readiness
 ```
 
 ```text
-No further shadow-mode PR should be opened. The next stage is reviewing and executing the production PR trial.
+No further PR trial PR should be opened. The next stage is reviewing the PR trial evidence and preparing the final live-write readiness gate.
 ```

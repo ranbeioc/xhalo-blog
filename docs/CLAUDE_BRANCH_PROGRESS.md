@@ -2569,3 +2569,42 @@ Approve and execute exactly one controlled production shadow-mode request, verif
 
 Production shadow-mode completed successfully; one controlled execution evidence recorded; live writes remain blocked.
 
+---
+
+## Step 070 - Production PR Trial Execution
+
+### Executed by Model
+Antigravity
+
+### Type
+Controlled PR Trial / Evidence Capture / Safety Gate
+
+### Goal
+Approve and execute exactly one controlled production PR trial request (creating one draft branch and one PR on production repo, then closing PR and deleting branch without merging), and record sanitized evidence.
+
+### Files changed
+
+| File | Change summary | Reason |
+|---|---|---|
+| docs/production-pr-trial-approval-20260614.md | Create 2026-06-14 approval record | Document owner authorization for PR trial |
+| docs/production-pr-trial-risk-review-20260614.md | Create risk review record | Assess safety of controlled execution |
+| docs/production-pr-trial-evidence-20260614.md | Create PR trial evidence report | Record one controlled PR trial request result |
+| docs/production-go-no-go-checklist.md | Update scope, next stage, and prerequisites | Set next stage to Production PR Trial Review |
+| docs/production-readiness-checklist.md | Update status and current decision | Align decision status with completed PR trial |
+| docs/CLAUDE_BRANCH_PROGRESS.md | Add Step 070 | Track progress |
+
+### Validation
+
+| Command | Result | Notes |
+|---|---|---|
+| npm ci | Passed | Clean package installation |
+| npm run check:all | Passed | Static syntax, builds, unit tests, fixture, and secrets scan pass |
+| npm run check:secrets | Passed | No secrets or forbidden markers found in workspace |
+| npm test | Passed | 80/80 tests pass cleanly |
+| npm run test:secrets-fixture | Passed | Fixture tests run and assert successfully |
+| PR trial smoke test | Passed | Returned 202 Accepted, enqueued, completed task, created branch and PR #25, then successfully rolled back |
+
+### Final Gate Decision
+
+Production PR trial completed successfully; one controlled execution evidence recorded; live writes remain blocked.
+

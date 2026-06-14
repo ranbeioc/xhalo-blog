@@ -1,7 +1,7 @@
 # Production Readiness Checklist
 
-> Status: Approved for production shadow-mode (executed)  
-> Current decision: Production shadow-mode completed successfully; live writes remain blocked.
+> Status: Approved for production PR trial (executed)  
+> Current decision: Production PR trial completed successfully; live writes remain blocked.
 
 ---
 
@@ -94,5 +94,5 @@ production GitHub token
 Reason:
 
 ```text
-Production shadow-mode completed successfully; one controlled execution evidence recorded; live writes remain blocked.
+Production PR trial completed successfully; one controlled execution evidence recorded; live writes remain blocked.
 ```
