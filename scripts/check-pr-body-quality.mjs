@@ -57,9 +57,9 @@ const forbiddenPatterns = [
   'Link evidence docs or write N/A.',
   'Any reviewer context.',
   'Valid body.',
-  'placeholder',
-  'TODO',
-  'TBD',
+  /\bplaceholder\b/i,
+  /\btodo\b/i,
+  /\btbd\b/i,
   'npm test output here',
   'Additional Notes',
   '<!--',
@@ -71,8 +71,14 @@ const forbiddenPatterns = [
 
 const lowerPrBody = prBody.toLowerCase();
 for (const pattern of forbiddenPatterns) {
-  if (lowerPrBody.includes(pattern.toLowerCase())) {
-    fail(`Error: PR body contains forbidden template placeholder or text: "${pattern}"`);
+  if (pattern instanceof RegExp) {
+    if (pattern.test(prBody)) {
+      fail(`Error: PR body contains forbidden template placeholder or text matching pattern: ${pattern}`);
+    }
+  } else {
+    if (lowerPrBody.includes(pattern.toLowerCase())) {
+      fail(`Error: PR body contains forbidden template placeholder or text: "${pattern}"`);
+    }
   }
 }
 
