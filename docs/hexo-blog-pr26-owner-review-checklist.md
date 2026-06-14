@@ -14,25 +14,25 @@
 | Branch | `draft/production-live-write-trial-20260614` |
 | Base | `main` |
 | File | `source/_posts/production-live-write-trial-20260614.md` |
-| Status | open / unmerged |
+| Status | closed / unmerged |
 
 ```text
-Current observed state: open / unmerged.
-Current mergeability: false or unknown, requires owner review and possible rebase/sync before manual merge.
+Current observed state: closed / unmerged.
+Current mergeability: N/A - closed without merge.
 ```
 
 ---
 
 ## 2. Content Review
 
-- [ ] Title is expected.
-- [ ] Slug is expected.
-- [ ] Frontmatter is valid.
-- [ ] `status: draft` is intentional.
-- [ ] No secrets or sensitive URLs.
-- [ ] No unexpected files.
-- [ ] No generated metadata that should be removed.
-- [ ] Content is safe to keep / merge / close.
+- [x] Title is expected.
+- [x] Slug is expected.
+- [x] Frontmatter is valid.
+- [x] `status: draft` is intentional.
+- [x] No secrets or sensitive URLs.
+- [x] No unexpected files.
+- [x] No generated metadata that should be removed.
+- [x] Content is safe to keep / merge / close.
 
 ---
 
@@ -41,22 +41,32 @@ Current mergeability: false or unknown, requires owner review and possible rebas
 Choose exactly one:
 
 - [ ] Keep PR #26 open for further review.
-- [ ] Close PR #26 without merge.
+- [x] Close PR #26 without merge.
 - [ ] Merge PR #26 manually.
 - [ ] Request content changes.
 
 Reason:
 
 ```text
-Owner decision is pending. PR #26 remains open and unmerged.
+Owner reviewed PR #26 and confirmed it was created only to validate the controlled production PR-only publishing workflow. The generated test content should not be published. PR #26 must be closed without merge.
 ```
 
 ---
 
-## 4. Constraints
+## 4. Final Status
 
-* No auto-merge.
-* No direct main write.
-* No additional production request.
-* No batch publish.
-* No new branch or PR.
+| Check                         | Expected    | Actual                        | Status         |
+| ----------------------------- | ----------- | ----------------------------- | -------------- |
+| PR #26                        | closed      | closed                        | Pass           |
+| Merged                        | false       | false                         | Pass           |
+| `hexo-blog/main`              | unchanged   | unchanged                     | Pass           |
+| Draft branch                  | deleted     | deleted                       | Pass           |
+| Auto-merge                    | not enabled | not enabled                   | Pass           |
+| Direct main write             | none        | none                          | Pass           |
+| Additional production request | none        | none                          | Pass           |
+
+Final decision:
+
+```text
+Closed without merge. Production live-write trial remains passed, but generated test content was not released to main.
+```

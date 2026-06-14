@@ -16,7 +16,8 @@ This document records the formal Go / No-Go decision and readiness checklist for
   5. **Production dry-run has been executed successfully** and evidence recorded. All production resources on Cloudflare are provisioned, and configurations validated under a non-mutating plan.
   6. **Production shadow-mode has been executed successfully** and evidence recorded. All production configuration bindings and routing have been validated under a non-mutating scope.
   7. **Production PR trial has been executed successfully** and evidence recorded. Created a controlled draft branch and PR on the production `ranbeioc/hexo-blog` repository, verified async queue completion, closed the trial PR without merge, deleted the draft branch, and restored `LIVE_WRITES_ENABLED=false` safety baseline.
-  8. **Production live-write trial has been executed successfully** and evidence recorded. Created a controlled draft branch and PR #26 on the production repository `ranbeioc/hexo-blog`, verified async queue completion, verified the PR remains open for final merge/verification, and restored `LIVE_WRITES_ENABLED=false` safety baseline.
+  8. **Production live-write trial has been executed successfully** and evidence recorded. Created a controlled draft branch and PR #26 on the production repository `ranbeioc/hexo-blog`, verified async queue completion, and restored `LIVE_WRITES_ENABLED=false` safety baseline.
+  9. **The owner reviewed the generated live-write trial PR #26 and chose to close it without merge.** This confirms the production pipeline remains PR-only and owner-controlled: generated content is not published unless the owner manually merges it.
   
   *Note: Direct main writes, auto-merge, batch publish, and unattended live writes are NOT approved and remain strictly prohibited.*
 
@@ -119,9 +120,14 @@ This document records the formal Go / No-Go decision and readiness checklist for
 ## 4. Next Stage
 
 ```text
-Owner review of hexo-blog PR #26 and controlled PR-only operations
+Controlled PR-only operations with owner-approved production write windows
 ```
 
 ```text
-The next stage is the repository owner's manual review of PR #26 on hexo-blog and subsequent ongoing controlled PR-only content deployments.
+The next stage is ongoing controlled PR-only content deployments under manual owner-approved production write windows.
+- Direct main write: not approved
+- Auto-merge: not approved
+- Unattended live write: not approved
+- Batch publish: not approved
+- Future production write windows require owner approval
 ```

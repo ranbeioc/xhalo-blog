@@ -99,5 +99,5 @@ production GitHub token
 Reason:
 
 ```text
-The controlled production live-write trial completed successfully, validating the asynchronous publish queue and GitHub App integrations. Future production writes still require explicit, window-bounded owner approvals, while direct commits to main and auto-merge remain strictly blocked.
+The controlled production live-write trial completed successfully, validating the asynchronous publish queue and GitHub App integrations. Future production writes still require explicit, window-bounded owner approvals, while direct commits to main and auto-merge remain strictly blocked. PR #26 was reviewed by the owner and closed without merge. This confirms the production flow is PR-only and final publication remains manual.
 ```

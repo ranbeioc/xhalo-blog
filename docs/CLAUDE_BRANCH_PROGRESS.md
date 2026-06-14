@@ -2778,5 +2778,45 @@ Harden the automated PR body quality gate check rules, update templates to use e
 
 Operational readiness consistency and PR body quality gate gaps have been successfully remediated. All checks passed. PR #26 remains open/unmerged for manual owner review.
 
+---
+
+## Step 075 - Record Owner Decision for hexo-blog PR #26
+
+### Executed by Model
+Antigravity
+
+### Type
+Operational Readiness / PR Closure Logging
+
+### Goal
+Record the owner's manual review decision to close the production live-write trial PR #26 on the hexo-blog repository without merge and delete the remote draft branch.
+
+### Files changed
+
+| File | Change summary | Reason |
+|---|---|---|
+| docs/hexo-blog-pr26-owner-review-checklist.md | Record final closed status | Update metadata status, content review checkboxes, and final status check list |
+| docs/production-livewrite-trial-evidence.md | Update follow-up required | Check off owner review, decision, closure, and branch deletion boxes |
+| docs/production-post-livewrite-audit-20260614.md | Record final decision and result | Update Section 3 with final closed and branch-deleted status details |
+| docs/production-go-no-go-checklist.md | Update reasoning and next stage | Add owner decision on PR #26 to reasons, set next stage to manual approved write windows |
+| docs/production-readiness-checklist.md | Update decision block | Append PR #26 owner review and closure to reason |
+| docs/CLAUDE_BRANCH_PROGRESS.md | Add Step 075 | Track progress |
+
+### Validation
+
+| Command | Result | Notes |
+|---|---|---|
+| npm ci | Passed | Clean package installation |
+| npm run check:all | Passed | Static syntax, builds, unit tests, fixture, and secrets scan pass |
+| npm run check:secrets | Passed | No secrets or forbidden markers found in workspace |
+| npm test | Passed | 80/80 tests pass cleanly |
+| npm run test:secrets-fixture | Passed | Fixture tests run and assert successfully |
+| PR body quality positive case | Passed | Validates correct structure successfully |
+
+### Final Gate Decision
+
+PR #26 closed without merge and draft branch deleted. The controlled live-write trial remains valid as the system successfully created the draft branch and PR under temporary parameters, and final publication remains strictly under manual owner control. Controlled PR-only pipeline verified and approved under owner-approved write windows.
+
+
 
 
