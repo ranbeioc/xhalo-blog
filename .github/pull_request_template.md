@@ -1,54 +1,46 @@
 ## Summary
 
-<!-- What does this PR do? Why is this change needed? -->
+Explain what this PR changes and why.
 
-## Changes
+## Scope
 
-<!-- List the key changes made -->
+- [ ] Documentation only
+- [ ] Code change
+- [ ] Test/evidence update
+- [ ] Production-impacting workflow
 
--
+## Production Impact
 
-## Security Impact
+Choose one:
 
-<!-- Does this PR modify authentication, authorization, input validation, or output encoding? -->
-<!-- If yes, describe what changed and why. If no, write "None." -->
+- [ ] No production impact
+- [ ] Production read-only verification
+- [ ] Production dry-run
+- [ ] Production shadow-mode
+- [ ] Production PR trial
+- [ ] Production live-write trial
 
-None.
+## Safety
 
-## Migration Impact
-
-<!-- Does this PR add or modify D1 migrations, R2 bindings, or environment variables? -->
-<!-- If yes, describe upgrade steps. If no, write "None." -->
-
-None.
+- [ ] No secrets committed
+- [ ] No direct main write
+- [ ] No auto-merge
+- [ ] No unapproved production write
+- [ ] `LIVE_WRITES_ENABLED` state documented if relevant
 
 ## Validation
 
-- [ ] `npm ci` installs cleanly
-- [ ] `npm run check:all` passes
-- [ ] `npm test` passes (all tests green)
-- [ ] No secrets or production markers committed
-- [ ] Progress documentation updated (if applicable)
+- [ ] `npm ci`
+- [ ] `npm run check:all`
+- [ ] `npm run check:secrets`
+- [ ] `npm test`
+- [ ] `npm run test:secrets-fixture`
 
-## Test Results
+## Evidence
 
-```
-npm test output here
-```
+Link evidence docs or write `N/A`.
 
-## Additional Notes
+## Notes
 
-<!-- Any context reviewers should know -->
-
----
-
-> [!WARNING]
-> ## Merge Blockers / Audit Gaps Enforcement
-> A PR must **NOT** be merged if:
-> - The PR body still contains template comments (e.g. `<!-- What does this PR do? -->`).
-> - The **Summary** is empty or uninformative.
-> - The **Changes** section contains only placeholders or placeholder items.
-> - The **Validation** checkboxes are not updated/checked.
-> - The **Test Results** section still contains `npm test output here`.
-> - **Security Impact** or **Migration Impact** is left as `None` for code or config changes.
+Any reviewer context.
 

@@ -10,6 +10,22 @@ It starts as a clean community edition template, not as a copy of any production
 
 Do not expose live write routes on a public domain until Cloudflare Access, request authentication, Turnstile, rate limiting, and route-level tests are configured and verified.
 
+## Production Safety Status
+
+The production pipeline has passed one controlled live-write trial.
+
+Current operating mode:
+
+- PR-only production publishing;
+- `LIVE_WRITES_ENABLED=false` by default;
+- explicit owner approval required for every production write window;
+- no direct main writes;
+- no auto-merge;
+- no unattended batch publish;
+- no R2 writes unless separately approved.
+
+Generated production PRs must be manually reviewed by the owner before merge.
+
 ## Goals
 
 - Keep static publishing fast and reliable with Hexo and Cloudflare Pages.
