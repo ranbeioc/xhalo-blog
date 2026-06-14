@@ -96,3 +96,19 @@ Reason:
 ```text
 The production live-write trial completed successfully. Under a controlled execution window, exactly one write request was processed. The Queue Worker successfully created branch draft/production-live-write-trial-20260614 and opened PR #26 on ranbeioc/hexo-blog. The environment variable LIVE_WRITES_ENABLED=false was immediately restored, and subsequent writes are rejected as expected. The PR remains open for final merge verification by the repository owner.
 ```
+
+---
+
+## 7. Follow-up Required
+
+- [x] `LIVE_WRITES_ENABLED=false` restored.
+- [x] Subsequent writes rejected with 403.
+- [x] PR #26 remains open and unmerged.
+- [ ] Owner reviewed PR #26.
+- [ ] Owner decided whether to merge, close, or request changes.
+
+Current follow-up status:
+
+```text
+PR #26 requires manual owner review. This evidence report does not authorize automatic merge.
+```

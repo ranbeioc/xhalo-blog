@@ -1,7 +1,7 @@
 # Production Readiness Checklist
 
-> Status: Approved for production live write (executed)  
-> Current decision: GO — production live-write trial completed successfully.
+> Status: Approved for controlled PR-only production pipeline after one successful live-write trial.  
+> Current decision: Future production writes require explicit owner approval; direct main writes and auto-merge remain blocked.
 
 ---
 
@@ -86,13 +86,15 @@ production GitHub token
 
 ## 3. Current Decision
 
-- [x] Approved for production dry-run.
-- [x] Approved for production shadow-mode.
-- [x] Approved for production live write.
-- [ ] Blocked due to missing external runtime evidence.
+* Approved for production dry-run: **yes**
+* Approved for production shadow-mode: **yes**
+* Approved for one controlled live-write trial: **completed**
+* Approved for ongoing unattended live writes: **no**
+* Approved for direct main write: **no**
+* Approved for auto merge: **no**
 
 Reason:
 
 ```text
-Production live-write trial completed successfully; full production pipeline verified.
+The controlled production live-write trial completed successfully, validating the asynchronous publish queue and GitHub App integrations. Future production writes still require explicit, window-bounded owner approvals, while direct commits to main and auto-merge remain strictly blocked.
 ```
