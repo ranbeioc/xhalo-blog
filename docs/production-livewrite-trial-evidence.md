@@ -103,12 +103,18 @@ The production live-write trial completed successfully. Under a controlled execu
 
 - [x] `LIVE_WRITES_ENABLED=false` restored.
 - [x] Subsequent writes rejected with 403.
-- [x] PR #26 remains open and unmerged.
-- [ ] Owner reviewed PR #26.
-- [ ] Owner decided whether to merge, close, or request changes.
+- [x] PR #26 created as controlled trial output.
+- [x] Owner reviewed PR #26.
+- [x] Owner decided to close PR #26 without merge.
+- [x] PR #26 closed without merge.
+- [x] Generated test content was not released to `hexo-blog/main`.
+- [x] No auto-merge used.
+- [x] No direct main write used.
+- [x] No additional production request executed.
+- [x] Draft branch deleted.
 
 Current follow-up status:
 
 ```text
-PR #26 requires manual owner review. This evidence report does not authorize automatic merge.
+Owner reviewed PR #26 and decided not to publish the generated test content. PR #26 was closed without merge. The controlled live-write trial remains valid because the system successfully created a draft branch and PR, while release to main remained under manual owner control.
 ```
