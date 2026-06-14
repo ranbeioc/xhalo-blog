@@ -1,6 +1,6 @@
 # Production Boundary Verification Evidence - 2026-06-09
 
-> Status: Completed  
+> Status: Partial / Blocked  
 > Scope: sanitized production boundary verification only.  
 > No secrets, tokens, private keys, or sensitive URLs are recorded.
 
@@ -12,12 +12,12 @@
 |---|---|---|
 | Production content repo | Pass | `hexo-blog` remains read-only |
 | Production app repo | Pass | `xhalo-blog` PR-only |
-| Production Worker | Pass | endpoint redacted |
-| Production queue | Pass | name redacted if sensitive |
-| Production D1 | Pass | no destructive operation |
-| Production R2 | Pass | no write approved |
-| Production auth | Pass | policy only, no secrets |
-| GitHub credential | Pass | credential type only |
+| Production Worker | Blocked | Missing external runtime evidence |
+| Production queue | Blocked | Missing external runtime evidence |
+| Production D1 | Blocked | Missing external runtime evidence |
+| Production R2 | Blocked | Missing external runtime evidence |
+| Production auth | Blocked | Missing external runtime evidence |
+| GitHub credential | Blocked | Missing external runtime evidence |
 
 ---
 
@@ -35,12 +35,12 @@
 
 ## 3. Verdict
 
-- [x] Passed
-- [ ] Partial
+- [ ] Passed
+- [x] Partial
 - [ ] Failed
 
 Reason:
 
 ```text
-Sanitized production boundaries for hexo-blog and xhalo-blog have been fully verified. Content repository access remains strictly read-only and all local tests run in a sandbox without remote mutation capabilities.
+Repository boundaries are verified, but external Cloudflare/GitHub runtime evidence is missing. The production boundary cannot be considered fully verified.
 ```

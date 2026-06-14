@@ -1,7 +1,7 @@
 # Production Boundary Inventory
 
-> Status: Draft / Pending verification  
-> Current decision: production execution remains blocked until this inventory is completed and reviewed.
+> Status: Blocked  
+> Current decision: production boundary cannot be verified without external runtime evidence.
 
 ---
 
@@ -36,17 +36,17 @@ production analytics/logs
 
 | Resource | Expected | Actual | Status | Notes |
 |---|---|---|---|---|
-| Production site | `<production-site-url>` | `<placeholder>` | Pending | Sensitive URL should remain placeholder if needed |
-| Production content repo | `ranbeioc/hexo-blog` | `ranbeioc/hexo-blog` | Pass | Read-only unless separately approved |
+| Production site | `<production-site-url>` | `<redacted-production-site>` | Blocked | Missing external runtime evidence |
+| Production content repo | `ranbeioc/hexo-blog` | `ranbeioc/hexo-blog` | Pass | Read-only |
 | Production app repo | `ranbeioc/xhalo-blog` | `ranbeioc/xhalo-blog` | Pass | PR-only |
 | Production base branch | `main` | `main` | Pass | No direct main write |
-| Production Worker | `<production-worker-name>` | `<redacted-placeholder>` | Pending | Do not commit secret endpoint |
-| Production queue | `<production-queue-name>` | `<redacted-placeholder>` | Pending | No execution until approved |
-| Production D1 | `<production-d1-name>` | `<redacted-placeholder>` | Pending | No destructive operation |
-| Production R2 | `<production-r2-bucket>` | `<redacted-placeholder>` | Pending | No write until separately approved |
-| Production GitHub credential | GitHub App / token | `<credential-type-only>` | Pending | Least privilege required |
-| Production domain | `<domain>` | `<redacted-placeholder>` | Pending | Placeholder allowed |
-| Production Access/Auth | Cloudflare Access / Turnstile / admin secret | `<policy-only>` | Pending | Secrets never committed |
+| Production Worker | `<production-worker-name>` | `<redacted-worker-id>` | Blocked | Missing external runtime evidence |
+| Production queue | `<production-queue-name>` | `<redacted-queue-id>` | Blocked | Missing external runtime evidence |
+| Production D1 | `<production-d1-name>` | `<redacted-d1-id>` | Blocked | Missing external runtime evidence |
+| Production R2 | `<production-r2-bucket>` | `<redacted-r2-id-or-na>` | Blocked | Missing external runtime evidence |
+| Production GitHub credential | GitHub App / token | `<credential-type-only>` | Blocked | Missing external runtime evidence |
+| Production domain | `<domain>` | `<redacted-domain>` | Blocked | Missing external runtime evidence |
+| Production Access/Auth | Cloudflare Access / Turnstile / admin secret | `<policy-only>` | Blocked | Missing external runtime evidence |
 
 ---
 
@@ -65,10 +65,10 @@ production analytics/logs
 ## 5. Current Decision
 
 - [ ] Production boundary verified.
-- [x] Production boundary pending.
+- [x] Production boundary blocked.
 
 Reason:
 
 ```text
-Production resources are not fully enumerated and reviewed. Production execution remains blocked.
+External Cloudflare/GitHub production runtime evidence is missing. No production dry-run may proceed.
 ```

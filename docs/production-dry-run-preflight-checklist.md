@@ -1,6 +1,6 @@
 # Production Dry-run Preflight Checklist
 
-> Status: Pending  
+> Status: Blocked  
 > Execution is forbidden until every required preflight item is complete or explicitly waived by the owner.
 
 ---
@@ -76,11 +76,11 @@
 ## 6. Preflight Verdict
 
 - [ ] Passed.
-- [ ] Failed.
-- [x] Pending.
+- [x] Failed / Blocked.
+- [ ] Pending.
 
 Reason:
 
 ```text
-Pending production boundary verification and owner approval.
+Production dry-run preflight is blocked because external production runtime evidence is missing. No dry-run execution may proceed.
 ```
