@@ -22,6 +22,7 @@ test('Async Publish API: rejects with 403 when LIVE_WRITES_ENABLED=false', async
     body: JSON.stringify({
       title: 'Staging Post',
       slug: 'staging-post',
+      body: 'This is body content',
       mode: 'live'
     })
   }, {
@@ -43,6 +44,7 @@ test('Async Publish API: rejects with 500 when TASK_QUEUE is not bound', async (
     body: JSON.stringify({
       title: 'Staging Post',
       slug: 'staging-post',
+      body: 'This is body content',
       mode: 'live'
     })
   }, {

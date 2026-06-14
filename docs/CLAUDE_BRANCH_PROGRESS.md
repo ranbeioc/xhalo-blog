@@ -2817,6 +2817,49 @@ Record the owner's manual review decision to close the production live-write tri
 
 PR #26 closed without merge and draft branch deleted. The controlled live-write trial remains valid as the system successfully created the draft branch and PR under temporary parameters, and final publication remains strictly under manual owner control. Controlled PR-only pipeline verified and approved under owner-approved write windows.
 
+---
+
+## Step 076 - Implement Admin PR-only Publishing MVP
+
+### Executed by Model
+Antigravity
+
+### Type
+Feature / Refactoring
+
+### Goal
+Implement the Admin PR-only Publishing MVP, introducing normalized editor input schemas, a structured Pull Request body generator suitable for owner reviews, strict path traversal validation gates, and dynamic task status polling in the Administration UI.
+
+### Files changed
+
+| File | Change summary | Reason |
+|---|---|---|
+| packages/core/src/index.js | Update normalization, frontmatter parsing, and PR preview to support Date/Updated/Categories overrides, and add structured PR body template | Implement core formatting logic and review body |
+| packages/core/src/github-publishing.js | Update createPullRequest to use preview.pullRequestBody | Populate GitHub Pull Request body with structured content |
+| workers/api/src/index.js | Strengthen validatePublishInput schemas, prevent path traversals in slug, restrict status to draft/review, and update task summary | Implement robust backend safety gates and map PR links |
+| apps/admin/src/index.html | Reorganize draft posting workbench into Editor, Frontmatter, Preview, and Task Status sections | Deliver a premium, structured UI experience |
+| apps/admin/src/app.js | Parse comma-separated array inputs, retrieve detailed HTTP validation errors, and poll queued task records dynamically | Connect UI flow and poll database task state |
+| tests/admin-publishing-mvp.test.mjs | Add unit tests covering core core normalization, filepath bounds, PR body fields, and template mappings | Verify correctness of the MVP features |
+| tests/worker-security.test.mjs | Update schema validation assertions to include body and status review checks | Fix regressions and verify safety policies |
+| tests/async-publish-api.test.mjs | Add required body property to validation tests | Satisfy new schemas and prevent validation errors |
+| docs/CLAUDE_BRANCH_PROGRESS.md | Append Step 076 log | Track branch development progress |
+
+### Validation
+
+| Command | Result | Notes |
+|---|---|---|
+| npm ci | Passed | Clean package installation |
+| npm run check:all | Passed | All syntax, build, unit test, fixture, and secrets scan pass |
+| npm run check:secrets | Passed | Workspace checked and confirmed clean |
+| npm test | Passed | 86/86 tests pass cleanly (including new unit tests) |
+| npm run test:secrets-fixture | Passed | Fixture tests run and assert successfully |
+| PR body quality positive case | Passed | PR body gate checks pass cleanly |
+
+### Final Gate Decision
+
+Admin PR-only Publishing MVP has been successfully implemented, verified, and validated. All automated validations and local checks pass cleanly. All write actions are strictly locked behind owner-reviewed manual Pull Request generation with zero direct main writes or auto-merging, adhering to the absolute safety boundary.
+
+
 
 
 
