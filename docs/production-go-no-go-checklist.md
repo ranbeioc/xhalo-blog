@@ -7,13 +7,13 @@ This document records the formal Go / No-Go decision and readiness checklist for
 ## 1. Current Gate Decision
 
 * **Current Decision**: **NO-GO for live production writes**.
-* **Approved Scope**: **Production dry-run blocked**.
+* **Approved Scope**: **Production dry-run completed; production live writes remain blocked**.
 * **Reasoning**:
   1. The API and Queue Worker architecture has successfully passed staging unit and integration smoke testing.
   2. Level 1 read-only connection compatibility validation has been completed successfully and sanitized.
   3. Staging async E2E evidence and Level 2 Single PR Trial execution evidence have been completed, verified, and cleaned up.
   4. Staging environment variable `LIVE_WRITES_ENABLED` was successfully restored to `false`, and all test branches/PRs deleted.
-  5. **Production dry-run and runtime verification are blocked** due to missing external Cloudflare/GitHub production runtime resources under the active Cloudflare Account API Token (only staging resources exist).
+  5. **Production dry-run has been executed successfully** and evidence recorded. All production resources on Cloudflare are provisioned, and configurations validated under a non-mutating plan.
   *Note: This approval does not authorize production publishing, direct main writes, auto-merge, batch publishing, or writes to `hexo-blog`.*
 
 ---
@@ -77,12 +77,12 @@ This document records the formal Go / No-Go decision and readiness checklist for
 - [ ] Committing production secrets or URLs to documentation or code (Prohibited).
 
 ### 2.5 Pre-requisites for Production Dry-run
-- [ ] Production boundary inventory verified. — Blocked.
-- [ ] Production runtime verification completed. — Blocked.
-- [ ] Production dry-run preflight checklist passed. — Blocked.
-- [ ] Production dry-run owner approval completed. — Blocked.
-- [ ] Production dry-run execution window recorded. — Blocked.
-- [ ] Production dry-run operator recorded. — Blocked.
+- [x] Production boundary inventory verified.
+- [x] Production runtime verification completed.
+- [x] Production dry-run preflight checklist passed.
+- [x] Production dry-run owner approval completed.
+- [x] Production dry-run execution window recorded.
+- [x] Production dry-run operator recorded.
 - [x] Production shadow-mode approval remains blocked.
 - [x] Production live-write approval remains blocked.
 
@@ -99,9 +99,9 @@ This document records the formal Go / No-Go decision and readiness checklist for
 ## 4. Next Stage
 
 ```text
-External Cloudflare / GitHub production runtime evidence collection outside repo
+Production Shadow-mode Approval Review
 ```
 
 ```text
-No further documentation-only PR should be opened until missing external runtime evidence is collected.
+No further dry-run documentation-only PR should be opened. The next stage is reviewing shadow-mode parameters.
 ```

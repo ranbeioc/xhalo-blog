@@ -3,6 +3,10 @@
 > Status: Blocked  
 > Scope: production runtime verification could not be completed.
 
+> [!NOTE]
+> Superseded by [production-runtime-verification-evidence-20260614.md](production-runtime-verification-evidence-20260614.md) after external runtime remediation.
+
+
 ---
 
 ## 1. Blocked Items

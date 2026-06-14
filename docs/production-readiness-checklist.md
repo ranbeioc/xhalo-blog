@@ -1,7 +1,7 @@
 # Production Readiness Checklist
 
-> Status: Blocked  
-> Current decision: production dry-run and live writes are blocked due to missing external runtime evidence.
+> Status: Approved for production dry-run  
+> Current decision: production dry-run completed successfully; shadow-mode and live writes remain blocked.
 
 ---
 
@@ -47,15 +47,15 @@ production GitHub token
 
 ### P2 - Cloudflare Production Runtime
 
-- [ ] Production Worker identified. — Blocked: missing external runtime evidence.
-- [ ] Production queue identified. — Blocked: missing external runtime evidence.
-- [ ] Production D1 identified. — Blocked: missing external runtime evidence.
-- [ ] Production R2 identified. — Blocked: missing external runtime evidence.
-- [ ] Secrets stored only in Cloudflare secrets. — Blocked: missing external runtime evidence.
-- [ ] `LIVE_WRITES_ENABLED=false` default verified. — Blocked: missing external runtime evidence.
-- [ ] Production Access / auth policy verified. — Blocked: missing external runtime evidence.
-- [ ] Turnstile policy verified. — Blocked: missing external runtime evidence.
-- [ ] Rate limits / abuse control documented. — Blocked: missing external runtime evidence.
+- [x] Production Worker identified.
+- [x] Production queue identified.
+- [x] Production D1 identified.
+- [x] Production R2 identified.
+- [x] Secrets stored only in Cloudflare secrets.
+- [x] `LIVE_WRITES_ENABLED=false` default verified.
+- [x] Production Access / auth policy verified.
+- [x] Turnstile policy verified.
+- [x] Rate limits / abuse control documented.
 
 ### P3 - Content Safety
 
@@ -86,13 +86,13 @@ production GitHub token
 
 ## 3. Current Decision
 
-- [ ] Approved for production dry-run.
+- [x] Approved for production dry-run.
 - [ ] Approved for production shadow-mode.
 - [ ] Approved for production live write.
-- [x] Blocked due to missing external runtime evidence.
+- [ ] Blocked due to missing external runtime evidence.
 
 Reason:
 
 ```text
-Production readiness checklist cannot be completed because external Cloudflare/GitHub runtime evidence is missing.
+Production dry-run has been successfully executed and evidence recorded. Staging and production runtime configurations are verified. Shadow-mode and live writes remain blocked.
 ```
