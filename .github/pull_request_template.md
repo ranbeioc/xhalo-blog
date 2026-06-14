@@ -1,6 +1,6 @@
 ## Summary
 
-Explain what this PR changes and why.
+<replace with concise summary>
 
 ## Scope
 
@@ -10,8 +10,6 @@ Explain what this PR changes and why.
 - [ ] Production-impacting workflow
 
 ## Production Impact
-
-Choose one:
 
 - [ ] No production impact
 - [ ] Production read-only verification
@@ -38,9 +36,8 @@ Choose one:
 
 ## Evidence
 
-Link evidence docs or write `N/A`.
+<replace with docs path, PR link, or N/A with reason>
 
 ## Notes
 
-Any reviewer context.
-
+<replace with reviewer context or N/A>

@@ -16,6 +16,11 @@
 | File | `source/_posts/production-live-write-trial-20260614.md` |
 | Status | open / unmerged |
 
+```text
+Current observed state: open / unmerged.
+Current mergeability: false or unknown, requires owner review and possible rebase/sync before manual merge.
+```
+
 ---
 
 ## 2. Content Review

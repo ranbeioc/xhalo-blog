@@ -33,7 +33,7 @@ production GitHub token
 - [x] Level 2 Single PR Trial completed.
 - [x] Level 2 cleanup completed.
 - [x] Smoke script parameterized.
-- [x] Production Go/No-Go remains NO-GO.
+- [x] Production Go/No-Go narrowed to controlled PR-only pipeline.
 
 ### P1 - Repository Boundary
 
@@ -89,9 +89,12 @@ production GitHub token
 * Approved for production dry-run: **yes**
 * Approved for production shadow-mode: **yes**
 * Approved for one controlled live-write trial: **completed**
+* Approved for controlled PR-only production pipeline: **yes**
 * Approved for ongoing unattended live writes: **no**
 * Approved for direct main write: **no**
 * Approved for auto merge: **no**
+* Approved for batch publish: **no**
+* Approved for R2 write without separate approval: **no**
 
 Reason:
 

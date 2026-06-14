@@ -82,3 +82,14 @@ Reason:
 ```text
 The production publishing pipeline has passed all verification stages including dry-run, shadow-mode, PR trial, and a single controlled live-write. With the addition of standard operational runbooks, incident response procedures, and automated PR quality gates, the pipeline is verified for manual, owner-reviewed, PR-only controlled operations.
 ```
+
+---
+
+## 6. Quality Gate Hardening
+
+- [x] PR body placeholder detection expanded.
+- [x] Unchecked validation items now fail the PR body quality gate.
+- [x] Production-impacting PRs require concrete evidence references.
+- [x] Production Impact must select exactly one option.
+- [x] Safety unchecked items fail unless explicitly marked N/A with reason.
+- [x] PR template rewritten to use explicit replace markers.

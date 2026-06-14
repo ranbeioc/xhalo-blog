@@ -4,6 +4,10 @@ on:
   pull_request:
     types: [opened, edited, synchronize, reopened, ready_for_review]
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   pr-body-quality:
     runs-on: ubuntu-latest

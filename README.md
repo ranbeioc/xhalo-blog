@@ -4,7 +4,7 @@
 
 It starts as a clean community edition template, not as a copy of any production blog. The repository contains example content, placeholder configuration, and a minimal Cloudflare platform skeleton for Pages, Workers, D1, R2, Queues, Turnstile, Access, and GitHub PR-based publishing workflows.
 
-> Status: `v0.1.0-alpha / Stage 4 Release Candidate`. Core Stage 4 paths and Queue Worker async publishing are implemented for staging evaluation. Production integration remains gated by manual readiness review and must not be enabled by default.
+> Status: `v0.1.0-alpha / Controlled PR-only production pipeline verified`. Core Stage 4 paths and Queue Worker async publishing are implemented for staging evaluation. Production writes require manual owner approval, direct main writes and auto-merge remain prohibited, and `LIVE_WRITES_ENABLED=false` is the default production baseline.
 
 ## Production warning
 
