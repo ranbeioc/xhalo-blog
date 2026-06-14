@@ -7,14 +7,14 @@ This document records the formal Go / No-Go decision and readiness checklist for
 ## 1. Current Gate Decision
 
 * **Current Decision**: **NO-GO for live production writes**.
-* **Approved Scope**: **Production shadow-mode blocked**.
+* **Approved Scope**: **Production shadow-mode completed; production live writes remain blocked**.
 * **Reasoning**:
   1. The API and Queue Worker architecture has successfully passed staging unit and integration smoke testing.
   2. Level 1 read-only connection compatibility validation has been completed successfully and sanitized.
   3. Staging async E2E evidence and Level 2 Single PR Trial execution evidence have been completed, verified, and cleaned up.
   4. Staging environment variable `LIVE_WRITES_ENABLED` was successfully restored to `false`, and all test branches/PRs deleted.
   5. **Production dry-run has been executed successfully** and evidence recorded. All production resources on Cloudflare are provisioned, and configurations validated under a non-mutating plan.
-  6. **Production shadow-mode is currently blocked** because explicit owner approval for execution has not yet been recorded.
+  6. **Production shadow-mode has been executed successfully** and evidence recorded. All production configuration bindings and routing have been validated under a non-mutating scope.
   *Note: This decision does not authorize production publishing, direct main writes, auto-merge, batch publishing, or writes to `hexo-blog`.*
 
 ---
@@ -92,10 +92,10 @@ This document records the formal Go / No-Go decision and readiness checklist for
 - [x] Production runtime verification completed.
 - [x] Production dry-run evidence recorded.
 - [x] Production shadow-mode scope approved.
-- [ ] Production shadow-mode preflight checklist passed.
-- [ ] Production shadow-mode owner approval completed.
-- [ ] Production shadow-mode execution window recorded.
-- [ ] Production shadow-mode operator recorded.
+- [x] Production shadow-mode preflight checklist passed.
+- [x] Production shadow-mode owner approval completed.
+- [x] Production shadow-mode execution window recorded.
+- [x] Production shadow-mode operator recorded.
 - [x] Production live-write approval remains blocked.
 
 ---
@@ -111,9 +111,9 @@ This document records the formal Go / No-Go decision and readiness checklist for
 ## 4. Next Stage
 
 ```text
-Shadow-mode remediation / owner approval required
+Production PR Trial Approval + Execution Pack
 ```
 
 ```text
-Shadow-mode remains blocked. No execution may proceed.
+No further shadow-mode PR should be opened. The next stage is reviewing and executing the production PR trial.
 ```
