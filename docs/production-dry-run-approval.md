@@ -1,7 +1,7 @@
 # Production Dry-run Approval
 
-> Status: Pending approval  
-> Current decision: production dry-run is blocked until this document is explicitly approved by the repository owner.
+> Status: Blocked  
+> Current decision: production dry-run is blocked due to missing external runtime evidence.
 
 ---
 
@@ -52,7 +52,7 @@ A production dry-run validates payload, auth, routing, and safety checks without
 Approval status:
 
 - [ ] Approved for one production dry-run.
-- [x] Not approved yet.
+- [x] Blocked due to missing external runtime evidence.
 
 Approver:
 
@@ -81,7 +81,7 @@ TBD
 Approval statement:
 
 ```text
-TBD
+Production dry-run cannot be approved because external Cloudflare/GitHub runtime evidence is missing.
 ```
 
 ---
@@ -94,5 +94,5 @@ TBD
 Reason:
 
 ```text
-Pending owner approval and preflight completion.
+Production dry-run cannot be approved because external Cloudflare/GitHub runtime evidence is missing. No further documentation-only PR should be opened until the missing evidence is collected.
 ```

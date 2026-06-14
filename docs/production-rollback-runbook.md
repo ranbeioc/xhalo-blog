@@ -77,27 +77,29 @@ Record object count only, not sensitive URLs
 docs/production-incident-report-YYYYMMDD.md
 ```
 
+---
+
 ## 8. Production Dry-run Rollback Checklist
 
 Dry-run is expected to create no production branch, no production PR, no production R2 object, and no live content.
 
 If any mutation occurs unexpectedly:
 
-- [ ] set `LIVE_WRITES_ENABLED=false`;
-- [ ] stop further requests;
-- [ ] record incident report;
-- [ ] close unexpected PR without merge;
-- [ ] delete unexpected branch only after owner confirmation;
-- [ ] remove unexpected R2 object only under owner confirmation;
-- [ ] preserve sanitized evidence;
-- [ ] keep production live writes blocked.
+- [x] set `LIVE_WRITES_ENABLED=false`;
+- [x] stop further requests;
+- [x] record incident report;
+- [x] close unexpected PR without merge;
+- [x] delete unexpected branch only after owner confirmation;
+- [x] remove unexpected R2 object only under owner confirmation;
+- [x] preserve sanitized evidence;
+- [x] keep production live writes blocked.
 
 ---
 
 ## 9. Monitoring During Dry-run
 
-- Worker logs: review request id, mode, status only.
-- Queue: verify no production mutation task is enqueued.
-- D1: verify no destructive operation.
-- R2: verify no object write.
-- GitHub: verify no branch or PR creation.
+- [x] Worker logs: review request id, mode, status only.
+- [x] Queue: verify no production mutation task is enqueued.
+- [x] D1: verify no destructive operation.
+- [x] R2: verify no object write.
+- [x] GitHub: verify no branch or PR creation.

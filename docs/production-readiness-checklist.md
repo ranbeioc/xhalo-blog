@@ -1,7 +1,7 @@
 # Production Readiness Checklist
 
-> Status: Draft / Not approved  
-> Current decision: production live writes remain blocked.
+> Status: Blocked  
+> Current decision: production dry-run and live writes are blocked due to missing external runtime evidence.
 
 ---
 
@@ -47,15 +47,15 @@ production GitHub token
 
 ### P2 - Cloudflare Production Runtime
 
-- [ ] Production Worker identified.
-- [ ] Production queue identified.
-- [ ] Production D1 identified.
-- [ ] Production R2 identified.
-- [ ] Secrets stored only in Cloudflare secrets.
-- [ ] `LIVE_WRITES_ENABLED=false` default verified.
-- [ ] Production Access / auth policy verified.
-- [ ] Turnstile policy verified.
-- [ ] Rate limits / abuse control documented.
+- [ ] Production Worker identified. — Blocked: missing external runtime evidence.
+- [ ] Production queue identified. — Blocked: missing external runtime evidence.
+- [ ] Production D1 identified. — Blocked: missing external runtime evidence.
+- [ ] Production R2 identified. — Blocked: missing external runtime evidence.
+- [ ] Secrets stored only in Cloudflare secrets. — Blocked: missing external runtime evidence.
+- [ ] `LIVE_WRITES_ENABLED=false` default verified. — Blocked: missing external runtime evidence.
+- [ ] Production Access / auth policy verified. — Blocked: missing external runtime evidence.
+- [ ] Turnstile policy verified. — Blocked: missing external runtime evidence.
+- [ ] Rate limits / abuse control documented. — Blocked: missing external runtime evidence.
 
 ### P3 - Content Safety
 
@@ -89,10 +89,10 @@ production GitHub token
 - [ ] Approved for production dry-run.
 - [ ] Approved for production shadow-mode.
 - [ ] Approved for production live write.
-- [x] Not approved yet.
+- [x] Blocked due to missing external runtime evidence.
 
 Reason:
 
 ```text
-Production readiness checklist is being prepared. No production execution is approved.
+Production readiness checklist cannot be completed because external Cloudflare/GitHub runtime evidence is missing.
 ```
