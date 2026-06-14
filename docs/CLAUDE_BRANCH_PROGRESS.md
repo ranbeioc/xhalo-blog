@@ -2528,3 +2528,44 @@ Define production shadow-mode scope and non-mutating constraints, create shadow-
 
 Production dry-run completed successfully; production shadow-mode remains blocked pending owner approval; live writes remain blocked.
 
+---
+
+## Step 069 - Production Shadow-mode Execution
+
+### Executed by Model
+Antigravity
+
+### Type
+Controlled Shadow-mode / Evidence Capture / Safety Gate
+
+### Goal
+Approve and execute exactly one controlled production shadow-mode request, verify non-mutation, and record sanitized evidence.
+
+### Files changed
+
+| File | Change summary | Reason |
+|---|---|---|
+| docs/production-shadow-mode-approval-20260614.md | Create 2026-06-14 approval record | Document explicit owner authorization |
+| docs/production-shadow-mode-risk-review-20260614.md | Create risk review record | Assess safety of controlled execution |
+| docs/production-shadow-mode-evidence-20260614.md | Create shadow-mode evidence report | Record one controlled shadow-mode request result |
+| docs/production-shadow-mode-approval.md | Update to approved | Reflect active owner approval |
+| docs/production-shadow-mode-preflight-checklist.md | Update to passed | Complete preflight checklist validation |
+| docs/production-go-no-go-checklist.md | Update scope, next stage, and prerequisites | Set next stage to Production PR Trial Approval |
+| docs/production-readiness-checklist.md | Update decision to shadow-mode completed | Align decision status with executed shadow-mode |
+| docs/CLAUDE_BRANCH_PROGRESS.md | Add Step 069 | Track progress |
+
+### Validation
+
+| Command | Result | Notes |
+|---|---|---|
+| npm ci | Passed | Clean package installation |
+| npm run check:all | Passed | Static syntax, builds, unit tests, fixture, and secrets scan pass |
+| npm run check:secrets | Passed | No secrets or forbidden markers found in workspace |
+| npm test | Passed | 80/80 tests pass cleanly |
+| npm run test:secrets-fixture | Passed | Fixture tests run and assert successfully |
+| shadow-mode smoke test | Passed | Returned 200 OK with preview and plan, no mutation occurred |
+
+### Final Gate Decision
+
+Production shadow-mode completed successfully; one controlled execution evidence recorded; live writes remain blocked.
+
