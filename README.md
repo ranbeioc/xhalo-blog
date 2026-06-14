@@ -57,6 +57,7 @@ xhalo-blog/
 - **Staged Integrations**: Staging-ready GitHub App integration for draft branch/PR creation and R2 signed uploads with HMAC validation.
 - **Async Publishing Alpha**: Queue Worker `draft_publish` execution is implemented in Phase 7.1 for staging-only GitHub PR publishing. It creates or reuses draft branches, commits Markdown, opens or reuses Pull Requests, updates D1 task/post status, and writes audit logs. This path remains alpha and must pass operator staging verification before any production use.
 - **Hexo Compatibility**: Theme adapter with fixture-backed asset rewriting and regression checking.
+- **Admin PR-only Publishing MVP**: Reusable, vanilla HTML/JS workbench (under `apps/admin`) facilitating article creation, frontmatter overrides, safe Markdown previews, and PR status polling. All write actions are strictly locked behind owner-reviewed manual Pull Request generation with zero direct main writes, auto-merging, or direct D1 publishing.
 
 ## Quick start
 

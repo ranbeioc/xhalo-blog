@@ -94,3 +94,12 @@ When a Pull Request is successfully generated, the owner must manually verify th
 2. **Post Content**: Verify the formatting and markdown structures are safe.
 3. **No Code Mutations**: Ensure that only markdown files inside the posts directory are changed.
 4. **Action**: Merge the PR manually on the GitHub UI or command line, or close it without merge if publication is cancelled.
+
+---
+
+## 6. D1 Target Exclusion
+
+D1 direct publishing is not part of the Admin PR-only Publishing MVP.
+
+The Admin MVP is limited to owner-reviewed GitHub Pull Requests. Any D1 live write or non-PR write path is an experimental prototype and requires separate owner approval, separate UI, and separate evidence. The Admin UI Workbench strictly supports PR-only publishing and does not expose direct D1 writes.
+

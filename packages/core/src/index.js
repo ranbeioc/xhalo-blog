@@ -930,8 +930,190 @@ export function buildGitHubWritePlan(input = {}, options = {}) {
   };
 }
 
+export function validateDraftSlug(slug) {
+  const errors = [];
+  if (slug === undefined || slug === null) {
+    errors.push('Missing required field: slug');
+    return errors;
+  }
+  
+  const slugStr = String(slug).trim();
+  if (slugStr.length === 0) {
+    errors.push('slug cannot be empty');
+  } else if (slugStr.length > 100) {
+    errors.push('slug cannot be longer than 100 characters');
+  }
+  
+  if (/[A-Z]/.test(slugStr) || /_/.test(slugStr) || !/^[a-z0-9-]+$/.test(slugStr) || slugStr.startsWith('-') || slugStr.endsWith('-')) {
+    errors.push('slug contains invalid characters. Only lowercase alphanumeric and hyphens are allowed.');
+  }
+
+  // Path traversal check inside slug
+  if (slugStr.includes('..') || slugStr.includes('/') || slugStr.includes('\\') || slugStr.includes(':')) {
+    errors.push('Path traversal or absolute path is not allowed');
+  }
+
+  return errors;
+}
+
+export function validateDraftPath(input) {
+  const errors = [];
+  if (!input || typeof input !== 'object') {
+    errors.push('Input must be an object');
+    return errors;
+  }
+
+  const slug = String(input.slug || '').trim();
+  const targetPath = `source/_posts/${slug}.md`;
+
+  if (targetPath.includes('..') || targetPath.includes('\\') || targetPath.startsWith('/') || targetPath.includes(':')) {
+    errors.push('Path traversal or absolute path is not allowed');
+  }
+
+  if (!targetPath.startsWith('source/_posts/')) {
+    errors.push('Target path must remain strictly under source/_posts/');
+  }
+
+  return errors;
+}
+
+export function validateDraftInput(input) {
+  const errors = [];
+  if (!input || typeof input !== 'object') {
+    errors.push('Request body must be a JSON object');
+    return errors;
+  }
+
+  // Title validation
+  if (input.title === undefined || input.title === null) {
+    errors.push('Missing required field: title');
+  } else {
+    const title = String(input.title).trim();
+    if (title.length === 0) {
+      errors.push('title cannot be empty');
+    } else if (title.length > 200) {
+      errors.push('title cannot be longer than 200 characters');
+    }
+  }
+
+  // Slug & Path validation
+  if (input.slug === undefined || input.slug === null) {
+    errors.push('Missing required field: slug');
+  } else {
+    const slugErrors = validateDraftSlug(input.slug);
+    errors.push(...slugErrors);
+    if (slugErrors.length === 0) {
+      errors.push(...validateDraftPath(input));
+    }
+  }
+
+  // Status validation
+  if (input.status !== undefined && input.status !== null) {
+    const status = String(input.status).trim();
+    if (status !== 'draft' && status !== 'review') {
+      errors.push('status must be either "draft" or "review"');
+    }
+  }
+
+  // Mode validation
+  if (input.mode !== undefined && input.mode !== null) {
+    const mode = String(input.mode).trim();
+    if (mode !== 'dry-run' && mode !== 'live') {
+      errors.push('mode must be either "dry-run" or "live"');
+    }
+  }
+
+  // Publish target validation
+  if (input.publish_target !== undefined && input.publish_target !== null) {
+    const publishTarget = String(input.publish_target).trim();
+    if (publishTarget !== 'github' && publishTarget !== 'd1') {
+      errors.push('publish_target must be either "github" or "d1"');
+    }
+  }
+
+  // Summary validation
+  if (input.summary !== undefined && input.summary !== null) {
+    if (typeof input.summary !== 'string') {
+      errors.push('summary must be a string');
+    } else {
+      const summary = input.summary.trim();
+      if (summary.length > 500) {
+        errors.push('summary cannot be longer than 500 characters');
+      }
+    }
+  }
+
+  // Category & Categories validation
+  if (input.categories !== undefined && input.categories !== null) {
+    if (!Array.isArray(input.categories)) {
+      errors.push('categories must be an array of strings');
+    } else {
+      for (let index = 0; index < input.categories.length; index += 1) {
+        const cat = input.categories[index];
+        if (typeof cat !== 'string') {
+          errors.push(`categories at index ${index} must be a string`);
+        } else if (cat.trim().length > 100) {
+          errors.push(`category "${cat.slice(0, 10)}..." cannot be longer than 100 characters`);
+        }
+      }
+    }
+  } else if (input.category !== undefined && input.category !== null) {
+    if (typeof input.category !== 'string') {
+      errors.push('category must be a string');
+    } else {
+      const category = input.category.trim();
+      if (category.length > 100) {
+        errors.push('category cannot be longer than 100 characters');
+      }
+    }
+  }
+
+  // Content/Body validation (body is required)
+  if (input.body === undefined || input.body === null) {
+    errors.push('Missing required field: body');
+  } else if (typeof input.body !== 'string') {
+    errors.push('body must be a string');
+  } else {
+    const bodyBytes = new TextEncoder().encode(input.body).byteLength;
+    if (bodyBytes > 200 * 1024) {
+      errors.push('body content size cannot exceed 200 KiB');
+    }
+  }
+
+  // Tags validation
+  if (input.tags !== undefined && input.tags !== null) {
+    let parsedTags = [];
+    if (Array.isArray(input.tags)) {
+      for (let index = 0; index < input.tags.length; index += 1) {
+        const tag = input.tags[index];
+        if (typeof tag !== 'string') {
+          errors.push(`tags at index ${index} must be a string`);
+        } else {
+          parsedTags.push(tag.trim());
+        }
+      }
+    } else if (typeof input.tags === 'string') {
+      parsedTags = input.tags.split(',').map((t) => t.trim()).filter(Boolean);
+    } else {
+      errors.push('tags must be a string or an array of strings');
+    }
+
+    if (parsedTags.length > 20) {
+      errors.push('tags list cannot contain more than 20 items');
+    }
+    for (const tag of parsedTags) {
+      if (tag.length > 50) {
+        errors.push(`tag "${tag.slice(0, 10)}..." cannot be longer than 50 characters`);
+      }
+    }
+  }
+
+  return errors;
+}
+
 export function nowIso() {
   return new Date().toISOString();
 }
 
 export * from './github-publishing.js';
+
