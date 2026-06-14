@@ -2444,3 +2444,46 @@ Finalize the dry-run approval gate as the final documentation-only PR. Select Co
 ### Final Gate Decision
 
 Blocked due to missing external production runtime evidence. No further documentation-only PR should be opened after this step.
+
+---
+
+## Step 067 - Production Dry-run Execution with Evidence
+
+### Executed by Model
+Antigravity
+
+### Type
+Controlled Dry-run / Evidence Capture / Safety Gate
+
+### Goal
+Import sanitized external production runtime evidence, record owner approval, and execute exactly one controlled production dry-run request, verifying that no remote mutations occurred.
+
+### Files changed
+
+| File | Change summary | Reason |
+|---|---|---|
+| docs/production-runtime-verification-evidence-20260614.md | Create sanitized production runtime evidence report | Import external verified resources evidence |
+| docs/production-dry-run-approval-20260614.md | Create owner dry-run approval gate | Document explicit owner authorization |
+| docs/production-dry-run-evidence-20260614.md | Create dry-run execution evidence report | Record one controlled dry-run result |
+| scripts/smoke-async-publish.mjs | Update validator to support dry-run validation checks | Allow verifying dry-run responses without failing |
+| docs/production-go-no-go-checklist.md | Update approved scope to dry-run completed and set next stage | Progress gate structure |
+| docs/production-readiness-checklist.md | Check off P2 runtime items and decision | Record production readiness |
+| docs/production-dry-run-preflight-checklist.md | Check off all preflight items and mark as Passed | Close preflight gate |
+| docs/production-runtime-verification-evidence-20260609.md | Prepend superseded notice pointing to 2026-06-14 report | Maintain documentation hierarchy |
+| docs/CLAUDE_BRANCH_PROGRESS.md | Add Step 067 | Track progress |
+
+### Validation
+
+| Command | Result | Notes |
+|---|---|---|
+| npm ci | Passed | Clean package installation |
+| npm run check:all | Passed | Static syntax, builds, unit tests, fixture, and secrets scan pass |
+| npm run check:secrets | Passed | No secrets or forbidden markers found in workspace |
+| npm test | Passed | 80/80 tests pass cleanly |
+| npm run test:secrets-fixture | Passed | Fixture tests run and assert successfully |
+| dry-run smoke test | Passed | Returned 200 OK with preview and plan, no mutation occurred |
+
+### Final Gate Decision
+
+Production dry-run completed successfully. The single controlled dry-run request returned a 200 OK response with content preview and write plan payloads, with zero mutations in Cloudflare or GitHub. Production live writes remain blocked.
+

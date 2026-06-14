@@ -194,6 +194,18 @@ async function main() {
         })
       },
       (status, json, text) => {
+        if (smokeDryRunOnly) {
+          if (status !== 200) {
+            return `Expected status 200 for dry-run mode, got ${status}`;
+          }
+          if (!json || json.mode !== 'dry-run') {
+            return `Expected mode 'dry-run' in response, got ${JSON.stringify(json)}`;
+          }
+          if (!json.note || !json.note.includes('Dry-run')) {
+            return `Expected dry-run note, got: ${json.note}`;
+          }
+          return null;
+        }
         if (publishMode === 'local') {
           if (status !== 202 && status !== 500) {
             return `Expected status 202 or 500, got ${status}`;
