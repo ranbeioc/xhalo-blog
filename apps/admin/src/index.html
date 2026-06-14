@@ -269,13 +269,20 @@
               </select>
             </label>
 
+            <label class="field-span-2" style="display: flex; align-items: center; gap: 8px; margin-top: 10px; cursor: pointer;">
+              <input type="checkbox" name="ownerApprovedWindow" style="width: auto; margin: 0;" />
+              <span style="font-size: 0.9rem; color: #e7ecf5;">I confirm this is an owner-approved PR-only write window.</span>
+            </label>
+
             <div class="form-actions field-span-2" style="margin-top: 10px;">
               <button type="submit" name="action" value="preview" data-protected-action>Generate preview</button>
               <button type="submit" name="action" value="queue" class="button-secondary" data-protected-action>Queue dry-run task</button>
               <button type="submit" name="action" value="plan" class="button-secondary" data-protected-action>Show GitHub plan</button>
-              <button type="submit" name="action" value="publish" class="button-secondary" data-protected-action>Create Review PR</button>
-              <button type="submit" name="action" value="publish-d1" class="button-secondary" data-protected-action>Publish to D1</button>
+              <button type="submit" name="action" value="publish" class="button-secondary" data-protected-action>Create Review PR during approved window</button>
             </div>
+            <p class="operator-note field-span-2" style="margin-top: 10px; color: var(--text-secondary); font-size: 0.85rem; line-height: 1.4;">
+              <strong>Notice:</strong> Creating a Review PR requires an owner-approved write window. This action only creates a draft branch and a Pull Request in the target repository. No direct main writes or auto-merges will occur.
+            </p>
           </form>
 
           <div class="draft-output">
@@ -346,6 +353,22 @@
               <div class="meta-row">
                 <span class="meta-label">Pull request</span>
                 <strong data-field="draft-publish-pr">-</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Branch</span>
+                <strong data-field="draft-task-branch">-</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Error</span>
+                <strong data-field="draft-task-error">-</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Retry count</span>
+                <strong data-field="draft-task-retry-count">0</strong>
+              </div>
+              <div class="meta-row">
+                <span class="meta-label">Updated at</span>
+                <strong data-field="draft-task-updated-at">-</strong>
               </div>
             </div>
             <div class="meta-block">

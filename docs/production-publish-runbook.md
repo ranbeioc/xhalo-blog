@@ -63,3 +63,12 @@ If PR is not merged:
 * delete draft branch after owner approval;
 * preserve evidence;
 * do not retry automatically.
+
+---
+
+## 6. Admin UI Publishing Guidelines
+
+* **Approved Write Window**: Using the Admin UI to "Create Review PR" requires explicit owner-approved write windows. The operator must confirm this by checking the write-window confirmation checkbox.
+* **PR-only workbench**: The Admin UI only supports PR-only publishing. It does not expose `Publish to D1` as a primary action.
+* **Exclusion of D1 Writes**: Direct D1 writes are considered experimental prototypes. They are not part of the normal production publishing workflow and require separate, explicit owner approval.
+

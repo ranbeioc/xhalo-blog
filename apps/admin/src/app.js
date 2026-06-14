@@ -152,7 +152,11 @@ const fallbackDraftPreview = {
 
 const fallbackDraftTask = {
   status: 'not queued',
-  task_id: '-'
+  task_id: '-',
+  branch: '-',
+  last_error: '-',
+  retry_count: 0,
+  updated_at: '-'
 };
 
 const fallbackDraftPublish = {
@@ -521,8 +525,12 @@ function renderDraftPreview(preview) {
 }
 
 function renderDraftTaskResult(task) {
-  setText('[data-field="draft-task-status"]', task.status || fallbackDraftTask.status);
-  setText('[data-field="draft-task-id"]', task.task_id || fallbackDraftTask.task_id);
+  setText('[data-field="draft-task-status"]', task.status || 'not queued');
+  setText('[data-field="draft-task-id"]', task.task_id || task.id || '-');
+  setText('[data-field="draft-task-branch"]', task.branch || '-');
+  setText('[data-field="draft-task-error"]', task.last_error || task.error || '-');
+  setText('[data-field="draft-task-retry-count"]', String(task.retry_count ?? 0));
+  setText('[data-field="draft-task-updated-at"]', task.updated_at || '-');
 }
 
 function renderDraftPublishResult(result) {
@@ -1008,12 +1016,19 @@ async function handleDraftPreviewSubmit(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const action = event.submitter?.value || 'preview';
+
+  if (action === 'publish') {
+    const checkbox = form.querySelector('input[name="ownerApprovedWindow"]');
+    if (!checkbox || !checkbox.checked) {
+      renderDraftPreviewStatus('warning', 'Owner-approved PR-only write window confirmation is required.');
+      return;
+    }
+  }
+
   const statusText = action === 'queue'
     ? 'Queueing task'
     : action === 'publish'
-      ? 'Publishing draft'
-    : action === 'publish-d1'
-      ? 'Publishing to D1'
+      ? 'Creating review PR'
     : action === 'plan'
       ? 'Building plan'
       : 'Generating preview';
@@ -1022,7 +1037,7 @@ async function handleDraftPreviewSubmit(event) {
   try {
     const endpoint = action === 'queue'
       ? '/api/drafts/tasks'
-      : action === 'publish' || action === 'publish-d1'
+      : action === 'publish'
         ? '/api/drafts/publish'
       : action === 'plan'
         ? '/api/drafts/github-plan'
@@ -1030,9 +1045,7 @@ async function handleDraftPreviewSubmit(event) {
     const result = await postDraftAction(form, endpoint, 
       action === 'publish' 
         ? { mode: 'live' } 
-        : action === 'publish-d1'
-          ? { mode: 'live', publish_target: 'd1' }
-          : {}
+        : {}
     );
 
     if (result?.mode === 'static') {
@@ -1065,12 +1078,16 @@ async function handleDraftPreviewSubmit(event) {
       renderDraftPlan(result.plan);
     }
 
-    if (action === 'publish' || action === 'publish-d1' || action === 'queue') {
+    if (action === 'publish' || action === 'queue') {
       const taskId = result.task_id;
       if (taskId) {
         renderDraftTaskResult({
           status: 'queued',
-          task_id: taskId
+          task_id: taskId,
+          branch: '-',
+          last_error: '-',
+          retry_count: 0,
+          updated_at: '-'
         });
         prependTask({
           type: result.task_type || (action === 'publish' ? 'draft_publish' : 'draft_preview'),
@@ -1093,10 +1110,7 @@ async function handleDraftPreviewSubmit(event) {
               const data = await res.json();
               if (data.ok && data.task) {
                 const task = data.task;
-                renderDraftTaskResult({
-                  status: task.status,
-                  task_id: task.id
-                });
+                renderDraftTaskResult(task);
                 
                 if (task.status === 'completed' || task.status === 'succeeded') {
                   clearInterval(intervalId);
@@ -1107,11 +1121,11 @@ async function handleDraftPreviewSubmit(event) {
                     auth_mode: summary.auth_mode || 'token',
                     pull_request: prUrl
                   });
-                  renderDraftPreviewStatus('ok', 'Action completed successfully');
+                  renderDraftPreviewStatus('ok', 'Review PR created (Owner manual review required)');
                   loadScaffoldData();
                 } else if (task.status === 'failed') {
                   clearInterval(intervalId);
-                  renderDraftPreviewStatus('warning', `Action failed: ${task.error || 'unknown task error'}`);
+                  renderDraftPreviewStatus('warning', `Action failed: ${task.last_error || task.error || 'unknown task error'}`);
                 }
               }
             }
@@ -1126,7 +1140,7 @@ async function handleDraftPreviewSubmit(event) {
             auth_mode: result.auth_mode || 'token',
             pull_request: result.pull_request?.url || '-'
           });
-          renderDraftPreviewStatus('ok', result.mode === 'live' ? 'Publish request completed' : 'Publish dry-run ready');
+          renderDraftPreviewStatus('ok', result.mode === 'live' ? 'Review PR created (Owner manual review required)' : 'Publish dry-run ready');
           loadScaffoldData();
         }
       }

@@ -2859,6 +2859,52 @@ Implement the Admin PR-only Publishing MVP, introducing normalized editor input 
 
 Admin PR-only Publishing MVP has been successfully implemented, verified, and validated. All automated validations and local checks pass cleanly. All write actions are strictly locked behind owner-reviewed manual Pull Request generation with zero direct main writes or auto-merging, adhering to the absolute safety boundary.
 
+---
+
+## Step 076-A - Admin MVP PR-only Safety Alignment
+
+### Executed by Model
+Antigravity
+
+### Type
+Harden / Refactoring
+
+### Goal
+Align the Admin MVP with PR-only publishing boundaries by removing D1 live publishing from the primary workbench, adding owner-approved write window confirmation, expanding task status fields, and centralizing draft validation.
+
+### Files changed
+
+| File | Change summary | Reason |
+|---|---|---|
+| apps/admin/src/index.html | Remove Publish to D1 button, add ownerApprovedWindow checkbox, update notice copy, and expand status panel elements | Prevent accidental live writes and match safe UI design |
+| apps/admin/src/app.js | Enforce checkbox validation, remove publish-d1 submit handling, map branch/error/retry_count/updated_at to Task Status Panel | Prevent unapproved submissions and enhance polling dashboard |
+| packages/core/src/index.js | Export centralized validation functions `validateDraftSlug`, `validateDraftPath`, `validateDraftInput` | Centralize input checking logic for reuse |
+| workers/api/src/index.js | Delegate input validation to `validateDraftInput` and map database fields in `summarizeTaskRecord` | Ensure unified validation boundaries and expose detailed task records |
+| tests/admin-publishing-mvp.test.mjs | Add path validation tests, input validation tests, and Admin UI static layout checks | Verify boundary correctness |
+| tests/worker-security.test.mjs | Add detailed API validation tests for slug traversal, missing body, status check, and write-enabled gates | Ensure worker-level API validation complies with core policies |
+| docs/admin-publishing-mvp.md | Document D1 target exclusion from the Admin MVP | Maintain accurate system specs |
+| docs/production-publish-runbook.md | Add Admin UI publishing guidelines and D1 write exclusion policies | Define safe operational procedures |
+| docs/production-pr-review-runbook.md | Add structured PR body safety checklist requirements | Guide owners during code review |
+| README.md | Update Admin MVP overview to reflect PR-only boundaries and manual owner review controls | Align project documentation |
+| docs/CLAUDE_BRANCH_PROGRESS.md | Append Step 076-A log | Track progress |
+
+### Validation
+
+| Command | Result | Notes |
+|---|---|---|
+| npm ci | Passed | Clean package installation |
+| npm run check:all | Passed | Static syntax, builds, unit tests, fixture, and secrets scan pass |
+| npm run check:secrets | Passed | Checked workspace and found zero secrets or forbidden markers |
+| npm test | Passed | 95/95 tests pass cleanly (including new validation and UI checks) |
+| npm run test:secrets-fixture | Passed | Secrets fixture tests pass |
+| npm run build:admin | Passed | Bundling of the admin application finishes without warnings |
+| PR body quality positive case | Passed | Gate check script passes successfully |
+
+### Final Gate Decision
+
+The safety boundaries of the Admin MVP have been strictly aligned. Direct D1 publishing is completely out of scope and removed from the primary UI workspace. Creating a Pull Request requires explicit confirmation of an owner-approved write window. No production writes, auto-merges, or direct main writes occurred. All validation commands and test suites pass successfully.
+
+
 
 
 

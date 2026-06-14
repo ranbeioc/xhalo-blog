@@ -5,7 +5,10 @@ import {
   buildDraftFrontMatter,
   buildDraftFilePath,
   buildPullRequestBody,
-  buildPullRequestPreview
+  buildPullRequestPreview,
+  validateDraftSlug,
+  validateDraftPath,
+  validateDraftInput
 } from '../packages/core/src/index.js';
 
 test('Admin Publishing MVP: normalizeDraftInput categories and tags', () => {
@@ -107,4 +110,61 @@ test('Admin Publishing MVP: buildPullRequestPreview attaches pullRequestBody', (
   assert.ok(preview.pullRequestBody);
   assert.ok(preview.pullRequestBody.includes('- Title: Preview Title'));
   assert.equal(preview.repository, 'owner-test/repo-test');
+});
+
+test('Core Validation: validateDraftSlug negative test cases', () => {
+  assert.ok(validateDraftSlug(null).some(e => e.includes('Missing required field')));
+  assert.ok(validateDraftSlug('').some(e => e.includes('slug cannot be empty')));
+  assert.ok(validateDraftSlug('UPPERCASE').some(e => e.includes('slug contains invalid characters') || e.includes('lowercase')));
+  assert.ok(validateDraftSlug('slug_with_underscore').some(e => e.includes('slug contains invalid characters')));
+  assert.ok(validateDraftSlug('slug/with/slash').some(e => e.includes('Path traversal')));
+  assert.ok(validateDraftSlug('slug\\with\\backslash').some(e => e.includes('Path traversal')));
+  assert.ok(validateDraftSlug('../evil').some(e => e.includes('Path traversal')));
+  assert.ok(validateDraftSlug('c:path').some(e => e.includes('Path traversal')));
+  assert.ok(validateDraftSlug('-leading').some(e => e.includes('slug contains invalid characters')));
+  assert.ok(validateDraftSlug('trailing-').some(e => e.includes('slug contains invalid characters')));
+  assert.equal(validateDraftSlug('valid-slug-123').length, 0);
+});
+
+test('Core Validation: validateDraftPath validation boundaries', () => {
+  assert.ok(validateDraftPath({ slug: '../evil' }).some(e => e.includes('Path traversal')));
+  assert.ok(validateDraftPath({ slug: 'a\\b' }).some(e => e.includes('Path traversal')));
+  assert.ok(validateDraftPath({ slug: 'c:path' }).some(e => e.includes('Path traversal')));
+  assert.equal(validateDraftPath({ slug: 'valid-slug' }).length, 0);
+});
+
+test('Core Validation: validateDraftInput checks', () => {
+  const missingBody = {
+    title: 'Valid Title',
+    slug: 'valid-slug',
+    status: 'draft'
+  };
+  assert.ok(validateDraftInput(missingBody).some(e => e.includes('Missing required field: body')));
+
+  const invalidStatus = {
+    title: 'Valid Title',
+    slug: 'valid-slug',
+    status: 'invalid-status',
+    body: 'Valid Body'
+  };
+  assert.ok(validateDraftInput(invalidStatus).some(e => e.includes('status must be')));
+
+  const validDraftInput = {
+    title: 'Valid Title',
+    slug: 'valid-slug',
+    status: 'draft',
+    body: 'Valid Body'
+  };
+  assert.equal(validateDraftInput(validDraftInput).length, 0);
+});
+
+import { readFileSync } from 'node:fs';
+test('Admin UI Static Check: layout correctness', () => {
+  const html = readFileSync('apps/admin/src/index.html', 'utf8');
+  assert.ok(!html.includes('value="publish-d1"'));
+  assert.ok(html.includes('name="ownerApprovedWindow"'));
+  assert.ok(html.includes('data-field="draft-task-branch"'));
+  assert.ok(html.includes('data-field="draft-task-error"'));
+  assert.ok(html.includes('data-field="draft-task-retry-count"'));
+  assert.ok(html.includes('data-field="draft-task-updated-at"'));
 });

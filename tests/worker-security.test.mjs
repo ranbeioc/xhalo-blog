@@ -981,5 +981,106 @@ test('GitHub Publish: live publish enqueues task and returns 202', async () => {
   assert.ok(hasPostInsert, 'Should insert post record');
 });
 
+test('POST /api/drafts/publish rejects path traversal slug', async () => {
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: '../path-traversal-slug',
+      body: 'Valid post body content',
+      mode: 'dry-run'
+    })
+  }, validationEnv);
+
+  assert.equal(response.status, 400);
+  assert.equal(json.error, 'Validation failed.');
+  assert.ok(json.details.some(d => d.includes('Path traversal or absolute path is not allowed')));
+});
+
+test('POST /api/drafts/publish rejects missing body', async () => {
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: 'valid-slug',
+      mode: 'dry-run'
+    })
+  }, validationEnv);
+
+  assert.equal(response.status, 400);
+  assert.equal(json.error, 'Validation failed.');
+  assert.ok(json.details.includes('Missing required field: body'));
+});
+
+test('POST /api/drafts/publish rejects invalid status', async () => {
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: 'valid-slug',
+      body: 'Valid post body content',
+      status: 'invalid-status',
+      mode: 'dry-run'
+    })
+  }, validationEnv);
+
+  assert.equal(response.status, 400);
+  assert.equal(json.error, 'Validation failed.');
+  assert.ok(json.details.some(d => d.includes('status must be either "draft" or "review"')));
+});
+
+test('POST /api/drafts/publish dry-run valid input returns 200', async () => {
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: 'valid-slug',
+      body: 'Valid post body content',
+      mode: 'dry-run'
+    })
+  }, validationEnv);
+
+  assert.equal(response.status, 200);
+  assert.equal(json.mode, 'dry-run');
+});
+
+test('POST /api/drafts/publish live still returns 403 when LIVE_WRITES_ENABLED=false', async () => {
+  const { response, json } = await requestJson('/api/drafts/publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: 'valid-slug',
+      body: 'Valid post body content',
+      mode: 'live'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    LIVE_WRITES_ENABLED: 'false'
+  });
+
+  assert.equal(response.status, 403);
+  assert.equal(json.required_env, 'LIVE_WRITES_ENABLED=true');
+});
+
 
 
