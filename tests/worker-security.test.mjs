@@ -77,6 +77,7 @@ test('POST /api/drafts/publish live returns 403 when live writes are disabled', 
     body: JSON.stringify({
       title: 'Draft title',
       slug: 'draft-title',
+      body: 'Valid post body content',
       mode: 'live'
     })
   }, {
@@ -209,6 +210,7 @@ test('POST /api/drafts/publish with valid Turnstile token passes verification', 
     body: JSON.stringify({
       title: 'Draft title',
       slug: 'draft-title',
+      body: 'Valid post body content',
       mode: 'live'
     })
   }, {
@@ -529,7 +531,7 @@ test('Schema Validation: missing slug is rejected with 400', async () => {
 });
 
 test('Schema Validation: invalid slug characters are rejected with 400', async () => {
-  const invalidSlugs = ['../traversal', 'slug/with/slash', 'UPPERCASE', 'invalid_char!', 'space slug'];
+  const invalidSlugs = ['../traversal', 'slug/with/slash', 'UPPERCASE', 'invalid_char!', 'space slug', '-slug', 'slug-'];
   for (const slug of invalidSlugs) {
     const { response, json } = await requestJson('/api/drafts/publish', {
       method: 'POST',
@@ -567,7 +569,7 @@ test('Schema Validation: invalid status values are rejected with 400', async () 
 
   assert.equal(response.status, 400);
   assert.equal(json.error, 'Validation failed.');
-  assert.ok(json.details.includes('status must be either "draft" or "published"'));
+  assert.ok(json.details.includes('status must be either "draft" or "review"'));
 });
 
 test('Schema Validation: valid inputs pass validation with 200', async () => {
@@ -775,6 +777,7 @@ test('Schema Validation: optional fields summary, category, tags are validated s
       summary: 'A brief summary of the post.',
       category: 'Technology',
       tags: ['cloudflare', 'workers', 'sqlite'],
+      body: 'Valid post body content',
       mode: 'dry-run'
     })
   }, validationEnv);
@@ -954,6 +957,7 @@ test('GitHub Publish: live publish enqueues task and returns 202', async () => {
     body: JSON.stringify({
       title: 'Post Title',
       slug: 'post-title',
+      body: 'Valid post body content',
       mode: 'live'
     })
   }, {

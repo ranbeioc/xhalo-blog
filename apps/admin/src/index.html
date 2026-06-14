@@ -220,6 +220,10 @@
         </ul>
         <div class="draft-workbench">
           <form class="draft-form" data-role="draft-preview-form">
+            <!-- 1. Editor Panel -->
+            <div class="field-span-2" style="margin-bottom: 4px; border-bottom: 1px solid rgba(154, 176, 216, 0.16); padding-bottom: 6px;">
+              <h3 style="margin: 0; font-size: 14px; color: #8bc5ff; text-transform: uppercase; letter-spacing: 0.05em;">1. Editor Panel</h3>
+            </div>
             <label>
               <span>Title</span>
               <input name="title" type="text" value="Stage 3 Prototype Post" />
@@ -230,34 +234,55 @@
             </label>
             <label class="field-span-2">
               <span>Summary</span>
-              <textarea name="summary" rows="3">Draft metadata preview</textarea>
+              <textarea name="summary" rows="2">Draft metadata preview</textarea>
             </label>
             <label class="field-span-2">
               <span>Body (Markdown)</span>
               <textarea name="body" rows="8" placeholder="Type your markdown content here..."></textarea>
             </label>
+            
+            <!-- 2. Frontmatter Panel -->
+            <div class="field-span-2" style="margin-top: 10px; margin-bottom: 4px; border-bottom: 1px solid rgba(154, 176, 216, 0.16); padding-bottom: 6px;">
+              <h3 style="margin: 0; font-size: 14px; color: #8bc5ff; text-transform: uppercase; letter-spacing: 0.05em;">2. Frontmatter Panel</h3>
+            </div>
             <label>
-              <span>Tags</span>
-              <input name="tags" type="text" value="cloudflare, stage3" />
+              <span>Date Override</span>
+              <input name="date" type="text" value="" placeholder="e.g. YYYY-MM-DD HH:MM:SS" />
             </label>
             <label>
-              <span>Category</span>
-              <input name="category" type="text" value="notes" />
+              <span>Updated Override</span>
+              <input name="updated" type="text" value="" placeholder="e.g. YYYY-MM-DD HH:MM:SS" />
             </label>
             <label>
+              <span>Categories (comma-separated)</span>
+              <input name="categories" type="text" value="notes" />
+            </label>
+            <label>
+              <span>Tags (comma-separated)</span>
+              <input name="tags" type="text" value="cloudflare, stage4" />
+            </label>
+            <label class="field-span-2">
               <span>Status</span>
-              <input name="status" type="text" value="draft" />
+              <select name="status" style="width: 100%; box-sizing: border-box; border-radius: 8px; border: 1px solid rgba(154, 176, 216, 0.18); background: rgba(154, 176, 216, 0.06); color: #e7ecf5; font: inherit; padding: 12px 14px; cursor: pointer;">
+                <option value="draft" selected>draft</option>
+                <option value="review">review</option>
+              </select>
             </label>
-            <div class="form-actions field-span-2">
+
+            <div class="form-actions field-span-2" style="margin-top: 10px;">
               <button type="submit" name="action" value="preview" data-protected-action>Generate preview</button>
               <button type="submit" name="action" value="queue" class="button-secondary" data-protected-action>Queue dry-run task</button>
               <button type="submit" name="action" value="plan" class="button-secondary" data-protected-action>Show GitHub plan</button>
-              <button type="submit" name="action" value="publish" class="button-secondary" data-protected-action>Publish via GitHub</button>
+              <button type="submit" name="action" value="publish" class="button-secondary" data-protected-action>Create Review PR</button>
               <button type="submit" name="action" value="publish-d1" class="button-secondary" data-protected-action>Publish to D1</button>
             </div>
           </form>
 
           <div class="draft-output">
+            <!-- 3. Preview Panel -->
+            <div style="margin-bottom: 12px; border-bottom: 1px solid rgba(154, 176, 216, 0.16); padding-bottom: 6px;">
+              <h3 style="margin: 0; font-size: 14px; color: #8bc5ff; text-transform: uppercase; letter-spacing: 0.05em;">3. Preview Panel</h3>
+            </div>
             <div class="meta-grid">
               <div class="meta-row">
                 <span class="meta-label">Preview branch</span>
@@ -295,6 +320,11 @@
               <div class="post-preview-html" data-field="draft-preview-html">
                 <p>No content preview available.</p>
               </div>
+            </div>
+
+            <!-- 4. Task / PR Status Panel -->
+            <div style="margin-top: 20px; margin-bottom: 12px; border-bottom: 1px solid rgba(154, 176, 216, 0.16); padding-bottom: 6px;">
+              <h3 style="margin: 0; font-size: 14px; color: #8bc5ff; text-transform: uppercase; letter-spacing: 0.05em;">4. Task / PR Status Panel</h3>
             </div>
             <div class="meta-grid">
               <div class="meta-row">

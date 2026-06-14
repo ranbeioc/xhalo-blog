@@ -392,6 +392,7 @@ function summarizeTaskRecord(item) {
     detail_primary: summary.outcome || item.status || 'unknown',
     detail_secondary:
       payload.reconciliation?.last_error ||
+      summary.pull_request?.url ||
       summary.previewUrl ||
       summary.branch ||
       summary.key ||
@@ -677,14 +678,16 @@ function validatePublishInput(input) {
       errors.push('slug cannot be longer than 100 characters');
     } else if (!/^[a-z0-9-]+$/.test(slug)) {
       errors.push('slug contains invalid characters. Only lowercase alphanumeric and hyphens are allowed.');
+    } else if (slug.startsWith('-') || slug.endsWith('-')) {
+      errors.push('slug contains invalid characters. Only lowercase alphanumeric and hyphens are allowed.');
     }
   }
 
   // Status validation
   if (input.status !== undefined && input.status !== null) {
     const status = String(input.status).trim();
-    if (status !== 'draft' && status !== 'published') {
-      errors.push('status must be either "draft" or "published"');
+    if (status !== 'draft' && status !== 'review') {
+      errors.push('status must be either "draft" or "review"');
     }
   }
 
@@ -716,8 +719,21 @@ function validatePublishInput(input) {
     }
   }
 
-  // Category validation
-  if (input.category !== undefined && input.category !== null) {
+  // Category & Categories validation
+  if (input.categories !== undefined && input.categories !== null) {
+    if (!Array.isArray(input.categories)) {
+      errors.push('categories must be an array of strings');
+    } else {
+      for (let index = 0; index < input.categories.length; index += 1) {
+        const cat = input.categories[index];
+        if (typeof cat !== 'string') {
+          errors.push(`categories at index ${index} must be a string`);
+        } else if (cat.trim().length > 100) {
+          errors.push(`category "${cat.slice(0, 10)}..." cannot be longer than 100 characters`);
+        }
+      }
+    }
+  } else if (input.category !== undefined && input.category !== null) {
     if (typeof input.category !== 'string') {
       errors.push('category must be a string');
     } else {
@@ -728,15 +744,15 @@ function validatePublishInput(input) {
     }
   }
 
-  // Content/Body validation
-  if (input.body !== undefined && input.body !== null) {
-    if (typeof input.body !== 'string') {
-      errors.push('body must be a string');
-    } else {
-      const bodyBytes = new TextEncoder().encode(input.body).byteLength;
-      if (bodyBytes > 200 * 1024) {
-        errors.push('body content size cannot exceed 200 KiB');
-      }
+  // Content/Body validation (body is required)
+  if (input.body === undefined || input.body === null) {
+    errors.push('Missing required field: body');
+  } else if (typeof input.body !== 'string') {
+    errors.push('body must be a string');
+  } else {
+    const bodyBytes = new TextEncoder().encode(input.body).byteLength;
+    if (bodyBytes > 200 * 1024) {
+      errors.push('body content size cannot exceed 200 KiB');
     }
   }
 
@@ -768,6 +784,18 @@ function validatePublishInput(input) {
     }
   }
 
+  // Path Traversal / Boundary check
+  if (input.slug !== undefined && input.slug !== null) {
+    const slug = String(input.slug).trim();
+    const targetPath = `source/_posts/${slug}.md`;
+    if (targetPath.includes('..') || targetPath.includes('\\') || targetPath.startsWith('/') || targetPath.includes(':')) {
+      errors.push('Path traversal or absolute path is not allowed');
+    }
+    if (!targetPath.startsWith('source/_posts/')) {
+      errors.push('Target path must remain strictly under source/_posts/');
+    }
+  }
+
   return errors;
 }
 
@@ -779,7 +807,7 @@ function rejectUnauthorized() {
 }
 
 function isProtectedAdminRoute(pathname) {
-  if (pathname === '/api/readiness' || pathname === '/api/posts' || pathname === '/api/tasks' || pathname === '/api/tasks/example' || pathname === '/api/audit-logs') {
+  if (pathname === '/api/readiness' || pathname === '/api/posts' || pathname === '/api/tasks' || pathname === '/api/tasks/example' || pathname === '/api/audit-logs' || pathname.startsWith('/api/tasks/')) {
     return true;
   }
 
@@ -1024,6 +1052,35 @@ export default {
         backend: items ? 'd1' : 'fallback',
         note: items ? 'Read-only tasks prototype.' : 'D1 task status integration pending; showing fallback examples.'
       });
+    }
+
+    if (url.pathname.startsWith('/api/tasks/')) {
+      const taskId = url.pathname.slice('/api/tasks/'.length);
+      if (taskId && taskId !== 'example') {
+        if (!env.DB || typeof env.DB.prepare !== 'function') {
+          const fallbackTask = createFallbackTasks().find(t => t.id === taskId);
+          if (fallbackTask) {
+            return createJsonResponse({
+              ok: true,
+              task: summarizeTaskRecord(fallbackTask)
+            });
+          }
+          return createJsonResponse({ error: 'Task not found in fallback' }, { status: 404 });
+        }
+        
+        const task = await env.DB.prepare(
+          'SELECT id, type, status, payload, error, created_at, updated_at FROM tasks WHERE id = ?'
+        ).bind(taskId).first();
+        
+        if (!task) {
+          return createJsonResponse({ error: 'Task not found' }, { status: 404 });
+        }
+        
+        return createJsonResponse({
+          ok: true,
+          task: summarizeTaskRecord(task)
+        });
+      }
     }
 
     if (url.pathname === '/api/audit-logs') {

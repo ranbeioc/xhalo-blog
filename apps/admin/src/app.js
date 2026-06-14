@@ -528,7 +528,16 @@ function renderDraftTaskResult(task) {
 function renderDraftPublishResult(result) {
   setText('[data-field="draft-publish-mode"]', result.mode || fallbackDraftPublish.mode);
   setText('[data-field="draft-publish-auth-mode"]', result.auth_mode || fallbackDraftPublish.auth_mode);
-  setText('[data-field="draft-publish-pr"]', result.pull_request || fallbackDraftPublish.pull_request);
+  
+  const prEl = document.querySelector('[data-field="draft-publish-pr"]');
+  if (prEl) {
+    const prUrl = result.pull_request || fallbackDraftPublish.pull_request;
+    if (prUrl && prUrl.startsWith('http')) {
+      prEl.innerHTML = `<a href="${prUrl}" target="_blank" class="pr-link">${prUrl}</a>`;
+    } else {
+      prEl.textContent = prUrl || '-';
+    }
+  }
 }
 
 function renderDraftPlan(plan) {
@@ -618,14 +627,21 @@ function getDraftFormPayload(form) {
     .split(',')
     .map((tag) => tag.trim())
     .filter(Boolean);
+  const categories = String(formData.get('categories') || formData.get('category') || '')
+    .split(',')
+    .map((c) => c.trim())
+    .filter(Boolean);
 
   return {
     title: String(formData.get('title') || '').trim(),
     slug: String(formData.get('slug') || '').trim(),
     summary: String(formData.get('summary') || '').trim(),
     body: String(formData.get('body') || '').trim(),
+    date: String(formData.get('date') || '').trim(),
+    updated: String(formData.get('updated') || '').trim(),
     tags,
-    category: String(formData.get('category') || '').trim(),
+    categories,
+    category: categories[0] || '',
     status: String(formData.get('status') || '').trim()
   };
 }
@@ -693,7 +709,15 @@ async function postDraftAction(form, endpoint, overrides = {}) {
     body: JSON.stringify(payload)
   });
 
-  if (!response.ok) return { error: response.status };
+  if (!response.ok) {
+    try {
+      const errData = await response.json();
+      if (errData && errData.error) {
+        return { error: errData.error, details: errData.details, status: response.status };
+      }
+    } catch {}
+    return { error: `HTTP ${response.status}`, status: response.status };
+  }
   return response.json();
 }
 
@@ -1025,7 +1049,11 @@ async function handleDraftPreviewSubmit(event) {
     }
 
     if (result?.error) {
-      renderDraftPreviewStatus('warning', `${action === 'queue' ? 'Queue failed' : 'Preview failed'} (${result.error})`);
+      let errMsg = result.error;
+      if (result.details && Array.isArray(result.details)) {
+        errMsg += `: ${result.details.join(', ')}`;
+      }
+      renderDraftPreviewStatus('warning', `Action failed: ${errMsg}`);
       return;
     }
 
@@ -1035,30 +1063,73 @@ async function handleDraftPreviewSubmit(event) {
 
     if (result.plan) {
       renderDraftPlan(result.plan);
-      if (action === 'publish' || action === 'publish-d1') {
-        renderDraftPublishResult({
-          mode: result.mode || 'live',
-          auth_mode: result.auth_mode || 'token',
-          pull_request: result.pull_request?.url || '-'
-        });
-        renderDraftPreviewStatus('ok', result.mode === 'live' ? 'Publish request completed' : 'Publish dry-run ready');
-        loadScaffoldData();
-        return;
-      }
-      renderDraftPreviewStatus('ok', 'Plan ready');
-      return;
     }
 
-    if (action === 'queue') {
-      renderDraftTaskResult({
-        status: result.queued ? 'queued' : 'queue failed',
-        task_id: result.task_id || '-'
-      });
-      prependTask({
-        type: result.task_type || 'draft_preview',
-        status: result.queued ? 'queued' : 'unknown'
-      });
-      renderDraftPreviewStatus('ok', 'Task queued');
+    if (action === 'publish' || action === 'publish-d1' || action === 'queue') {
+      const taskId = result.task_id;
+      if (taskId) {
+        renderDraftTaskResult({
+          status: 'queued',
+          task_id: taskId
+        });
+        prependTask({
+          type: result.task_type || (action === 'publish' ? 'draft_publish' : 'draft_preview'),
+          status: 'queued'
+        });
+        renderDraftPreviewStatus('warning', `Polling task status (${taskId})...`);
+        
+        let pollCount = 0;
+        const maxPolls = 30; // 60 seconds max
+        const intervalId = setInterval(async () => {
+          pollCount++;
+          if (pollCount > maxPolls) {
+            clearInterval(intervalId);
+            renderDraftPreviewStatus('warning', 'Polling timed out');
+            return;
+          }
+          try {
+            const res = await apiFetch(`/api/tasks/${taskId}`);
+            if (res.ok) {
+              const data = await res.json();
+              if (data.ok && data.task) {
+                const task = data.task;
+                renderDraftTaskResult({
+                  status: task.status,
+                  task_id: task.id
+                });
+                
+                if (task.status === 'completed' || task.status === 'succeeded') {
+                  clearInterval(intervalId);
+                  const summary = task.payload?.reconciliation?.summary || {};
+                  const prUrl = summary.pull_request?.url || task.detail_secondary || '-';
+                  renderDraftPublishResult({
+                    mode: 'live',
+                    auth_mode: summary.auth_mode || 'token',
+                    pull_request: prUrl
+                  });
+                  renderDraftPreviewStatus('ok', 'Action completed successfully');
+                  loadScaffoldData();
+                } else if (task.status === 'failed') {
+                  clearInterval(intervalId);
+                  renderDraftPreviewStatus('warning', `Action failed: ${task.error || 'unknown task error'}`);
+                }
+              }
+            }
+          } catch (e) {
+            console.error('Error polling task:', e);
+          }
+        }, 2000);
+      } else {
+        if (result.plan) {
+          renderDraftPublishResult({
+            mode: result.mode || 'live',
+            auth_mode: result.auth_mode || 'token',
+            pull_request: result.pull_request?.url || '-'
+          });
+          renderDraftPreviewStatus('ok', result.mode === 'live' ? 'Publish request completed' : 'Publish dry-run ready');
+          loadScaffoldData();
+        }
+      }
       return;
     }
 
