@@ -6,8 +6,8 @@ This document records the formal Go / No-Go decision and readiness checklist for
 
 ## 1. Current Gate Decision
 
-* **Current Decision**: **NO-GO for live production writes**.
-* **Approved Scope**: **Production PR trial completed; production live writes remain blocked**.
+* **Current Decision**: **CONDITIONAL GO — pending explicit live-write approval**.
+* **Approved Scope**: **All pre-live-write stages completed; one controlled live-write trial pending approval**.
 * **Reasoning**:
   1. The API and Queue Worker architecture has successfully passed staging unit and integration smoke testing.
   2. Level 1 read-only connection compatibility validation has been completed successfully and sanitized.
@@ -112,9 +112,9 @@ This document records the formal Go / No-Go decision and readiness checklist for
 ## 4. Next Stage
 
 ```text
-Production PR Trial Review + Live-write Readiness
+One Controlled Production Live-write Trial
 ```
 
 ```text
-No further PR trial PR should be opened. The next stage is reviewing the PR trial evidence and preparing the final live-write readiness gate.
+The next stage is executing one controlled production live-write trial (PR #72) under active owner monitoring and rollback readiness.
 ```
