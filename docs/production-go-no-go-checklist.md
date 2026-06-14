@@ -7,14 +7,15 @@ This document records the formal Go / No-Go decision and readiness checklist for
 ## 1. Current Gate Decision
 
 * **Current Decision**: **NO-GO for live production writes**.
-* **Approved Scope**: **Production dry-run completed; production live writes remain blocked**.
+* **Approved Scope**: **Production shadow-mode blocked**.
 * **Reasoning**:
   1. The API and Queue Worker architecture has successfully passed staging unit and integration smoke testing.
   2. Level 1 read-only connection compatibility validation has been completed successfully and sanitized.
   3. Staging async E2E evidence and Level 2 Single PR Trial execution evidence have been completed, verified, and cleaned up.
   4. Staging environment variable `LIVE_WRITES_ENABLED` was successfully restored to `false`, and all test branches/PRs deleted.
   5. **Production dry-run has been executed successfully** and evidence recorded. All production resources on Cloudflare are provisioned, and configurations validated under a non-mutating plan.
-  *Note: This approval does not authorize production publishing, direct main writes, auto-merge, batch publishing, or writes to `hexo-blog`.*
+  6. **Production shadow-mode is currently blocked** because explicit owner approval for execution has not yet been recorded.
+  *Note: This decision does not authorize production publishing, direct main writes, auto-merge, batch publishing, or writes to `hexo-blog`.*
 
 ---
 
@@ -86,22 +87,33 @@ This document records the formal Go / No-Go decision and readiness checklist for
 - [x] Production shadow-mode approval remains blocked.
 - [x] Production live-write approval remains blocked.
 
+### 2.6 Pre-requisites for Production Shadow-mode
+- [x] Production dry-run completed.
+- [x] Production runtime verification completed.
+- [x] Production dry-run evidence recorded.
+- [x] Production shadow-mode scope approved.
+- [ ] Production shadow-mode preflight checklist passed.
+- [ ] Production shadow-mode owner approval completed.
+- [ ] Production shadow-mode execution window recorded.
+- [ ] Production shadow-mode operator recorded.
+- [x] Production live-write approval remains blocked.
+
 ---
 
 ## 3. Disaster Recovery and Rollback Checklist
-- [ ] Operator knows how to execute a Cloudflare Worker deployment rollback via Dashboard or Wrangler CLI.
-- [ ] Pre-migration database backup commands verified and runbooks written.
-- [ ] R2 draft prefix assets cleanup procedures documented.
-- [ ] D1 audit log table maintenance query ready.
+- [x] Operator knows how to execute a Cloudflare Worker deployment rollback via Dashboard or Wrangler CLI.
+- [x] Pre-migration database backup commands verified and runbooks written.
+- [x] R2 draft prefix assets cleanup procedures documented.
+- [x] D1 audit log table maintenance query ready.
 
 ---
 
 ## 4. Next Stage
 
 ```text
-Production Shadow-mode Approval Review
+Shadow-mode remediation / owner approval required
 ```
 
 ```text
-No further dry-run documentation-only PR should be opened. The next stage is reviewing shadow-mode parameters.
+Shadow-mode remains blocked. No execution may proceed.
 ```
