@@ -91,6 +91,16 @@
             <li><code>POST /api/moderation/preview</code></li>
             <li><code>POST /api/moderation/tasks</code></li>
             <li><code>POST /api/tasks/example</code></li>
+            <li><code>GET /auth/github/start</code></li>
+            <li><code>GET /auth/github/callback</code></li>
+            <li><code>GET /api/auth/session</code></li>
+            <li><code>POST /api/auth/logout</code></li>
+            <li><code>POST /api/assets/media-preview</code></li>
+            <li><code>POST /api/assets/media-insert-snippet</code></li>
+            <li><code>GET /api/site/menu</code></li>
+            <li><code>POST /api/site/menu/preview</code></li>
+            <li><code>POST /api/site/menu/pr</code></li>
+            <li><code>POST /api/site/menu/direct-update</code></li>
           </ul>
         </article>
       </section>
@@ -857,6 +867,182 @@
               <span class="meta-label">Message</span>
               <pre class="preview-code" data-field="moderation-message">flag comment comment-demo-1 via waline</pre>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── GitHub OAuth Login (Preview) ──────────────────────────────── -->
+      <section class="panel" id="panel-oauth-login" style="border-left: 3px solid #3d5afe;">
+        <div class="panel-header">
+          <h2>🔐 GitHub OAuth Login</h2>
+          <span class="status-badge" data-field="oauth-status" data-state="info">Preview</span>
+        </div>
+        <div class="meta-grid">
+          <div class="meta-row">
+            <span class="meta-label">Mode</span>
+            <strong>OAuth Preview (no live production session)</strong>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Allowed logins</span>
+            <strong data-field="oauth-allowed-logins">Not configured</strong>
+          </div>
+          <div class="meta-row">
+            <span class="meta-label">Session status</span>
+            <strong data-field="oauth-session-status">Not logged in</strong>
+          </div>
+          <div class="meta-row" id="oauth-user-info" style="display: none;">
+            <span class="meta-label">Logged in as</span>
+            <strong data-field="oauth-logged-in-user">-</strong>
+          </div>
+        </div>
+        <div class="form-actions" style="margin-top: 12px;">
+          <a href="/auth/github/start" class="button" id="btn-github-login" style="text-decoration: none; display: inline-block;">Login with GitHub</a>
+          <button type="button" class="button-secondary" id="btn-github-logout" style="display: none;">Logout</button>
+          <button type="button" class="button-secondary" id="btn-check-session">Check Session</button>
+        </div>
+        <p class="operator-note" style="margin-top: 10px;">
+          GitHub OAuth login is a preview feature. It does not replace admin secret authentication in this phase.
+          Allowed logins are configured via <code>GITHUB_OAUTH_ALLOWED_LOGINS</code>.
+        </p>
+      </section>
+
+      <!-- ── Media Asset Manager (Dry-Run) ─────────────────────────────── -->
+      <section class="panel" id="panel-media-manager" style="border-left: 3px solid #00bcd4;">
+        <div class="panel-header">
+          <h2>🖼️ Media Asset Manager</h2>
+          <span class="status-badge" data-field="media-status" data-state="info">Dry-run</span>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
+          Preview media upload validation and generate Markdown/HTML snippets for insertion into posts.
+          No real uploads to R2 or GitHub in this phase.
+        </p>
+        <form data-role="media-preview-form" style="margin-bottom: 16px;">
+          <div class="meta-grid">
+            <div class="meta-row" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+              <label for="media-slug">Post slug</label>
+              <input id="media-slug" name="slug" type="text" placeholder="my-new-post" required style="width: 100%;" />
+            </div>
+            <div class="meta-row" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+              <label for="media-filename">Filename</label>
+              <input id="media-filename" name="filename" type="text" placeholder="cover.jpg" required style="width: 100%;" />
+            </div>
+            <div class="meta-row" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+              <label for="media-content-type">Content-Type</label>
+              <select id="media-content-type" name="contentType" required style="width: 100%;">
+                <option value="image/jpeg">image/jpeg</option>
+                <option value="image/png">image/png</option>
+                <option value="image/webp">image/webp</option>
+                <option value="image/gif">image/gif</option>
+                <option value="video/mp4">video/mp4</option>
+                <option value="video/webm">video/webm</option>
+                <option value="application/pdf">application/pdf</option>
+              </select>
+            </div>
+            <div class="meta-row" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+              <label for="media-storage-target">Storage target</label>
+              <select id="media-storage-target" name="storageTarget" required style="width: 100%;">
+                <option value="r2">R2 (CDN)</option>
+                <option value="git_asset_folder">Git asset folder</option>
+              </select>
+            </div>
+            <div class="meta-row" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+              <label for="media-size">Size (bytes)</label>
+              <input id="media-size" name="size" type="number" value="102400" min="0" style="width: 100%;" />
+            </div>
+            <div class="meta-row" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+              <label for="media-label">Alt text / label</label>
+              <input id="media-label" name="label" type="text" placeholder="A cool screenshot" style="width: 100%;" />
+            </div>
+          </div>
+          <div class="form-actions" style="margin-top: 12px;">
+            <button type="submit">Preview Media Asset</button>
+          </div>
+        </form>
+        <div id="media-preview-result" style="display: none;">
+          <div class="meta-grid">
+            <div class="meta-row">
+              <span class="meta-label">Safe filename</span>
+              <strong data-field="media-safe-filename">-</strong>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Target path</span>
+              <strong data-field="media-target-path">-</strong>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Storage target</span>
+              <strong data-field="media-storage-result">-</strong>
+            </div>
+          </div>
+          <div class="meta-block" style="margin-top: 10px;">
+            <span class="meta-label">Generated Markdown snippet</span>
+            <pre class="preview-code" data-field="media-markdown-snippet" style="white-space: pre-wrap; user-select: all;">-</pre>
+          </div>
+          <div class="form-actions" style="margin-top: 10px;">
+            <button type="button" id="btn-copy-media-snippet" class="button-secondary">📋 Copy snippet</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── Site Menu Manager (Preview) ───────────────────────────────── -->
+      <section class="panel" id="panel-menu-manager" style="border-left: 3px solid #ab47bc;">
+        <div class="panel-header">
+          <h2>📋 Site Menu Manager</h2>
+          <span class="status-badge" data-field="menu-status" data-state="info">Preview</span>
+        </div>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
+          View and edit the site navigation menu from <code>rb-blog.config.json</code>. Changes generate a diff preview.
+          PR creation and direct update are reserved for future phases.
+        </p>
+        <div class="form-actions" style="margin-bottom: 12px;">
+          <button type="button" id="btn-load-menu">Load Current Menu</button>
+        </div>
+        <div id="menu-current-display" style="display: none;">
+          <div class="meta-grid">
+            <div class="meta-row">
+              <span class="meta-label">Config source</span>
+              <strong data-field="menu-config-source">-</strong>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Config SHA</span>
+              <strong data-field="menu-config-sha" style="font-family: monospace; font-size: 0.85rem;">-</strong>
+            </div>
+          </div>
+          <div class="meta-block" style="margin-top: 10px;">
+            <span class="meta-label">Current menu items</span>
+            <div id="menu-items-container" style="margin-top: 8px;">
+              <!-- dynamically populated -->
+            </div>
+          </div>
+          <div style="margin-top: 12px; padding: 10px; border: 1px dashed var(--border); border-radius: 6px;">
+            <h4 style="margin: 0 0 8px 0; font-size: 0.9rem;">Add / Edit Menu Item</h4>
+            <form data-role="menu-edit-form">
+              <div class="meta-grid">
+                <div class="meta-row" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+                  <label for="menu-item-label">Label</label>
+                  <input id="menu-item-label" name="label" type="text" placeholder="About" required style="width: 100%;" />
+                </div>
+                <div class="meta-row" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+                  <label for="menu-item-path">Path / URL</label>
+                  <input id="menu-item-path" name="path" type="text" placeholder="/about/" required style="width: 100%;" />
+                </div>
+                <div class="meta-row" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
+                  <label for="menu-item-icon">Icon (optional)</label>
+                  <input id="menu-item-icon" name="icon" type="text" placeholder="fas fa-user" style="width: 100%;" />
+                </div>
+              </div>
+              <div class="form-actions" style="margin-top: 10px;">
+                <button type="submit" class="button-secondary">Add Item to Preview</button>
+              </div>
+            </form>
+          </div>
+          <div class="form-actions" style="margin-top: 12px;">
+            <button type="button" id="btn-preview-menu-diff">Generate Diff Preview</button>
+          </div>
+        </div>
+        <div id="menu-diff-result" style="display: none; margin-top: 12px;">
+          <div class="meta-block">
+            <span class="meta-label">Config diff preview</span>
+            <pre class="preview-code" data-field="menu-diff-output" style="white-space: pre-wrap;">-</pre>
           </div>
         </div>
       </section>

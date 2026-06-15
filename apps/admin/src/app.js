@@ -1862,3 +1862,218 @@ async function loadScaffoldData() {
 }
 
 loadScaffoldData();
+
+// ── OAuth Session Handlers ──────────────────────────────────────────────────
+const btnCheckSession = document.getElementById('btn-check-session');
+const btnGithubLogout = document.getElementById('btn-github-logout');
+const btnGithubLogin = document.getElementById('btn-github-login');
+
+async function checkOAuthSession() {
+  try {
+    const res = await fetch('/api/auth/session', { headers: getAdminHeaders() });
+    const data = await res.json();
+    const sessionStatusEl = document.querySelector('[data-field="oauth-session-status"]');
+    const userInfoEl = document.getElementById('oauth-user-info');
+    const loggedInUserEl = document.querySelector('[data-field="oauth-logged-in-user"]');
+
+    if (data.authenticated && data.user) {
+      sessionStatusEl.textContent = 'Authenticated';
+      sessionStatusEl.closest('.meta-row')?.querySelector('.status-badge')?.setAttribute('data-state', 'ok');
+      loggedInUserEl.textContent = `${data.user.name} (@${data.user.login})`;
+      userInfoEl.style.display = '';
+      btnGithubLogout.style.display = '';
+      btnGithubLogin.style.display = 'none';
+    } else {
+      sessionStatusEl.textContent = 'Not logged in';
+      userInfoEl.style.display = 'none';
+      btnGithubLogout.style.display = 'none';
+      btnGithubLogin.style.display = '';
+    }
+  } catch {
+    // Ignore fetch errors silently
+  }
+}
+
+if (btnCheckSession) {
+  btnCheckSession.addEventListener('click', checkOAuthSession);
+}
+
+if (btnGithubLogout) {
+  btnGithubLogout.addEventListener('click', async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      await checkOAuthSession();
+    } catch {
+      // Ignore
+    }
+  });
+}
+
+// Auto-check session on load
+checkOAuthSession();
+
+// ── Media Asset Manager Handlers ────────────────────────────────────────────
+const mediaForm = document.querySelector('[data-role="media-preview-form"]');
+const mediaResultEl = document.getElementById('media-preview-result');
+const btnCopySnippet = document.getElementById('btn-copy-media-snippet');
+
+if (mediaForm) {
+  mediaForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(mediaForm);
+    const payload = {
+      slug: formData.get('slug'),
+      filename: formData.get('filename'),
+      contentType: formData.get('contentType'),
+      storageTarget: formData.get('storageTarget'),
+      size: parseInt(formData.get('size') || '0', 10),
+      label: formData.get('label') || ''
+    };
+
+    try {
+      const res = await fetch('/api/assets/media-preview', {
+        method: 'POST',
+        headers: { ...getAdminHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(`Media preview error: ${data.error || 'Unknown error'}`);
+        return;
+      }
+
+      const asset = data.asset || {};
+      document.querySelector('[data-field="media-safe-filename"]').textContent = asset.filename || '-';
+      document.querySelector('[data-field="media-target-path"]').textContent = asset.targetPath || '-';
+      document.querySelector('[data-field="media-storage-result"]').textContent = asset.storageTarget || '-';
+      document.querySelector('[data-field="media-markdown-snippet"]').textContent = asset.markdownSnippet || '-';
+      mediaResultEl.style.display = '';
+    } catch (err) {
+      alert(`Media preview failed: ${err.message}`);
+    }
+  });
+}
+
+if (btnCopySnippet) {
+  btnCopySnippet.addEventListener('click', () => {
+    const snippetEl = document.querySelector('[data-field="media-markdown-snippet"]');
+    if (snippetEl && navigator.clipboard) {
+      navigator.clipboard.writeText(snippetEl.textContent).then(() => {
+        btnCopySnippet.textContent = '✅ Copied!';
+        setTimeout(() => { btnCopySnippet.textContent = '📋 Copy snippet'; }, 2000);
+      });
+    }
+  });
+}
+
+// ── Site Menu Manager Handlers ──────────────────────────────────────────────
+const btnLoadMenu = document.getElementById('btn-load-menu');
+const menuCurrentDisplay = document.getElementById('menu-current-display');
+const menuItemsContainer = document.getElementById('menu-items-container');
+const menuEditForm = document.querySelector('[data-role="menu-edit-form"]');
+const btnPreviewMenuDiff = document.getElementById('btn-preview-menu-diff');
+const menuDiffResult = document.getElementById('menu-diff-result');
+
+let currentMenuItems = [];
+let currentMenuSha = '';
+
+function renderMenuItems(items) {
+  if (!menuItemsContainer) return;
+  if (!items || items.length === 0) {
+    menuItemsContainer.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.85rem;">No menu items found.</p>';
+    return;
+  }
+  menuItemsContainer.innerHTML = items.map((item, i) => `
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border);">
+      <span style="font-weight: 600; min-width: 24px; color: var(--text-secondary);">${i + 1}.</span>
+      <span style="flex: 1;">${escapeHtml(item.label || item.name || '-')}</span>
+      <code style="font-size: 0.8rem; color: var(--text-secondary);">${escapeHtml(item.path || item.url || '-')}</code>
+      <button type="button" class="button-secondary" style="padding: 2px 8px; font-size: 0.75rem;" data-remove-menu="${i}">✕</button>
+    </div>
+  `).join('');
+
+  // Bind remove buttons
+  menuItemsContainer.querySelectorAll('[data-remove-menu]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const idx = parseInt(btn.getAttribute('data-remove-menu'), 10);
+      currentMenuItems.splice(idx, 1);
+      renderMenuItems(currentMenuItems);
+    });
+  });
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+if (btnLoadMenu) {
+  btnLoadMenu.addEventListener('click', async () => {
+    try {
+      btnLoadMenu.disabled = true;
+      btnLoadMenu.textContent = 'Loading...';
+      const res = await fetch('/api/site/menu', { headers: getAdminHeaders() });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(`Menu load error: ${data.error || 'Unknown error'}`);
+        return;
+      }
+
+      document.querySelector('[data-field="menu-config-source"]').textContent = data.source || '-';
+      document.querySelector('[data-field="menu-config-sha"]').textContent = data.sha ? data.sha.substring(0, 12) : '-';
+
+      currentMenuItems = Array.isArray(data.menu) ? [...data.menu] : [];
+      currentMenuSha = data.sha || '';
+      renderMenuItems(currentMenuItems);
+      menuCurrentDisplay.style.display = '';
+    } catch (err) {
+      alert(`Menu load failed: ${err.message}`);
+    } finally {
+      btnLoadMenu.disabled = false;
+      btnLoadMenu.textContent = 'Load Current Menu';
+    }
+  });
+}
+
+if (menuEditForm) {
+  menuEditForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const formData = new FormData(menuEditForm);
+    const newItem = {
+      label: formData.get('label'),
+      path: formData.get('path'),
+      icon: formData.get('icon') || undefined
+    };
+    currentMenuItems.push(newItem);
+    renderMenuItems(currentMenuItems);
+    menuEditForm.reset();
+  });
+}
+
+if (btnPreviewMenuDiff) {
+  btnPreviewMenuDiff.addEventListener('click', async () => {
+    try {
+      btnPreviewMenuDiff.disabled = true;
+      btnPreviewMenuDiff.textContent = 'Generating...';
+      const res = await fetch('/api/site/menu/preview', {
+        method: 'POST',
+        headers: { ...getAdminHeaders(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ menu: currentMenuItems })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(`Menu preview error: ${data.error || 'Unknown error'}`);
+        return;
+      }
+
+      document.querySelector('[data-field="menu-diff-output"]').textContent = data.diff || '(no changes)';
+      menuDiffResult.style.display = '';
+    } catch (err) {
+      alert(`Menu preview failed: ${err.message}`);
+    } finally {
+      btnPreviewMenuDiff.disabled = false;
+      btnPreviewMenuDiff.textContent = 'Generate Diff Preview';
+    }
+  });
+}
