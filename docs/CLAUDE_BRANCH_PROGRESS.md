@@ -3173,6 +3173,38 @@ Create the official `v0.1.0-alpha.1` release tag, push it to GitHub, and create 
 ### Final Gate Decision
 Phase 087 has been successfully completed. Annotated tag `v0.1.0-alpha.1` has been pushed to origin, and the Draft Release has been successfully created on GitHub. The release candidate is ready for final review.
 
+---
+
+## Phase 087-B - Admin Staging Login and Capability Smoke Test
+
+### Executed by Model
+Antigravity
+
+### Type
+Deployment / Verification / Staging Smoke Testing
+
+### Goal
+Deploy the HTTP API Worker, Queue Worker, and Admin UI frontend to a live Cloudflare staging environment, run automated and manual capability tests, and verify write gates and D1 audit logs.
+
+### Files changed
+
+| File | Change summary | Reason |
+|---|---|---|
+| [docs/admin-staging-login-capability-smoke-20260615.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/admin-staging-login-capability-smoke-20260615.md) [NEW] | Create staging smoke evidence report | Document verification results and quality scores |
+| [scripts/smoke-worker-routes.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/scripts/smoke-worker-routes.mjs) | Add required body field to draft preview and publish requests | Prevent validation failure in tests |
+
+### Validation
+
+| Command | Result | Notes |
+|---|---|---|
+| npm run test:smoke | Passed | 17/17 automated smoke tests pass successfully against the staging worker |
+| verify-write-gates.js | Passed | All mutation write gates block live edits or fall back safely |
+| check-audit-logs.js | Passed | D1 database logs mutations securely without leaking tokens |
+
+### Final Gate Decision
+Phase 087-B has been successfully completed. The API and Queue Workers and Admin UI are deployed to the Cloudflare staging environment. Staging verification proves that all capabilities (login redirection, session creation/cookie options, posts preview, draft loading, diff generation, media dry-run format snippets, and menu configuration diff previews) are operational. All live write gates reject changes. No production writes, R2 writes, or repository mutations occurred.
+
+
 
 
 
