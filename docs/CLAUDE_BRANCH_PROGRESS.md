@@ -2940,6 +2940,53 @@ Documentation and evidence only. No production execution.
 
 Admin MVP smoke gate passed. No production execution occurred.
 
+---
+
+## Step 078 - Owner Direct Publish Mode
+
+### Executed by Model
+Antigravity
+
+### Type
+Feature / Refactoring
+
+### Goal
+Implement an optional, high-risk, audited, and disabled-by-default Owner Direct Publish mode that allows site owners to commit articles directly to the target repository's `main` branch, bypassing the Pull Request review workflow.
+
+### Files changed
+
+| File | Change summary | Reason |
+|---|---|---|
+| packages/core/src/index.js | Export config keys and extend buildProviderReadinessSnapshot to return publishMode status | Expose flags to the client |
+| packages/core/src/github-publishing.js | Implement `createDirectMainCommit` to check files and push commits | Implement direct GitHub main write |
+| workers/api/src/index.js | Add `POST /api/drafts/direct-publish` route, gating it behind auth, turnstile, and flag checks | Expose direct commit API with security |
+| apps/admin/src/index.html | Add direct publish warning panel, verification checkbox, phrase input, button, and results view | Support direct publish interaction |
+| apps/admin/src/app.js | Handle readiness display, direct publish submission, status rendering, and input listeners | Integrate client direct publish flow |
+| apps/admin/src/style.css | Add style for `.button-danger` and hover | Add styling |
+| tests/github-publishing.test.mjs | Add mock unit tests for direct commit | Test core git commit function |
+| tests/worker-security.test.mjs | Add endpoint gating and validation tests for direct publish | Test API security gates |
+| tests/admin-publishing-mvp.test.mjs | Assert presence of new UI markup elements | Validate UI consistency |
+| docs/owner-direct-publish-mode.md | Create design spec and runbook for direct publish mode | Complete documentation |
+| docs/production-publish-runbook.md | Add direct publish guidelines | Maintain operational guide |
+| .env.example | Add default direct publish config | Standardize configuration |
+| wrangler.toml.example | Add default direct publish variables | Standardize config vars |
+
+### Validation
+
+| Command | Result | Notes |
+|---|---|---|
+| npm ci | Passed | Clean package installation |
+| npm run check:all | Passed | Full syntax, build, D1, queues, and test suite verification |
+| npm run check:secrets | Passed | No secrets or forbidden markers committed |
+| npm test | Passed | 102/102 tests passed successfully |
+| npm run test:secrets-fixture | Passed | Secrets scanner fixture checks pass |
+| npm run build:admin | Passed | Bundling of the admin application finishes successfully |
+
+### Final Gate Decision
+
+Owner Direct Publish Mode has been successfully implemented. It is fully disabled by default and gated behind strict configuration checks, explicit checkboxes, and typed phrase confirmation fields. The mock GitHub commit logic is fully tested and verified to commit directly to `main` without creating branches, opening PRs, or calling merge APIs. No production direct publish was executed. All test suites pass.
+
+
 
 
 
