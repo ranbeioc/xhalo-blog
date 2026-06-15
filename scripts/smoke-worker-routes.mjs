@@ -162,7 +162,8 @@ async function main() {
       },
       body: JSON.stringify({
         title: 'Smoke Test Preview Post',
-        slug: 'smoke-test-preview-post'
+        slug: 'smoke-test-preview-post',
+        body: 'This is the body content of the smoke test preview post.'
       })
     },
     (status, json) => {
@@ -188,6 +189,7 @@ async function main() {
       body: JSON.stringify({
         title: 'Smoke Test Publish Post',
         slug: 'smoke-test-publish-post',
+        body: 'This is the body content of the smoke test publish post.',
         mode: 'dry-run',
         publish_target: 'd1'
       })
