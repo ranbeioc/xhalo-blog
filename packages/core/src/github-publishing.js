@@ -289,3 +289,43 @@ export async function createPullRequest(env, preview) {
     throw error;
   }
 }
+
+export async function createDirectMainCommit(env, { branch = 'main', filePath, content, commitMessage }) {
+  const { owner, repo } = getGitHubRepository(env);
+
+  let existingSha = null;
+  try {
+    const existingFile = await githubApiRequest(env, `/repos/${owner}/${repo}/contents/${encodeURIComponent(filePath)}?ref=${encodeURIComponent(branch)}`);
+    if (existingFile && existingFile.sha) {
+      existingSha = existingFile.sha;
+    }
+  } catch (error) {
+    if (error.status !== 404) {
+      throw error;
+    }
+  }
+
+  if (existingSha) {
+    throw new Error('Target post already exists. Use explicit update flow in a separate phase.');
+  }
+
+  const finalCommitMessage = commitMessage.includes('[owner-direct]')
+    ? commitMessage
+    : `[owner-direct] ${commitMessage}`;
+
+  const result = await githubApiRequest(env, `/repos/${owner}/${repo}/contents/${encodeURIComponent(filePath)}`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      message: finalCommitMessage,
+      content: encodeBase64Utf8(content),
+      branch
+    })
+  });
+
+  return {
+    commitSha: result.commit.sha,
+    commitUrl: `https://github.com/${owner}/${repo}/commit/${result.commit.sha}`
+  };
+}
+

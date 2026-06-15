@@ -8,7 +8,7 @@ This document describes the design, fields, publish flow, and safety boundaries 
 
 The Admin PR-only Publishing MVP provides a secure content-management workspace where operators can draft articles, preview content formatting, and submit publication requests. 
 
-To ensure maximum safety, **all write actions strictly generate Git Pull Requests for manual review**. No action on the admin panel will directly push commits to `main`, execute auto-merges, or publish live content automatically.
+To ensure maximum safety, **all write actions strictly generate Git Pull Requests for manual review** by default. No action on the admin panel will directly push commits to `main`, execute auto-merges, or publish live content automatically unless the optional, high-risk **Owner Direct Publish Mode** is explicitly enabled in configuration.
 
 ---
 
@@ -74,8 +74,8 @@ sequenceDiagram
 ## 4. Safety & Security Boundaries
 
 ### 4.1 Prohibited Actions
-- **No Direct Main Commits**: Committing directly to `main` is completely blocked.
-- **No Auto-Merge**: Pull Requests must be reviewed and merged manually by the repository owner.
+- **No Direct Main Commits by Default**: Committing directly to `main` is completely blocked unless the optional high-risk Owner Direct Publish Mode is explicitly enabled (`PUBLISH_MODE=owner_direct` and `OWNER_DIRECT_PUBLISH_ENABLED=true`).
+- **No Auto-Merge**: Pull Requests must be reviewed and merged manually by the repository owner (direct commits bypass PR creation entirely and do not perform merge operations).
 - **No Unattended Live Writes**: The default system configuration maintains `LIVE_WRITES_ENABLED=false` at all times.
 - **No Secret Exposure**: Secret tokens, credentials, private keys, or internal staging worker URLs are redacted from all user logs and D1 transaction tables.
 

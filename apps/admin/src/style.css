@@ -463,3 +463,14 @@ a {
   padding: 0;
 }
 
+.button-danger {
+  background: rgba(255, 74, 74, 0.12);
+  border-color: rgba(255, 74, 74, 0.4) !important;
+  color: #ff9b9b !important;
+}
+
+.button-danger:hover {
+  background: rgba(255, 74, 74, 0.24) !important;
+}
+
+

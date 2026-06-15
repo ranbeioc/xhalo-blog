@@ -80,4 +80,14 @@ Before Phase 077, the operator must complete the Admin MVP staging smoke checkli
 
 Passing smoke evidence does not authorize production live-write. The first real article publish still requires a separate owner-approved write window.
 
+---
+
+## 8. Owner Direct Publish Guidelines
+
+* **Bypass Review Warning**: Owner Direct Publish commits directly to `main`. This is a high-risk bypass that skips Pull Request checks and code reviews.
+* **Controlled Access Only**: Only the site owner under secure authorization should enable this mode. Default environments and open-source deployments must keep it disabled.
+* **Rollback Procedure**: Direct commits must be reverted manually in GitHub if content is incorrect. No automatic rollback or revert PR is created.
+* **Temporary Use**: When direct publish is needed, enable `PUBLISH_MODE=owner_direct` and `OWNER_DIRECT_PUBLISH_ENABLED=true` temporarily, perform the commit, and immediately reset both variables to preserve the default PR-only baseline.
+
+
 

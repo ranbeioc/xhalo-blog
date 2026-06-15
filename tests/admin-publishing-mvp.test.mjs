@@ -167,4 +167,20 @@ test('Admin UI Static Check: layout correctness', () => {
   assert.ok(html.includes('data-field="draft-task-error"'));
   assert.ok(html.includes('data-field="draft-task-retry-count"'));
   assert.ok(html.includes('data-field="draft-task-updated-at"'));
+
+  // Direct Publish elements
+  assert.ok(html.includes('id="owner-direct-publish-section"'));
+  assert.ok(html.includes('id="direct-publish-confirm-check"'));
+  assert.ok(html.includes('id="direct-publish-confirm-phrase"'));
+  assert.ok(html.includes('id="btn-owner-direct-publish"'));
+  assert.ok(html.includes('id="direct-publish-status-panel"'));
+  assert.ok(html.includes('data-field="direct-publish-sha"'));
+  assert.ok(html.includes('data-field="direct-publish-commit-url"'));
+  assert.ok(html.includes('data-field="direct-publish-repo"'));
+  assert.ok(html.includes('data-field="direct-publish-branch"'));
+  assert.ok(html.includes('data-field="direct-publish-path"'));
+  assert.ok(html.includes('data-field="direct-publish-build-note"'));
+  assert.ok(html.includes('data-field="direct-publish-audit-id"'));
+  assert.ok(html.includes('data-field="direct-publish-created-at"'));
 });
+

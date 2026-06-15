@@ -1017,6 +1017,70 @@ async function handleDraftPreviewSubmit(event) {
   const form = event.currentTarget;
   const action = event.submitter?.value || 'preview';
 
+  const directPanel = document.getElementById('direct-publish-status-panel');
+  if (directPanel) directPanel.style.display = 'none';
+
+  if (action === 'direct-publish') {
+    const check = document.getElementById('direct-publish-confirm-check');
+    if (!check || !check.checked) {
+      renderDraftPreviewStatus('warning', 'Direct publish requires checkbox confirmation.');
+      return;
+    }
+    const phrase = document.getElementById('direct-publish-confirm-phrase');
+    if (!phrase || phrase.value.trim() !== 'DIRECT PUBLISH TO MAIN') {
+      renderDraftPreviewStatus('warning', 'Direct publish requires typed confirmation phrase matching "DIRECT PUBLISH TO MAIN".');
+      return;
+    }
+
+    renderDraftPreviewStatus('warning', 'Executing direct publish...');
+
+    try {
+      const result = await postDraftAction(form, '/api/drafts/direct-publish', {
+        status: 'published',
+        confirmationPhrase: phrase.value.trim()
+      });
+
+      if (result?.locked) {
+        renderDraftPreviewStatus('warning', 'Admin secret required');
+        return;
+      }
+
+      if (result?.error) {
+        let errMsg = result.error;
+        if (result.details && Array.isArray(result.details)) {
+          errMsg += `: ${result.details.join(', ')}`;
+        }
+        renderDraftPreviewStatus('warning', `Action failed: ${errMsg}`);
+        return;
+      }
+
+      if (result.ok) {
+        renderDraftPreviewStatus('ok', 'Direct commit created on main. Cloudflare Pages build may start automatically.');
+        if (directPanel) directPanel.style.display = 'block';
+        setText('[data-field="direct-publish-sha"]', result.commitSha || '-');
+        const commitUrlEl = document.querySelector('[data-field="direct-publish-commit-url"]');
+        if (commitUrlEl) {
+          if (result.commitUrl) {
+            commitUrlEl.innerHTML = `<a href="${result.commitUrl}" target="_blank" class="pr-link">${result.commitUrl}</a>`;
+          } else {
+            commitUrlEl.textContent = '-';
+          }
+        }
+        setText('[data-field="direct-publish-repo"]', result.targetRepo || '-');
+        setText('[data-field="direct-publish-branch"]', result.targetBranch || 'main');
+        setText('[data-field="direct-publish-path"]', result.targetPath || '-');
+        setText('[data-field="direct-publish-audit-id"]', result.auditId || '-');
+        setText('[data-field="direct-publish-created-at"]', new Date().toISOString());
+
+        loadScaffoldData();
+      }
+    } catch (e) {
+      console.error(e);
+      renderDraftPreviewStatus('warning', 'Action failed');
+    }
+    return;
+  }
+
   if (action === 'publish') {
     const checkbox = form.querySelector('input[name="ownerApprovedWindow"]');
     if (!checkbox || !checkbox.checked) {
@@ -1418,6 +1482,26 @@ async function loadScaffoldData() {
   const draftForm = document.querySelector('[data-role="draft-preview-form"]');
   if (draftForm && !draftForm.dataset.bound) {
     draftForm.addEventListener('submit', handleDraftPreviewSubmit);
+
+    const validateOwnerDirectPublishUI = () => {
+      const check = document.getElementById('direct-publish-confirm-check');
+      const phrase = document.getElementById('direct-publish-confirm-phrase');
+      const btn = document.getElementById('btn-owner-direct-publish');
+      if (check && phrase && btn) {
+        const isChecked = check.checked;
+        const isPhraseValid = phrase.value.trim() === 'DIRECT PUBLISH TO MAIN';
+        btn.disabled = !(isChecked && isPhraseValid);
+      }
+    };
+
+    const directCheck = document.getElementById('direct-publish-confirm-check');
+    const directPhrase = document.getElementById('direct-publish-confirm-phrase');
+    if (directCheck) {
+      directCheck.addEventListener('change', validateOwnerDirectPublishUI);
+    }
+    if (directPhrase) {
+      directPhrase.addEventListener('input', validateOwnerDirectPublishUI);
+    }
     const bodyTextarea = draftForm.querySelector('textarea[name="body"]');
     if (bodyTextarea) {
       bodyTextarea.addEventListener('input', updateRealtimePreview);
@@ -1493,6 +1577,15 @@ async function loadScaffoldData() {
     if (readinessResponse.ok) {
       const readiness = await readinessResponse.json();
       renderReadiness(readiness.items);
+
+      const directPublishSection = document.getElementById('owner-direct-publish-section');
+      if (directPublishSection) {
+        if (readiness.publishMode === 'owner_direct' && readiness.ownerDirectPublishEnabled === true) {
+          directPublishSection.style.display = 'block';
+        } else {
+          directPublishSection.style.display = 'none';
+        }
+      }
       const missing = readiness.summary?.missing || 0;
       const partial = readiness.summary?.partial || 0;
       const ready = readiness.summary?.ready || 0;

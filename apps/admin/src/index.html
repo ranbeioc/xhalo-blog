@@ -283,6 +283,27 @@
             <p class="operator-note field-span-2" style="margin-top: 10px; color: var(--text-secondary); font-size: 0.85rem; line-height: 1.4;">
               <strong>Notice:</strong> Creating a Review PR requires an owner-approved write window. This action only creates a draft branch and a Pull Request in the target repository. No direct main writes or auto-merges will occur.
             </p>
+
+            <!-- Owner Direct Publish Area (Hidden/disabled by default) -->
+            <div id="owner-direct-publish-section" class="field-span-2" style="display: none; margin-top: 15px; padding: 15px; border: 1px dashed #ff4a4a; border-radius: 8px; background: rgba(255, 74, 74, 0.05);">
+              <h4 style="margin: 0 0 8px 0; color: #ff6b6b; font-size: 0.95rem;">⚠️ High Risk: Owner Direct Publish</h4>
+              <p style="margin: 0 0 12px 0; font-size: 0.85rem; color: #e7ecf5; line-height: 1.4;">
+                Owner Direct Publish bypasses Pull Request review and commits directly to main. Use only for owner-approved personal-site publishing. This action cannot be auto-merged because it does not create a PR.<br>
+                <span style="color: #ff9b9b; display: block; margin-top: 4px;">Owner Direct Publish 会绕过 Pull Request 审核，直接提交到 main。仅适用于 owner 明确批准的个人站点快速发布。该操作不是默认开源发布模式。</span>
+              </p>
+              
+              <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer; background: transparent; border: none; padding: 0; width: 100%;">
+                <input type="checkbox" id="direct-publish-confirm-check" style="width: auto; margin: 0;" />
+                <span style="font-size: 0.85rem; color: #e7ecf5;">I understand this bypasses PR review and commits directly to main.</span>
+              </label>
+
+              <label style="display: block; margin-bottom: 12px; background: transparent; border: none; padding: 0; width: 100%;">
+                <span style="display: block; font-size: 0.85rem; margin-bottom: 4px; color: #e7ecf5;">Type confirmation phrase: <strong>DIRECT PUBLISH TO MAIN</strong></span>
+                <input type="text" id="direct-publish-confirm-phrase" placeholder="Type the phrase to confirm" style="width: 100%; box-sizing: border-box;" />
+              </label>
+
+              <button type="submit" name="action" value="direct-publish" class="button-danger" id="btn-owner-direct-publish" data-protected-action disabled>Owner Direct Publish to main</button>
+            </div>
           </form>
 
           <div class="draft-output">
@@ -376,6 +397,45 @@
               <ul class="preview-list compact-preview-list" data-field="draft-plan-actions">
                 <li><strong>create_branch</strong><span>Create draft/stage-3-prototype-post from main</span></li>
               </ul>
+            </div>
+            
+            <!-- Direct Publish Status Panel (Shown only after direct publish) -->
+            <div id="direct-publish-status-panel" class="field-span-2" style="display: none; margin-top: 20px; padding: 15px; border: 1px solid rgba(87, 214, 141, 0.2); border-radius: 8px; background: rgba(87, 214, 141, 0.04);">
+              <h4 style="margin: 0 0 10px 0; color: #57d68d; font-size: 0.95rem;">✓ Direct Publish Result</h4>
+              <div class="meta-grid">
+                <div class="meta-row">
+                  <span class="meta-label">Commit SHA</span>
+                  <strong data-field="direct-publish-sha">-</strong>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Commit URL</span>
+                  <strong data-field="direct-publish-commit-url">-</strong>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Target repo</span>
+                  <strong data-field="direct-publish-repo">-</strong>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Target branch</span>
+                  <strong data-field="direct-publish-branch">main</strong>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Target path</span>
+                  <strong data-field="direct-publish-path">-</strong>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Build note</span>
+                  <strong data-field="direct-publish-build-note">Cloudflare Pages build may start automatically.</strong>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Audit id</span>
+                  <strong data-field="direct-publish-audit-id">-</strong>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Created at</span>
+                  <strong data-field="direct-publish-created-at">-</strong>
+                </div>
+              </div>
             </div>
           </div>
         </div>

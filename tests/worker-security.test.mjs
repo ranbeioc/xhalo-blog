@@ -569,7 +569,7 @@ test('Schema Validation: invalid status values are rejected with 400', async () 
 
   assert.equal(response.status, 400);
   assert.equal(json.error, 'Validation failed.');
-  assert.ok(json.details.includes('status must be either "draft" or "review"'));
+  assert.ok(json.details.includes('status must be either "draft", "review" or "published"'));
 });
 
 test('Schema Validation: valid inputs pass validation with 200', async () => {
@@ -1038,7 +1038,7 @@ test('POST /api/drafts/publish rejects invalid status', async () => {
 
   assert.equal(response.status, 400);
   assert.equal(json.error, 'Validation failed.');
-  assert.ok(json.details.some(d => d.includes('status must be either "draft" or "review"')));
+  assert.ok(json.details.some(d => d.includes('status must be either "draft", "review" or "published"')));
 });
 
 test('POST /api/drafts/publish dry-run valid input returns 200', async () => {
@@ -1081,6 +1081,162 @@ test('POST /api/drafts/publish live still returns 403 when LIVE_WRITES_ENABLED=f
   assert.equal(response.status, 403);
   assert.equal(json.required_env, 'LIVE_WRITES_ENABLED=true');
 });
+
+test('POST /api/drafts/direct-publish rejects when PUBLISH_MODE=pr_only', async () => {
+  const { response, json } = await requestJson('/api/drafts/direct-publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: 'valid-slug',
+      body: 'Valid post body content',
+      confirmationPhrase: 'DIRECT PUBLISH TO MAIN'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    PUBLISH_MODE: 'pr_only',
+    OWNER_DIRECT_PUBLISH_ENABLED: 'true'
+  });
+
+  assert.equal(response.status, 403);
+  assert.equal(json.code, 'OWNER_DIRECT_DISABLED');
+});
+
+test('POST /api/drafts/direct-publish rejects when OWNER_DIRECT_PUBLISH_ENABLED=false', async () => {
+  const { response, json } = await requestJson('/api/drafts/direct-publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: 'valid-slug',
+      body: 'Valid post body content',
+      confirmationPhrase: 'DIRECT PUBLISH TO MAIN'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    PUBLISH_MODE: 'owner_direct',
+    OWNER_DIRECT_PUBLISH_ENABLED: 'false'
+  });
+
+  assert.equal(response.status, 403);
+  assert.equal(json.code, 'OWNER_DIRECT_DISABLED');
+});
+
+test('POST /api/drafts/direct-publish rejects wrong confirmation phrase', async () => {
+  const { response, json } = await requestJson('/api/drafts/direct-publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: 'valid-slug',
+      body: 'Valid post body content',
+      confirmationPhrase: 'WRONG PHRASE'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    PUBLISH_MODE: 'owner_direct',
+    OWNER_DIRECT_PUBLISH_ENABLED: 'true',
+    OWNER_DIRECT_CONFIRMATION_PHRASE: 'DIRECT PUBLISH TO MAIN'
+  });
+
+  assert.equal(response.status, 400);
+  assert.equal(json.code, 'INVALID_CONFIRMATION');
+});
+
+test('POST /api/drafts/direct-publish rejects invalid slug or path traversal', async () => {
+  const { response, json } = await requestJson('/api/drafts/direct-publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: '../traversal-slug',
+      body: 'Valid post body content',
+      confirmationPhrase: 'DIRECT PUBLISH TO MAIN'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    PUBLISH_MODE: 'owner_direct',
+    OWNER_DIRECT_PUBLISH_ENABLED: 'true',
+    OWNER_DIRECT_CONFIRMATION_PHRASE: 'DIRECT PUBLISH TO MAIN'
+  });
+
+  assert.equal(response.status, 400);
+  assert.equal(json.error, 'Validation failed.');
+});
+
+test('POST /api/drafts/direct-publish succeeds with mock GitHub when all gates pass', async () => {
+  let directCommitCalled = false;
+  const mockGithubFetch = async (url, init) => {
+    const parsedUrl = new URL(url);
+    const path = decodeURIComponent(parsedUrl.pathname);
+
+    if (path.includes('/contents/source/_posts/valid-slug.md')) {
+      if (!init.method || init.method === 'GET') {
+        return new Response(JSON.stringify({ error: 'Not found' }), { status: 404 });
+      }
+      if (init.method === 'PUT') {
+        directCommitCalled = true;
+        return new Response(JSON.stringify({
+          content: { path: 'source/_posts/valid-slug.md' },
+          commit: { sha: 'direct-commit-sha-456' }
+        }), { status: 201 });
+      }
+    }
+    return new Response(JSON.stringify({}), { status: 404 });
+  };
+
+  const mockDb = {
+    prepare: () => ({
+      bind: () => ({
+        run: async () => ({ success: true })
+      })
+    })
+  };
+
+  const { response, json } = await requestJson('/api/drafts/direct-publish', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      title: 'Valid Title',
+      slug: 'valid-slug',
+      body: 'Valid post body content',
+      confirmationPhrase: 'DIRECT PUBLISH TO MAIN'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    PUBLISH_MODE: 'owner_direct',
+    OWNER_DIRECT_PUBLISH_ENABLED: 'true',
+    OWNER_DIRECT_CONFIRMATION_PHRASE: 'DIRECT PUBLISH TO MAIN',
+    GITHUB_OWNER: 'test-owner',
+    GITHUB_REPO: 'test-repo',
+    GITHUB_BRANCH: 'main',
+    GITHUB_TOKEN: 'mock-token',
+    GITHUB_FETCH: mockGithubFetch,
+    DB: mockDb
+  });
+
+  assert.equal(response.status, 200);
+  assert.ok(json.ok);
+  assert.equal(json.commitSha, 'direct-commit-sha-456');
+  assert.equal(json.targetBranch, 'main');
+  assert.ok(directCommitCalled);
+});
+
 
 
 

@@ -19,6 +19,7 @@ export const defaultScaffoldMetadata = {
     '/api/drafts/tasks',
     '/api/drafts/github-plan',
     '/api/drafts/publish',
+    '/api/drafts/direct-publish',
     '/api/assets/r2-template',
     '/api/assets/r2-preview',
     '/api/assets/r2-signed-upload',
@@ -85,7 +86,10 @@ export const requiredEnvKeys = [
   'GITHUB_INSTALLATION_ID',
   'PREVIEW_WEBHOOK_SECRET',
   'TURNSTILE_SITE_KEY',
-  'TURNSTILE_SECRET_KEY'
+  'TURNSTILE_SECRET_KEY',
+  'PUBLISH_MODE',
+  'OWNER_DIRECT_PUBLISH_ENABLED',
+  'OWNER_DIRECT_CONFIRMATION_PHRASE'
 ];
 
 export const defaultDraftTemplate = {
@@ -240,7 +244,16 @@ export function buildProviderReadinessSnapshot(env = {}) {
     manual: items.filter((item) => item.status === 'manual').length
   };
 
-  return { items, summary, turnstileSiteKey: env.TURNSTILE_SITE_KEY || null };
+  const publishMode = env.PUBLISH_MODE || 'pr_only';
+  const ownerDirectPublishEnabled = String(env.OWNER_DIRECT_PUBLISH_ENABLED || '').toLowerCase() === 'true';
+
+  return {
+    items,
+    summary,
+    turnstileSiteKey: env.TURNSTILE_SITE_KEY || null,
+    publishMode,
+    ownerDirectPublishEnabled
+  };
 }
 
 export function createJsonResponse(data, init = {}) {
@@ -1010,8 +1023,8 @@ export function validateDraftInput(input) {
   // Status validation
   if (input.status !== undefined && input.status !== null) {
     const status = String(input.status).trim();
-    if (status !== 'draft' && status !== 'review') {
-      errors.push('status must be either "draft" or "review"');
+    if (status !== 'draft' && status !== 'review' && status !== 'published') {
+      errors.push('status must be either "draft", "review" or "published"');
     }
   }
 

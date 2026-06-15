@@ -31,10 +31,12 @@ import {
   getBranchHeadSha,
   createBranchIfMissing,
   createDraftFileCommit,
+  createDirectMainCommit,
   createPullRequest,
   decodeBase64ToBytes,
   encodeBase64Url,
-  validateDraftInput
+  validateDraftInput,
+  validateDraftPath
 } from '../../../packages/core/src/index.js';
 
 
@@ -1129,6 +1131,157 @@ export default {
         persisted,
         persisted_task: persistedTask
       }, { status: 202 });
+    }
+
+    if (url.pathname === '/api/drafts/direct-publish' && request.method === 'POST') {
+      const { input, error: jsonError } = await readJsonBody(request);
+      if (jsonError) {
+        return createJsonResponse({ error: jsonError }, { status: 400 });
+      }
+
+      const publishMode = env.PUBLISH_MODE || 'pr_only';
+      const ownerDirectPublishEnabled = String(env.OWNER_DIRECT_PUBLISH_ENABLED || '').toLowerCase() === 'true';
+
+      if (publishMode !== 'owner_direct' || !ownerDirectPublishEnabled) {
+        await insertAuditLog(env, {
+          action: 'owner_direct_publish_failed',
+          ...extractRequestMeta(request),
+          status_code: 403,
+          duration_ms: Date.now() - requestStart,
+          error: 'Owner direct publish is disabled.',
+          detail: { code: 'OWNER_DIRECT_DISABLED' }
+        });
+        return createJsonResponse({
+          error: 'Owner direct publish is disabled.',
+          code: 'OWNER_DIRECT_DISABLED'
+        }, { status: 403 });
+      }
+
+      const expectedPhrase = env.OWNER_DIRECT_CONFIRMATION_PHRASE || 'DIRECT PUBLISH TO MAIN';
+      if (!input.confirmationPhrase || input.confirmationPhrase !== expectedPhrase) {
+        await insertAuditLog(env, {
+          action: 'owner_direct_publish_failed',
+          ...extractRequestMeta(request),
+          status_code: 400,
+          duration_ms: Date.now() - requestStart,
+          error: 'Invalid confirmation phrase.',
+          detail: { code: 'INVALID_CONFIRMATION' }
+        });
+        return createJsonResponse({
+          error: 'Invalid confirmation phrase.',
+          code: 'INVALID_CONFIRMATION'
+        }, { status: 400 });
+      }
+
+      const validationErrors = validatePublishInput(input);
+      if (validationErrors.length > 0) {
+        await insertAuditLog(env, {
+          action: 'owner_direct_publish_failed',
+          ...extractRequestMeta(request),
+          status_code: 400,
+          duration_ms: Date.now() - requestStart,
+          error: 'Validation failed.',
+          detail: { code: 'VALIDATION_FAILED', errors: validationErrors }
+        });
+        return createJsonResponse({ error: 'Validation failed.', details: validationErrors }, { status: 400 });
+      }
+
+      const pathErrors = validateDraftPath(input);
+      if (pathErrors.length > 0) {
+        await insertAuditLog(env, {
+          action: 'owner_direct_publish_failed',
+          ...extractRequestMeta(request),
+          status_code: 400,
+          duration_ms: Date.now() - requestStart,
+          error: 'Validation failed.',
+          detail: { code: 'PATH_VALIDATION_FAILED', errors: pathErrors }
+        });
+        return createJsonResponse({ error: 'Validation failed.', details: pathErrors }, { status: 400 });
+      }
+
+      if (!input.body || String(input.body).trim().length === 0) {
+        return createJsonResponse({ error: 'Validation failed.', details: ['Missing required field: body'] }, { status: 400 });
+      }
+
+      if (Array.isArray(input)) {
+        return createJsonResponse({ error: 'Validation failed.', details: ['Batch payload is not allowed'] }, { status: 400 });
+      }
+
+      const repository = getGitHubRepository(env);
+      const filePath = `source/_posts/${input.slug}.md`;
+      const auditId = crypto.randomUUID();
+      const markdown = buildDraftMarkdownDocument(input);
+      const commitMessage = `[owner-direct] publish post: ${input.title}`;
+
+      try {
+        const commitResult = await createDirectMainCommit(env, {
+          branch: repository.baseBranch,
+          filePath,
+          content: markdown,
+          commitMessage
+        });
+
+        const persisted = await upsertPostIndexRecord(env, {
+          id: input.slug,
+          slug: input.slug,
+          title: input.title,
+          path: filePath,
+          status: 'published',
+          created_at: nowIso(),
+          updated_at: nowIso(),
+          published_at: nowIso(),
+          github_branch: repository.baseBranch,
+          github_pr_url: null,
+          preview_url: null,
+          content: markdown
+        });
+
+        await insertAuditLog(env, {
+          action: 'owner_direct_publish',
+          ...extractRequestMeta(request),
+          resource: 'post',
+          resource_id: input.slug,
+          status_code: 200,
+          duration_ms: Date.now() - requestStart,
+          detail: {
+            mode: 'owner_direct',
+            target_repo: `${repository.owner}/${repository.repo}`,
+            target_branch: repository.baseBranch,
+            target_path: filePath,
+            commit_sha: commitResult.commitSha,
+            audit_id: auditId
+          }
+        });
+
+        return createJsonResponse({
+          ok: true,
+          mode: 'owner_direct',
+          targetRepo: `${repository.owner}/${repository.repo}`,
+          targetBranch: repository.baseBranch,
+          targetPath: filePath,
+          commitSha: commitResult.commitSha,
+          commitUrl: commitResult.commitUrl,
+          auditId,
+          message: 'Direct commit created on main. Cloudflare Pages build may start automatically.'
+        });
+      } catch (err) {
+        const isExistsError = err.message.includes('Target post already exists');
+        const statusCode = isExistsError ? 409 : 500;
+        
+        await insertAuditLog(env, {
+          action: 'owner_direct_publish_failed',
+          ...extractRequestMeta(request),
+          status_code: statusCode,
+          duration_ms: Date.now() - requestStart,
+          error: err.message,
+          detail: { code: isExistsError ? 'TARGET_EXISTS' : 'COMMIT_FAILED' }
+        });
+
+        return createJsonResponse({
+          error: err.message,
+          code: isExistsError ? 'TARGET_EXISTS' : 'COMMIT_FAILED'
+        }, { status: statusCode });
+      }
     }
 
     if (url.pathname === '/api/assets/r2-template') {
