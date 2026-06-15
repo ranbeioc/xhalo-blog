@@ -82,12 +82,13 @@ Passing smoke evidence does not authorize production live-write. The first real 
 
 ---
 
-## 8. Owner Direct Publish Guidelines
+## 8. Owner Direct Publish & Update Guidelines
 
-* **Bypass Review Warning**: Owner Direct Publish commits directly to `main`. This is a high-risk bypass that skips Pull Request checks and code reviews.
+* **Bypass Review Warning**: Owner Direct Publish and Direct Update commit directly to `main`. This is a high-risk bypass that skips Pull Request checks and code reviews.
 * **Controlled Access Only**: Only the site owner under secure authorization should enable this mode. Default environments and open-source deployments must keep it disabled.
 * **Rollback Procedure**: Direct commits must be reverted manually in GitHub if content is incorrect. No automatic rollback or revert PR is created.
-* **Temporary Use**: When direct publish is needed, enable `PUBLISH_MODE=owner_direct` and `OWNER_DIRECT_PUBLISH_ENABLED=true` temporarily, perform the commit, and immediately reset both variables to preserve the default PR-only baseline.
+* **Temporary Use**: When direct publish or update is needed, enable `PUBLISH_MODE=owner_direct`, `OWNER_DIRECT_PUBLISH_ENABLED=true` (and `OWNER_DIRECT_UPDATE_ENABLED=true` if updating existing articles) temporarily, perform the action, and immediately reset all variables to preserve the default PR-only baseline.
+* **Concurrency Protection**: Direct updates enforce SHA conflict checks. If the article has been modified since it was loaded, the update is rejected. In this case, reload the article source and re-apply edits.
 
 
 

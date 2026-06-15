@@ -182,5 +182,39 @@ test('Admin UI Static Check: layout correctness', () => {
   assert.ok(html.includes('data-field="direct-publish-build-note"'));
   assert.ok(html.includes('data-field="direct-publish-audit-id"'));
   assert.ok(html.includes('data-field="direct-publish-created-at"'));
+
+  // Direct Update elements
+  assert.ok(html.includes('id="edit-existing-article-section"'));
+  assert.ok(html.includes('id="load-existing-slug"'));
+  assert.ok(html.includes('id="btn-load-existing"'));
+  assert.ok(html.includes('id="existing-article-meta"'));
+  assert.ok(html.includes('id="existing-article-path"'));
+  assert.ok(html.includes('id="existing-article-sha"'));
+  assert.ok(html.includes('id="existing-article-loaded-at"'));
+
+  assert.ok(html.includes('id="btn-preview-update-diff"'));
+  assert.ok(html.includes('id="diff-preview-panel"'));
+  assert.ok(html.includes('data-field="diff-target-path"'));
+  assert.ok(html.includes('data-field="diff-base-sha"'));
+  assert.ok(html.includes('data-field="diff-added-lines"'));
+  assert.ok(html.includes('data-field="diff-removed-lines"'));
+  assert.ok(html.includes('data-field="diff-frontmatter-changed"'));
+  assert.ok(html.includes('data-field="diff-body-changed"'));
+  assert.ok(html.includes('data-field="diff-text"'));
+
+  assert.ok(html.includes('id="owner-direct-update-section"'));
+  assert.ok(html.includes('id="direct-update-confirm-check"'));
+  assert.ok(html.includes('id="direct-update-confirm-phrase"'));
+  assert.ok(html.includes('id="btn-owner-direct-update"'));
+  assert.ok(html.includes('id="direct-update-status-panel"'));
+  assert.ok(html.includes('data-field="direct-update-sha"'));
+  assert.ok(html.includes('data-field="direct-update-commit-url"'));
+  assert.ok(html.includes('data-field="direct-update-repo"'));
+  assert.ok(html.includes('data-field="direct-update-branch"'));
+  assert.ok(html.includes('data-field="direct-update-path"'));
+  assert.ok(html.includes('data-field="direct-update-old-sha"'));
+  assert.ok(html.includes('data-field="direct-update-build-note"'));
+  assert.ok(html.includes('data-field="direct-update-audit-id"'));
+  assert.ok(html.includes('data-field="direct-update-updated-at"'));
 });
 

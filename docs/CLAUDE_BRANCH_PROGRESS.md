@@ -2986,6 +2986,54 @@ Implement an optional, high-risk, audited, and disabled-by-default Owner Direct 
 
 Owner Direct Publish Mode has been successfully implemented. It is fully disabled by default and gated behind strict configuration checks, explicit checkboxes, and typed phrase confirmation fields. The mock GitHub commit logic is fully tested and verified to commit directly to `main` without creating branches, opening PRs, or calling merge APIs. No production direct publish was executed. All test suites pass.
 
+---
+
+## Step 079 - Owner Direct Existing Article Edit / Update Mode
+
+### Executed by Model
+Antigravity
+
+### Type
+Feature / Refactoring
+
+### Goal
+Implement an optional, high-risk, audited, and disabled-by-default Owner Direct Existing Article Edit / Update Mode. This enables loading existing posts from the target repository (`ranbeioc/hexo-blog`) `main` branch, editing them in the Admin UI, previewing a unified line-by-line diff, and committing the changes directly to `main` with SHA conflict protection (concurrency check), while keeping `pr_only` as the default mode.
+
+### Files changed
+
+| File | Change summary | Reason |
+|---|---|---|
+| packages/core/src/index.js | Export new config keys, add `parseDraftMarkdownDocument` and `generateUnifiedDiff` utilities, and extend `buildProviderReadinessSnapshot` | Support markdown parsing, diff generation, and client readiness indicators |
+| packages/core/src/github-publishing.js | FixPUT path coding bug in `createDirectMainCommit`, add `getPostFileFromMain`, and `createDirectMainUpdateCommit` | Support file retrieval and direct update commit writes on GitHub main branch |
+| workers/api/src/index.js | Add `GET /api/posts/source`, `POST /api/drafts/direct-update-preview`, and `POST /api/drafts/direct-update` routes | Implement API endpoints under safety gates (auth, turnstile, branch, phrase, slug, baseSha) and record audit logs |
+| apps/admin/src/index.html | Add Existing Articles workspace, diff preview block, update warning panel, checkbox, phrase input, and outcome logs | Support direct update user interface |
+| apps/admin/src/app.js | Handle existing article loading, form populating, diff preview rendering, verification inputs, and update submission | Integrate client-side direct update workflow |
+| tests/github-publishing.test.mjs | Add mock unit tests for `getPostFileFromMain` and `createDirectMainUpdateCommit` | Test core git retrieval and update functions |
+| tests/worker-security.test.mjs | Add route-level gating, conflict, and validation tests for direct update API | Verify API security limits and safety guards |
+| tests/admin-publishing-mvp.test.mjs | Assert presence of new admin UI update elements and inputs | Validate UI layout consistency |
+| docs/owner-direct-existing-article-update-mode.md | Create design spec, flow diagrams, safety criteria, and rollback guidelines | Complete documentation |
+| docs/owner-direct-publish-mode.md | Update overwrite explanation to point to direct update mode | Keep documentation aligned |
+| docs/production-publish-runbook.md | Add direct update guidelines and concurrency protection note | Maintain operational guide |
+| README.md | Add reference link to owner-direct-existing-article-update-mode.md | Update main documentation list |
+| .env.example | Add default direct update environment variables | Standardize config options |
+| wrangler.toml.example | Add default direct update variables | Standardize worker variables |
+
+### Validation
+
+| Command | Result | Notes |
+|---|---|---|
+| npm ci | Passed | Clean package installation |
+| npm run check:all | Passed | Full syntax, build, D1, queues, and test suite verification |
+| npm run check:secrets | Passed | No secrets or forbidden markers committed |
+| npm test | Passed | 118/118 tests passed successfully |
+| npm run test:secrets-fixture | Passed | Secrets scanner fixture checks pass |
+| npm run build:admin | Passed | Bundling of the admin application finishes successfully |
+
+### Final Gate Decision
+
+Owner Direct Existing Article Edit / Update Mode has been successfully implemented. It is fully disabled by default and gated behind strict configuration checks, explicit checkboxes, and typed phrase confirmation fields. The mock GitHub commit logic is fully tested and verified to require an existing target file and a matching `baseSha` to protect against stale concurrency updates. The diff utility generates a clean unified line-by-line diff. No production direct updates were executed. All test suites pass.
+
+
 
 
 

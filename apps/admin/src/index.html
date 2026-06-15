@@ -220,6 +220,26 @@
         </ul>
         <div class="draft-workbench">
           <form class="draft-form" data-role="draft-preview-form">
+            <!-- Existing Article Loading Section -->
+            <div id="edit-existing-article-section" class="field-span-2" style="margin-bottom: 15px; padding: 15px; border: 1px solid rgba(139, 197, 255, 0.2); border-radius: 8px; background: rgba(139, 197, 255, 0.03);">
+              <h4 style="margin: 0 0 8px 0; color: #8bc5ff; font-size: 0.95rem;">Load Existing Article from main</h4>
+              <p style="margin: 0 0 12px 0; font-size: 0.85rem; color: #e7ecf5; line-height: 1.4;">
+                To edit an existing article, enter its slug and click "Load from main". This will pull the markdown, frontmatter, and current SHA for safe editing and conflict checking.
+              </p>
+              <div style="display: flex; gap: 10px; align-items: flex-end;">
+                <label style="flex: 1; margin: 0; background: transparent; border: none; padding: 0;">
+                  <span style="font-size: 0.8rem; margin-bottom: 4px; display: block; color: #e7ecf5;">Target Slug</span>
+                  <input type="text" id="load-existing-slug" placeholder="e.g. hello-world" style="width: 100%; box-sizing: border-box;" />
+                </label>
+                <button type="button" id="btn-load-existing" style="margin-bottom: 0; white-space: nowrap;">Load from main</button>
+              </div>
+              <div id="existing-article-meta" style="margin-top: 10px; font-size: 0.8rem; color: #a0aec0; display: none;">
+                <div>Current Path: <strong id="existing-article-path">-</strong></div>
+                <div>Current SHA: <strong id="existing-article-sha">-</strong></div>
+                <div>Last Loaded: <strong id="existing-article-loaded-at">-</strong></div>
+              </div>
+            </div>
+
             <!-- 1. Editor Panel -->
             <div class="field-span-2" style="margin-bottom: 4px; border-bottom: 1px solid rgba(154, 176, 216, 0.16); padding-bottom: 6px;">
               <h3 style="margin: 0; font-size: 14px; color: #8bc5ff; text-transform: uppercase; letter-spacing: 0.05em;">1. Editor Panel</h3>
@@ -279,6 +299,7 @@
               <button type="submit" name="action" value="queue" class="button-secondary" data-protected-action>Queue dry-run task</button>
               <button type="submit" name="action" value="plan" class="button-secondary" data-protected-action>Show GitHub plan</button>
               <button type="submit" name="action" value="publish" class="button-secondary" data-protected-action>Create Review PR during approved window</button>
+              <button type="button" id="btn-preview-update-diff" class="button-secondary" style="display: none;">Preview Update Diff</button>
             </div>
             <p class="operator-note field-span-2" style="margin-top: 10px; color: var(--text-secondary); font-size: 0.85rem; line-height: 1.4;">
               <strong>Notice:</strong> Creating a Review PR requires an owner-approved write window. This action only creates a draft branch and a Pull Request in the target repository. No direct main writes or auto-merges will occur.
@@ -303,6 +324,27 @@
               </label>
 
               <button type="submit" name="action" value="direct-publish" class="button-danger" id="btn-owner-direct-publish" data-protected-action disabled>Owner Direct Publish to main</button>
+            </div>
+
+            <!-- Owner Direct Update Area (Hidden/disabled by default) -->
+            <div id="owner-direct-update-section" class="field-span-2" style="display: none; margin-top: 15px; padding: 15px; border: 1px dashed #ff4a4a; border-radius: 8px; background: rgba(255, 74, 74, 0.05);">
+              <h4 style="margin: 0 0 8px 0; color: #ff6b6b; font-size: 0.95rem;">⚠️ High Risk: Owner Direct Update</h4>
+              <p style="margin: 0 0 12px 0; font-size: 0.85rem; color: #e7ecf5; line-height: 1.4;">
+                Owner Direct Update bypasses Pull Request review and commits updates directly to main. Use only for owner-approved personal-site publishing. This action cannot be auto-merged because it does not create a PR.<br>
+                <span style="color: #ff9b9b; display: block; margin-top: 4px;">Owner Direct Update 会绕过 Pull Request 审核，直接提交到 main。仅适用于 owner 明确批准的个人站点快速发布。该操作不是默认开源发布模式。</span>
+              </p>
+              
+              <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer; background: transparent; border: none; padding: 0; width: 100%;">
+                <input type="checkbox" id="direct-update-confirm-check" style="width: auto; margin: 0;" />
+                <span style="font-size: 0.85rem; color: #e7ecf5;">I understand this will update an existing published article on main.</span>
+              </label>
+
+              <label style="display: block; margin-bottom: 12px; background: transparent; border: none; padding: 0; width: 100%;">
+                <span style="display: block; font-size: 0.85rem; margin-bottom: 4px; color: #e7ecf5;">Type confirmation phrase: <strong>DIRECT UPDATE EXISTING POST</strong></span>
+                <input type="text" id="direct-update-confirm-phrase" placeholder="Type the phrase to confirm" style="width: 100%; box-sizing: border-box;" />
+              </label>
+
+              <button type="submit" name="action" value="direct-update" class="button-danger" id="btn-owner-direct-update" data-protected-action disabled>Owner Direct Update Existing Post</button>
             </div>
           </form>
 
@@ -434,6 +476,84 @@
                 <div class="meta-row">
                   <span class="meta-label">Created at</span>
                   <strong data-field="direct-publish-created-at">-</strong>
+                </div>
+              </div>
+            </div>
+
+            <!-- Diff Preview Panel -->
+            <div id="diff-preview-panel" class="field-span-2" style="display: none; margin-top: 20px; padding: 15px; border: 1px solid rgba(139, 197, 255, 0.2); border-radius: 8px; background: rgba(139, 197, 255, 0.04);">
+              <h4 style="margin: 0 0 10px 0; color: #8bc5ff; font-size: 0.95rem;">Diff Preview</h4>
+              <div class="meta-grid">
+                <div class="meta-row">
+                  <span class="meta-label">Target Path</span>
+                  <strong data-field="diff-target-path">-</strong>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Base SHA</span>
+                  <strong data-field="diff-base-sha">-</strong>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Added lines</span>
+                  <strong data-field="diff-added-lines">-</strong>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Removed lines</span>
+                  <strong data-field="diff-removed-lines">-</strong>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Frontmatter changed</span>
+                  <strong data-field="diff-frontmatter-changed">-</strong>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Body changed</span>
+                  <strong data-field="diff-body-changed">-</strong>
+                </div>
+              </div>
+              <div style="margin-top: 10px;">
+                <span class="meta-label" style="display: block; margin-bottom: 5px;">Diff Text</span>
+                <pre style="background: rgba(0, 0, 0, 0.4); padding: 10px; border-radius: 4px; overflow-x: auto; font-family: monospace; font-size: 0.8rem; max-height: 200px; color: #e7ecf5; margin: 0;" data-field="diff-text">-</pre>
+              </div>
+            </div>
+
+            <!-- Direct Update Status Panel (Shown only after direct update) -->
+            <div id="direct-update-status-panel" class="field-span-2" style="display: none; margin-top: 20px; padding: 15px; border: 1px solid rgba(87, 214, 141, 0.2); border-radius: 8px; background: rgba(87, 214, 141, 0.04);">
+              <h4 style="margin: 0 0 10px 0; color: #57d68d; font-size: 0.95rem;">✓ Direct Update Result</h4>
+              <div class="meta-grid">
+                <div class="meta-row">
+                  <span class="meta-label">Commit SHA</span>
+                  <strong data-field="direct-update-sha">-</strong>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Commit URL</span>
+                  <strong data-field="direct-update-commit-url">-</strong>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Target repo</span>
+                  <strong data-field="direct-update-repo">-</strong>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Target branch</span>
+                  <strong data-field="direct-update-branch">main</strong>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Target path</span>
+                  <strong data-field="direct-update-path">-</strong>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Old SHA</span>
+                  <strong data-field="direct-update-old-sha">-</strong>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Build note</span>
+                  <strong data-field="direct-update-build-note">Cloudflare Pages build may start automatically.</strong>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Audit id</span>
+                  <strong data-field="direct-update-audit-id">-</strong>
+                </div>
+                <div class="meta-row">
+                  <span class="meta-label">Updated at</span>
+                  <strong data-field="direct-update-updated-at">-</strong>
                 </div>
               </div>
             </div>

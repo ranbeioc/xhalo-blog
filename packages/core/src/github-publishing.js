@@ -1,4 +1,4 @@
-import { nowIso } from './index.js';
+import { nowIso, parseDraftMarkdownDocument } from './index.js';
 
 export function getGitHubFetch(env) {
   return env.GITHUB_FETCH || fetch;
@@ -313,13 +313,94 @@ export async function createDirectMainCommit(env, { branch = 'main', filePath, c
     ? commitMessage
     : `[owner-direct] ${commitMessage}`;
 
-  const result = await githubApiRequest(env, `/repos/${owner}/${repo}/contents/${encodeURIComponent(filePath)}`, {
+  const result = await githubApiRequest(env, `/repos/${owner}/${repo}/contents/${filePath}`, {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
       message: finalCommitMessage,
       content: encodeBase64Utf8(content),
       branch
+    })
+  });
+
+  return {
+    commitSha: result.commit.sha,
+    commitUrl: `https://github.com/${owner}/${repo}/commit/${result.commit.sha}`
+  };
+}
+
+export async function getPostFileFromMain(env, { slug }) {
+  const { owner, repo, baseBranch } = getGitHubRepository(env);
+  if (baseBranch !== 'main') {
+    const error = new Error('Owner direct publish requires GITHUB_BRANCH=main.');
+    error.status = 400;
+    error.code = 'OWNER_DIRECT_MAIN_REQUIRED';
+    throw error;
+  }
+
+  const filePath = `source/_posts/${slug}.md`;
+  const result = await githubApiRequest(env, `/repos/${owner}/${repo}/contents/${encodeURIComponent(filePath)}?ref=main`);
+
+  if (!result || !result.content) {
+    const error = new Error('Post file content is empty.');
+    error.status = 404;
+    throw error;
+  }
+
+  const bytes = decodeBase64ToBytes(result.content);
+  const raw = new TextDecoder().decode(bytes);
+
+  const { frontmatter, body } = parseDraftMarkdownDocument(raw);
+
+  return {
+    slug,
+    filePath,
+    sha: result.sha,
+    raw,
+    frontmatter,
+    body
+  };
+}
+
+export async function createDirectMainUpdateCommit(env, { branch = 'main', filePath, content, baseSha, commitMessage }) {
+  const { owner, repo } = getGitHubRepository(env);
+
+  if (!baseSha) {
+    throw new Error('baseSha is required for updating an existing file.');
+  }
+
+  let currentFile = null;
+  try {
+    currentFile = await githubApiRequest(env, `/repos/${owner}/${repo}/contents/${encodeURIComponent(filePath)}?ref=${encodeURIComponent(branch)}`);
+  } catch (error) {
+    if (error.status === 404) {
+      const targetNotFoundError = new Error('Target file not found.');
+      targetNotFoundError.status = 404;
+      targetNotFoundError.code = 'TARGET_NOT_FOUND';
+      throw targetNotFoundError;
+    }
+    throw error;
+  }
+
+  if (currentFile.sha !== baseSha) {
+    const staleError = new Error('Article has changed on main. Please reload before publishing.');
+    staleError.status = 409;
+    staleError.code = 'STALE_BASE_SHA';
+    throw staleError;
+  }
+
+  const finalCommitMessage = commitMessage.startsWith('[owner-direct-update]')
+    ? commitMessage
+    : `[owner-direct-update] ${commitMessage}`;
+
+  const result = await githubApiRequest(env, `/repos/${owner}/${repo}/contents/${filePath}`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      message: finalCommitMessage,
+      content: encodeBase64Utf8(content),
+      branch,
+      sha: baseSha
     })
   });
 

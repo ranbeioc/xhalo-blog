@@ -266,7 +266,11 @@ const fallbackModerationTask = {
 const state = {
   adminSecret: '',
   fileMode: window.location.protocol === 'file:',
-  posts: fallbackPosts
+  posts: fallbackPosts,
+  loadedBaseSha: null,
+  ownerDirectUpdateEnabled: false,
+  publishMode: 'pr_only',
+  ownerDirectPublishEnabled: false
 };
 
 function loadStoredAdminSecret() {
@@ -1020,6 +1024,76 @@ async function handleDraftPreviewSubmit(event) {
   const directPanel = document.getElementById('direct-publish-status-panel');
   if (directPanel) directPanel.style.display = 'none';
 
+  const updatePanel = document.getElementById('direct-update-status-panel');
+  if (updatePanel) updatePanel.style.display = 'none';
+
+  if (action === 'direct-update') {
+    const check = document.getElementById('direct-update-confirm-check');
+    if (!check || !check.checked) {
+      renderDraftPreviewStatus('warning', 'Direct update requires checkbox confirmation.');
+      return;
+    }
+    const phrase = document.getElementById('direct-update-confirm-phrase');
+    if (!phrase || phrase.value.trim() !== 'DIRECT UPDATE EXISTING POST') {
+      renderDraftPreviewStatus('warning', 'Direct update requires typed confirmation phrase matching "DIRECT UPDATE EXISTING POST".');
+      return;
+    }
+    if (!state.loadedBaseSha) {
+      renderDraftPreviewStatus('warning', 'Please load an existing article from main first.');
+      return;
+    }
+
+    renderDraftPreviewStatus('warning', 'Executing direct update...');
+
+    try {
+      const result = await postDraftAction(form, '/api/drafts/direct-update', {
+        status: 'published',
+        baseSha: state.loadedBaseSha,
+        confirmationPhrase: phrase.value.trim()
+      });
+
+      if (result?.locked) {
+        renderDraftPreviewStatus('warning', 'Admin secret required');
+        return;
+      }
+
+      if (result?.error) {
+        let errMsg = result.error;
+        if (result.details && Array.isArray(result.details)) {
+          errMsg += `: ${result.details.join(', ')}`;
+        }
+        renderDraftPreviewStatus('warning', `Action failed: ${errMsg}`);
+        return;
+      }
+
+      if (result.ok) {
+        renderDraftPreviewStatus('ok', 'Existing post updated on main. Cloudflare Pages build may start automatically.');
+        if (updatePanel) updatePanel.style.display = 'block';
+        setText('[data-field="direct-update-sha"]', result.commitSha || '-');
+        const commitUrlEl = document.querySelector('[data-field="direct-update-commit-url"]');
+        if (commitUrlEl) {
+          if (result.commitUrl) {
+            commitUrlEl.innerHTML = `<a href="${result.commitUrl}" target="_blank" class="pr-link">${result.commitUrl}</a>`;
+          } else {
+            commitUrlEl.textContent = '-';
+          }
+        }
+        setText('[data-field="direct-update-repo"]', result.targetRepo || '-');
+        setText('[data-field="direct-update-branch"]', result.targetBranch || 'main');
+        setText('[data-field="direct-update-path"]', result.targetPath || '-');
+        setText('[data-field="direct-update-old-sha"]', result.oldSha || '-');
+        setText('[data-field="direct-update-audit-id"]', result.auditId || '-');
+        setText('[data-field="direct-update-updated-at"]', new Date().toISOString());
+
+        loadScaffoldData();
+      }
+    } catch (e) {
+      console.error(e);
+      renderDraftPreviewStatus('warning', 'Action failed');
+    }
+    return;
+  }
+
   if (action === 'direct-publish') {
     const check = document.getElementById('direct-publish-confirm-check');
     if (!check || !check.checked) {
@@ -1494,7 +1568,7 @@ async function loadScaffoldData() {
       }
     };
 
-    const directCheck = document.getElementById('direct-publish-confirm-check');
+     const directCheck = document.getElementById('direct-publish-confirm-check');
     const directPhrase = document.getElementById('direct-publish-confirm-phrase');
     if (directCheck) {
       directCheck.addEventListener('change', validateOwnerDirectPublishUI);
@@ -1502,6 +1576,133 @@ async function loadScaffoldData() {
     if (directPhrase) {
       directPhrase.addEventListener('input', validateOwnerDirectPublishUI);
     }
+
+    const validateOwnerDirectUpdateUI = () => {
+      const check = document.getElementById('direct-update-confirm-check');
+      const phrase = document.getElementById('direct-update-confirm-phrase');
+      const btn = document.getElementById('btn-owner-direct-update');
+      if (check && phrase && btn) {
+        const isChecked = check.checked;
+        const isPhraseValid = phrase.value.trim() === 'DIRECT UPDATE EXISTING POST';
+        btn.disabled = !(isChecked && isPhraseValid);
+      }
+    };
+
+    const updateCheck = document.getElementById('direct-update-confirm-check');
+    const updatePhrase = document.getElementById('direct-update-confirm-phrase');
+    if (updateCheck) {
+      updateCheck.addEventListener('change', validateOwnerDirectUpdateUI);
+    }
+    if (updatePhrase) {
+      updatePhrase.addEventListener('input', validateOwnerDirectUpdateUI);
+    }
+
+    const btnLoad = document.getElementById('btn-load-existing');
+    if (btnLoad) {
+      btnLoad.addEventListener('click', async () => {
+        const slugInput = document.getElementById('load-existing-slug');
+        if (!slugInput || !slugInput.value.trim()) {
+          renderDraftPreviewStatus('warning', 'Please enter a slug to load.');
+          return;
+        }
+        renderDraftPreviewStatus('warning', 'Loading article from main...');
+        try {
+          const res = await apiFetch(`/api/posts/source?slug=${encodeURIComponent(slugInput.value.trim())}`);
+          if (!res.ok) {
+            const errData = await res.json();
+            renderDraftPreviewStatus('warning', `Failed to load article: ${errData.error || res.statusText}`);
+            return;
+          }
+          const data = await res.json();
+          if (data.ok) {
+            const titleInput = draftForm.querySelector('input[name="title"]');
+            if (titleInput) titleInput.value = data.frontmatter.title || '';
+            const slugEditorInput = draftForm.querySelector('input[name="slug"]');
+            if (slugEditorInput) slugEditorInput.value = data.slug || '';
+            const summaryInput = draftForm.querySelector('textarea[name="summary"]');
+            if (summaryInput) summaryInput.value = data.frontmatter.summary || '';
+            const bodyInput = draftForm.querySelector('textarea[name="body"]');
+            if (bodyInput) bodyInput.value = data.body || '';
+            const categoriesInput = draftForm.querySelector('input[name="categories"]');
+            if (categoriesInput) categoriesInput.value = (data.frontmatter.categories || []).join(', ');
+            const tagsInput = draftForm.querySelector('input[name="tags"]');
+            if (tagsInput) tagsInput.value = (data.frontmatter.tags || []).join(', ');
+
+            state.loadedBaseSha = data.sha;
+
+            const metaContainer = document.getElementById('existing-article-meta');
+            if (metaContainer) metaContainer.style.display = 'block';
+            setText('#existing-article-path', data.targetPath || '-');
+            setText('#existing-article-sha', data.sha || '-');
+            setText('#existing-article-loaded-at', new Date().toLocaleTimeString());
+
+            const diffBtn = document.getElementById('btn-preview-update-diff');
+            if (diffBtn) diffBtn.style.display = 'inline-block';
+
+            renderDraftPreviewStatus('ok', 'Article loaded successfully from main.');
+            updateRealtimePreview();
+          }
+        } catch (err) {
+          console.error(err);
+          renderDraftPreviewStatus('warning', 'Failed to load article.');
+        }
+      });
+    }
+
+    const btnDiff = document.getElementById('btn-preview-update-diff');
+    if (btnDiff) {
+      btnDiff.addEventListener('click', async () => {
+        if (!state.loadedBaseSha) {
+          renderDraftPreviewStatus('warning', 'Load an article first.');
+          return;
+        }
+
+        renderDraftPreviewStatus('warning', 'Generating update diff...');
+        try {
+          const payload = getDraftFormPayload(draftForm);
+          payload.baseSha = state.loadedBaseSha;
+
+          const res = await apiFetch('/api/drafts/direct-update-preview', {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ input: payload })
+          });
+
+          if (!res.ok) {
+            const errData = await res.json();
+            renderDraftPreviewStatus('warning', `Failed to generate diff: ${errData.error || res.statusText}`);
+            return;
+          }
+
+          const data = await res.json();
+          if (data.ok) {
+            const diffPanel = document.getElementById('diff-preview-panel');
+            if (diffPanel) diffPanel.style.display = 'block';
+
+            setText('[data-field="diff-target-path"]', data.targetPath || '-');
+            setText('[data-field="diff-base-sha"]', data.baseSha || '-');
+            setText('[data-field="diff-added-lines"]', data.diffSummary?.addedLines || '0');
+            setText('[data-field="diff-removed-lines"]', data.diffSummary?.removedLines || '0');
+            setText('[data-field="diff-frontmatter-changed"]', data.diffSummary?.frontmatterChanged ? 'Yes' : 'No');
+            setText('[data-field="diff-body-changed"]', data.diffSummary?.bodyChanged ? 'Yes' : 'No');
+            
+            const diffTextEl = document.querySelector('[data-field="diff-text"]');
+            if (diffTextEl) diffTextEl.textContent = data.diffText || '-';
+
+            const directUpdateSection = document.getElementById('owner-direct-update-section');
+            if (directUpdateSection && state.publishMode === 'owner_direct' && state.ownerDirectPublishEnabled === true && state.ownerDirectUpdateEnabled === true) {
+              directUpdateSection.style.display = 'block';
+            }
+
+            renderDraftPreviewStatus('ok', 'Diff preview generated.');
+          }
+        } catch (err) {
+          console.error(err);
+          renderDraftPreviewStatus('warning', 'Failed to generate diff.');
+        }
+      });
+    }
+
     const bodyTextarea = draftForm.querySelector('textarea[name="body"]');
     if (bodyTextarea) {
       bodyTextarea.addEventListener('input', updateRealtimePreview);
@@ -1578,9 +1779,13 @@ async function loadScaffoldData() {
       const readiness = await readinessResponse.json();
       renderReadiness(readiness.items);
 
+      state.publishMode = readiness.publishMode || 'pr_only';
+      state.ownerDirectPublishEnabled = readiness.ownerDirectPublishEnabled === true;
+      state.ownerDirectUpdateEnabled = readiness.ownerDirectUpdateEnabled === true;
+
       const directPublishSection = document.getElementById('owner-direct-publish-section');
       if (directPublishSection) {
-        if (readiness.publishMode === 'owner_direct' && readiness.ownerDirectPublishEnabled === true) {
+        if (state.publishMode === 'owner_direct' && state.ownerDirectPublishEnabled === true) {
           directPublishSection.style.display = 'block';
         } else {
           directPublishSection.style.display = 'none';
