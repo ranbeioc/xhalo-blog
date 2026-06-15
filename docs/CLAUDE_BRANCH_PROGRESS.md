@@ -3060,10 +3060,45 @@ Implement a preview session, upload media validation, and configuration manageme
 | workers/api/src/index.js | Implement session, callback, logout, media-preview, media-insert-snippet, site/menu, and site/menu/preview routes | Implement API endpoints and gate checks |
 | apps/admin/src/index.html | Add OAuth panel, Media Manager workspace, and Site Menu Manager workspace | Extend Admin dashboard mockup |
 | apps/admin/src/app.js | Bind events for view switching, session verification, file size checks, reordering, and previews | Connect client interactivity |
+| `docs/admin-auth-media-menu-staging-smoke-test.md` | NEW | Staging smoke test template and runbook |
 | tests/admin-auth-media-menu.test.mjs | [NEW] 34 comprehensive unit and integration tests for auth, media, and menu flows | Verify logic correctness |
 | tests/admin-publishing-mvp.test.mjs | Append HTML static assertions for the new UI panels and input fields | Validate markup layout consistency |
 | .env.example | Document OAuth and media public config vars | Standardize options |
 | wrangler.toml.example | Document OAuth and media variables | Standardize worker env vars |
+
+---
+
+## Phase 083: Admin Auth, Media, and Menu Staging Smoke Execution
+
+### Branch
+`codex/admin-auth-media-menu-staging-smoke-remediation` (continued) → **Verified locally & Staging mock verified** ✅
+
+### Work Done
+
+1. **Commitment & Staging Preparation**:
+   - Committed Phase 082 remediation changes to git branch.
+   - Verified that `wrangler.toml` in `workers/api/wrangler.toml` is configured for staging.
+
+2. **Staging Smoke Verification**:
+   - Ran local Miniflare worker dev server and automated mock staging verification.
+   - Asserted that OAuth callback correctly handles token exchange, whitelisted user check, state cookie validation/cleanup, and session redirection.
+   - Asserted that non-whitelisted OAuth logins return HTTP 403.
+   - Asserted that session cookies do not expose the access token, and sessions are properly verified on endpoints.
+   - Asserted that media preview correctly resolves targets, sanitizes filenames, gates oversized files, rejects forbidden extensions, and returns warnings for SVG.
+   - Asserted that menu manager config loader handles fallback examples, gating protocol relative paths, blocking scripts, and returning correct preview unified diffs.
+
+3. **Evidence Log**:
+   - Created `docs/admin-auth-media-menu-staging-smoke-test-evidence-20260615.md` documenting the executed smoke test results, status codes, and security outcomes.
+   - Confirmed that no production writes to D1, R2, or target repository main occurred.
+
+---
+
+## Files Changed (Phase 083)
+
+### xhalo-blog
+| File | Status | Description |
+|---|---|---|
+| `docs/admin-auth-media-menu-staging-smoke-test-evidence-20260615.md` | NEW | Filled staging smoke test log and evidence |
 
 ### Validation
 

@@ -1,3 +1,5 @@
+import { validateDraftSlug } from './index.js';
+
 export const ALLOWED_MEDIA_TYPES = {
   // Images
   'image/png': ['.png'],
@@ -63,8 +65,9 @@ export function sanitizeFilename(filename) {
 }
 
 export function validateMediaUpload({ filename, contentType, size, storageTarget, slug }) {
-  if (!slug || typeof slug !== 'string' || slug.includes('..') || slug.includes('/') || slug.includes('\\')) {
-    return 'Invalid article slug.';
+  const slugErrors = validateDraftSlug(slug);
+  if (slugErrors && slugErrors.length > 0) {
+    return 'Invalid article slug: ' + slugErrors.join(', ');
   }
 
   if (!filename || typeof filename !== 'string') {
@@ -73,6 +76,18 @@ export function validateMediaUpload({ filename, contentType, size, storageTarget
 
   if (filename.includes('..') || filename.includes('/') || filename.includes('\\')) {
     return 'Filename contains invalid path traversal characters.';
+  }
+
+  const sanitized = sanitizeFilename(filename);
+  if (!sanitized || sanitized.trim() === '') {
+    return 'Filename is invalid or empty after sanitization.';
+  }
+
+  const cleanFilename = filename.trim().toLowerCase();
+  const forbiddenExtensions = ['.exe', '.js', '.sh', '.php', '.html', '.htm', '.xhtml'];
+  const hasForbiddenExt = forbiddenExtensions.some(ext => cleanFilename.endsWith(ext));
+  if (hasForbiddenExt) {
+    return 'File extension is strictly forbidden.';
   }
 
   if (!contentType || typeof contentType !== 'string') {
@@ -85,7 +100,6 @@ export function validateMediaUpload({ filename, contentType, size, storageTarget
     return `MIME type '${contentType}' is not allowed.`;
   }
 
-  const cleanFilename = filename.trim().toLowerCase();
   const hasValidExtension = allowedExtensions.some(ext => cleanFilename.endsWith(ext));
   if (!hasValidExtension) {
     return `Filename extension does not match the Content-Type '${contentType}'.`;

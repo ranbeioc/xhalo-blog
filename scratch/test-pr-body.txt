@@ -1,0 +1,43 @@
+## Summary
+
+This PR implements GitHub OAuth login preview, dry-run media upload validation and snippets generation, and site menu manager configuration diffs inside the Admin Panel workspace for Phase 081.
+
+## Scope
+
+- [ ] Documentation only
+- [x] Code change
+- [x] Test/evidence update
+- [ ] Production-impacting workflow
+
+## Production Impact
+
+- [x] No production impact
+- [ ] Production read-only verification
+- [ ] Production dry-run
+- [ ] Production shadow-mode
+- [ ] Production PR trial
+- [ ] Production live-write trial
+
+## Safety
+
+- [x] No secrets committed
+- [x] No direct main write
+- [x] No auto-merge
+- [x] No unapproved production write
+- [x] `LIVE_WRITES_ENABLED` state documented if relevant
+
+## Validation
+
+- [x] `npm ci`
+- [x] `npm run check:all`
+- [x] `npm run check:secrets`
+- [x] `npm test`
+- [x] `npm run test:secrets-fixture`
+
+## Evidence
+
+Walkthrough documentation and step 081 logs in CLAUDE_BRANCH_PROGRESS.md are updated. Added new test suite tests/admin-auth-media-menu.test.mjs.
+
+## Notes
+
+N/A

@@ -821,7 +821,7 @@ export default {
       }
 
       // Sign session cookie
-      const { signSessionPayload } = await import('../../../packages/core/src/auth-github-oauth.js');
+      const { signSessionPayload, appendSetCookie } = await import('../../../packages/core/src/auth-github-oauth.js');
       const ttl = parseInt(env.ADMIN_SESSION_TTL_SECONDS || '86400', 10);
       const sessionPayload = {
         login: ghUser.login,
@@ -843,12 +843,14 @@ export default {
         duration_ms: Date.now() - requestStart
       });
 
+      const responseHeaders = new Headers();
+      responseHeaders.set('Location', `${baseUrl}/admin`);
+      appendSetCookie(responseHeaders, `${cookieName}=${encodeURIComponent(signedSession)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${ttl}`);
+      appendSetCookie(responseHeaders, `xhalo_oauth_state=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`);
+
       return new Response(null, {
         status: 302,
-        headers: {
-          'Location': `${baseUrl}/admin`,
-          'Set-Cookie': `${cookieName}=${encodeURIComponent(signedSession)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${ttl}`
-        }
+        headers: responseHeaders
       });
     }
 
@@ -2281,6 +2283,7 @@ export default {
         duration_ms: Date.now() - requestStart
       });
 
+      const isSvg = input.contentType === 'image/svg+xml' || safeFilename.endsWith('.svg');
       return createJsonResponse({
         ok: true,
         mode: 'dry-run',
@@ -2290,7 +2293,9 @@ export default {
           contentType: input.contentType,
           storageTarget: input.storageTarget,
           targetPath,
-          markdownSnippet
+          markdownSnippet,
+          highRisk: isSvg ? true : undefined,
+          note: isSvg ? 'SVG files are flagged as high-risk and only allowed under dry-run preview constraints.' : undefined
         }
       });
     }

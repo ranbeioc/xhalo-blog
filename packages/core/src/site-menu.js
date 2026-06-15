@@ -6,20 +6,18 @@ export function validateMenuItem(item, existingIds = []) {
     return 'Menu item must be a JSON object.';
   }
 
-  // id validation: optional, but if present must be lowercase letters, numbers, hyphen
-  if (item.id !== undefined && item.id !== null) {
-    if (typeof item.id !== 'string') {
-      return 'Menu item id must be a string.';
-    }
-    if (!/^[a-z0-9-]+$/.test(item.id)) {
-      return 'Menu item id must contain only lowercase letters, numbers, and hyphens.';
-    }
-    if (existingIds.includes(item.id)) {
-      return `Duplicate menu item id: ${item.id}.`;
-    }
+  // id validation: required, lowercase letters, numbers, hyphen
+  if (!item.id || typeof item.id !== 'string') {
+    return 'Menu item id is required and must be a string.';
+  }
+  if (!/^[a-z0-9-]+$/.test(item.id)) {
+    return 'Menu item id must contain only lowercase letters, numbers, and hyphens.';
+  }
+  if (existingIds.includes(item.id)) {
+    return `Duplicate menu item id: ${item.id}.`;
   }
 
-  // label validation: 1-40 chars
+  // label validation: required, 1-40 chars
   if (!item.label || typeof item.label !== 'string') {
     return 'Menu item label is required and must be a string.';
   }
@@ -27,15 +25,36 @@ export function validateMenuItem(item, existingIds = []) {
     return 'Menu item label must be between 1 and 40 characters.';
   }
 
-  // path validation: internal begins with /, external begins with https:// or http://
+  // path validation: required, 1-200 chars
   if (!item.path || typeof item.path !== 'string') {
     return 'Menu item path is required and must be a string.';
   }
+  if (item.path.length < 1 || item.path.length > 200) {
+    return 'Menu item path must be between 1 and 200 characters.';
+  }
 
-  const isExternal = typeof item.external === 'boolean' ? item.external : (item.path.startsWith('http://') || item.path.startsWith('https://'));
-  if (isExternal) {
-    if (!item.path.startsWith('https://') && !item.path.startsWith('http://')) {
-      return 'External menu item path must begin with http:// or https://.';
+  const lowerPath = item.path.toLowerCase().trim();
+  if (lowerPath.startsWith('javascript:')) {
+    return 'Menu item path cannot contain javascript: protocol.';
+  }
+  if (lowerPath.startsWith('data:')) {
+    return 'Menu item path cannot contain data: protocol.';
+  }
+  if (lowerPath.startsWith('//')) {
+    return 'Protocol-relative paths are not allowed.';
+  }
+
+  // external and visible: required boolean
+  if (item.external === undefined || item.external === null || typeof item.external !== 'boolean') {
+    return 'Menu item external is required and must be a boolean.';
+  }
+  if (item.visible === undefined || item.visible === null || typeof item.visible !== 'boolean') {
+    return 'Menu item visible is required and must be a boolean.';
+  }
+
+  if (item.external) {
+    if (!item.path.startsWith('https://')) {
+      return 'External menu item path must begin with https://.';
     }
   } else {
     if (!item.path.startsWith('/')) {
@@ -53,19 +72,12 @@ export function validateMenuItem(item, existingIds = []) {
     }
   }
 
-  // order validation: optional, integer 0-9999
-  if (item.order !== undefined && item.order !== null) {
-    if (!Number.isInteger(item.order) || item.order < 0 || item.order > 9999) {
-      return 'Menu item order must be an integer between 0 and 9999.';
-    }
+  // order validation: required, integer 0-9999
+  if (item.order === undefined || item.order === null) {
+    return 'Menu item order is required.';
   }
-
-  // visible and external: optional boolean
-  if (item.visible !== undefined && item.visible !== null && typeof item.visible !== 'boolean') {
-    return 'Menu item visible must be a boolean.';
-  }
-  if (item.external !== undefined && item.external !== null && typeof item.external !== 'boolean') {
-    return 'Menu item external must be a boolean.';
+  if (!Number.isInteger(item.order) || item.order < 0 || item.order > 9999) {
+    return 'Menu item order must be an integer between 0 and 9999.';
   }
 
   return null;
@@ -87,44 +99,42 @@ export function validateMenuList(menuList) {
 }
 
 export async function getConfigFromMain(env) {
+  const owner = env.GITHUB_OWNER;
+  const repo = env.GITHUB_REPO;
   let sha = null;
   let raw = '';
   let filename = 'rb-blog.config.json';
 
   try {
-    const res = await githubApiRequest(env, `/contents/rb-blog.config.json`, {
+    const data = await githubApiRequest(env, `/repos/${owner}/${repo}/contents/rb-blog.config.json?ref=main`, {
       method: 'GET',
       headers: {
         'Accept': 'application/vnd.github.v3+json'
       }
     });
 
-    if (res.status === 200) {
-      const data = await res.json();
-      sha = data.sha;
-      const bytes = decodeBase64ToBytes(data.content);
-      raw = new TextDecoder().decode(bytes);
-    } else if (res.status === 404) {
-      const resFallback = await githubApiRequest(env, `/contents/rb-blog.config.example.json`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/vnd.github.v3+json'
-        }
-      });
-      if (resFallback.status === 200) {
-        const data = await resFallback.json();
-        sha = data.sha;
-        const bytes = decodeBase64ToBytes(data.content);
+    sha = data.sha;
+    const bytes = decodeBase64ToBytes(data.content);
+    raw = new TextDecoder().decode(bytes);
+  } catch (err) {
+    if (err.status === 404) {
+      try {
+        const dataFallback = await githubApiRequest(env, `/repos/${owner}/${repo}/contents/rb-blog.config.example.json?ref=main`, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        });
+        sha = dataFallback.sha;
+        const bytes = decodeBase64ToBytes(dataFallback.content);
         raw = new TextDecoder().decode(bytes);
         filename = 'rb-blog.config.example.json';
-      } else {
-        throw new Error('Config file not found on GitHub.');
+      } catch (errFallback) {
+        throw errFallback;
       }
     } else {
-      throw new Error(`GitHub API returned status ${res.status}`);
+      throw err;
     }
-  } catch (err) {
-    throw err;
   }
 
   return { filename, sha, raw };
