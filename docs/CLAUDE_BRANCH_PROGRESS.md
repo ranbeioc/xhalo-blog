@@ -3033,6 +3033,51 @@ Implement an optional, high-risk, audited, and disabled-by-default Owner Direct 
 
 Owner Direct Existing Article Edit / Update Mode has been successfully implemented. It is fully disabled by default and gated behind strict configuration checks, explicit checkboxes, and typed phrase confirmation fields. The mock GitHub commit logic is fully tested and verified to require an existing target file and a matching `baseSha` to protect against stale concurrency updates. The diff utility generates a clean unified line-by-line diff. No production direct updates were executed. All test suites pass.
 
+---
+
+## Step 081 - Admin Auth, Media Assets, and Site Menu Manager
+
+### Executed by Model
+Antigravity (Gemini 3.5 Flash)
+
+### Type
+Feature / Security / Refactoring
+
+### Goal
+Implement a preview session, upload media validation, and configuration management interface inside the Admin workspace under Phase 081:
+1. **GitHub OAuth Login Preview**: Authenticated session check routing, signatures, and user whitelist validation.
+2. **Media Asset Manager**: Path sanitization, dry-run MIME and size validation, and markdown snippet generator.
+3. **Site Menu Manager**: Load configuration, validation constraints, ordering, and diff generation.
+
+### Files changed
+
+| File | Change summary | Reason |
+|---|---|---|
+| packages/core/src/auth-github-oauth.js | [NEW] Parse cookies, sign session payloads, and verify cookie signatures against whitelist | Implement core OAuth utilities |
+| packages/core/src/media-assets.js | [NEW] Filename sanitization, MIME size limit validation, and markdown snippet rendering | Implement core media functions |
+| packages/core/src/site-menu.js | [NEW] Menu item and list schema validation, config fetching, and normalization | Implement core menu utilities |
+| packages/core/src/index.js | Register new config keys and expose readiness indicators | Register core dependencies |
+| workers/api/src/index.js | Implement session, callback, logout, media-preview, media-insert-snippet, site/menu, and site/menu/preview routes | Implement API endpoints and gate checks |
+| apps/admin/src/index.html | Add OAuth panel, Media Manager workspace, and Site Menu Manager workspace | Extend Admin dashboard mockup |
+| apps/admin/src/app.js | Bind events for view switching, session verification, file size checks, reordering, and previews | Connect client interactivity |
+| tests/admin-auth-media-menu.test.mjs | [NEW] 34 comprehensive unit and integration tests for auth, media, and menu flows | Verify logic correctness |
+| tests/admin-publishing-mvp.test.mjs | Append HTML static assertions for the new UI panels and input fields | Validate markup layout consistency |
+| .env.example | Document OAuth and media public config vars | Standardize options |
+| wrangler.toml.example | Document OAuth and media variables | Standardize worker env vars |
+
+### Validation
+
+| Command | Result | Notes |
+|---|---|---|
+| npm run check:all | Passed | Full syntax, build, D1, queues, and test suite verification |
+| npm test | Passed | 152/152 tests passed successfully |
+| npm run test:secrets-fixture | Passed | Secrets scanner fixture checks pass |
+| npm run build:admin | Passed | Bundling of the admin application finishes successfully |
+
+### Final Gate Decision
+
+Phase 081 has been successfully completed. GitHub OAuth Login, Media Asset Manager, and Site Menu Manager features are fully implemented via dry-run mock logic and verified. Session cookie signatures are secured via HMAC-SHA256. Media uploads prevent path traversals and restrict formats/sizes. Menu updates compute unified JSON diffs based on config values. All 152 tests pass, including the new 34 OAuth/Media/Menu tests and the updated static layout assertions. No staging or production writes occurred.
+
 
 
 

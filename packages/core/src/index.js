@@ -94,7 +94,14 @@ export const requiredEnvKeys = [
   'OWNER_DIRECT_PUBLISH_ENABLED',
   'OWNER_DIRECT_CONFIRMATION_PHRASE',
   'OWNER_DIRECT_UPDATE_ENABLED',
-  'OWNER_DIRECT_UPDATE_CONFIRMATION_PHRASE'
+  'OWNER_DIRECT_UPDATE_CONFIRMATION_PHRASE',
+  'GITHUB_OAUTH_CLIENT_ID',
+  'GITHUB_OAUTH_CLIENT_SECRET',
+  'GITHUB_OAUTH_ALLOWED_LOGINS',
+  'ADMIN_SESSION_SECRET',
+  'ADMIN_AUTH_BASE_URL',
+  'ADMIN_SESSION_COOKIE_NAME',
+  'ADMIN_SESSION_TTL_SECONDS'
 ];
 
 export const defaultDraftTemplate = {
@@ -252,6 +259,7 @@ export function buildProviderReadinessSnapshot(env = {}) {
   const publishMode = env.PUBLISH_MODE || 'pr_only';
   const ownerDirectPublishEnabled = String(env.OWNER_DIRECT_PUBLISH_ENABLED || '').toLowerCase() === 'true';
   const ownerDirectUpdateEnabled = String(env.OWNER_DIRECT_UPDATE_ENABLED || '').toLowerCase() === 'true';
+  const oauthEnabled = Boolean(env.GITHUB_OAUTH_CLIENT_ID) && Boolean(env.GITHUB_OAUTH_CLIENT_SECRET) && Boolean(env.ADMIN_SESSION_SECRET);
 
   return {
     items,
@@ -259,7 +267,8 @@ export function buildProviderReadinessSnapshot(env = {}) {
     turnstileSiteKey: env.TURNSTILE_SITE_KEY || null,
     publishMode,
     ownerDirectPublishEnabled,
-    ownerDirectUpdateEnabled
+    ownerDirectUpdateEnabled,
+    oauthEnabled
   };
 }
 
@@ -1298,4 +1307,7 @@ export function generateUnifiedDiff(oldStr, newStr, filename = 'post.md') {
 }
 
 export * from './github-publishing.js';
+export * from './auth-github-oauth.js';
+export * from './media-assets.js';
+export * from './site-menu.js';
 

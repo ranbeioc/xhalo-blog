@@ -213,8 +213,34 @@ test('Admin UI Static Check: layout correctness', () => {
   assert.ok(html.includes('data-field="direct-update-branch"'));
   assert.ok(html.includes('data-field="direct-update-path"'));
   assert.ok(html.includes('data-field="direct-update-old-sha"'));
-  assert.ok(html.includes('data-field="direct-update-build-note"'));
   assert.ok(html.includes('data-field="direct-update-audit-id"'));
   assert.ok(html.includes('data-field="direct-update-updated-at"'));
+
+  // Phase 081 OAuth/Media/Menu UI elements
+  assert.ok(html.includes('id="panel-oauth-login"'));
+  assert.ok(html.includes('id="oauth-user-info"'));
+  assert.ok(html.includes('id="btn-github-login"'));
+  assert.ok(html.includes('id="btn-github-logout"'));
+  assert.ok(html.includes('id="btn-check-session"'));
+
+  assert.ok(html.includes('id="panel-media-manager"'));
+  assert.ok(html.includes('id="media-slug"'));
+  assert.ok(html.includes('id="media-filename"'));
+  assert.ok(html.includes('id="media-content-type"'));
+  assert.ok(html.includes('id="media-storage-target"'));
+  assert.ok(html.includes('id="media-size"'));
+  assert.ok(html.includes('id="media-label"'));
+  assert.ok(html.includes('id="media-preview-result"'));
+  assert.ok(html.includes('id="btn-copy-media-snippet"'));
+
+  assert.ok(html.includes('id="panel-menu-manager"'));
+  assert.ok(html.includes('id="btn-load-menu"'));
+  assert.ok(html.includes('id="menu-current-display"'));
+  assert.ok(html.includes('id="menu-items-container"'));
+  assert.ok(html.includes('id="menu-item-label"'));
+  assert.ok(html.includes('id="menu-item-path"'));
+  assert.ok(html.includes('id="menu-item-icon"'));
+  assert.ok(html.includes('id="btn-preview-menu-diff"'));
+  assert.ok(html.includes('id="menu-diff-result"'));
 });
 

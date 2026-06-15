@@ -40,7 +40,15 @@ import {
   encodeBase64Url,
   validateDraftInput,
   validateDraftPath,
-  validateDraftSlug
+  validateDraftSlug,
+  verifySessionCookie,
+  validateMediaUpload,
+  sanitizeFilename,
+  generateMediaSnippet,
+  validateMenuList,
+  getConfigFromMain,
+  normalizeMenuFromConfig,
+  updateConfigWithMenu
 } from '../../../packages/core/src/index.js';
 
 
@@ -607,6 +615,12 @@ async function verifyAdminRequest(request, env) {
     if (isJwtValid) return true;
   }
 
+  const isOAuthConfigured = Boolean(env.GITHUB_OAUTH_CLIENT_ID) && Boolean(env.GITHUB_OAUTH_CLIENT_SECRET) && Boolean(env.ADMIN_SESSION_SECRET);
+  if (isOAuthConfigured) {
+    const session = await verifySessionCookie(request, env);
+    if (session) return true;
+  }
+
   if (!hasAdminRequestSecret(env)) return false;
   const provided = request.headers.get('x-xhalo-admin-secret') || '';
   return Boolean(provided) && provided === env.ADMIN_API_SHARED_SECRET;
@@ -682,7 +696,9 @@ function isProtectedAdminRoute(pathname) {
     '/api/drafts/',
     '/api/assets/',
     '/api/publish/',
-    '/api/moderation/'
+    '/api/moderation/',
+    '/api/site/',
+    '/api/auth/'
   ].some((prefix) => pathname.startsWith(prefix));
 }
 
@@ -698,6 +714,182 @@ export default {
 
     if (url.pathname === '/api/scaffold') {
       return createJsonResponse(getScaffoldMetadata());
+    }
+
+    // ── OAuth Routes (public, not behind admin gate) ────────────────────────
+    if (url.pathname === '/auth/github/start' && request.method === 'GET') {
+      const clientId = env.GITHUB_OAUTH_CLIENT_ID;
+      const baseUrl = env.ADMIN_AUTH_BASE_URL || url.origin;
+      if (!clientId || !env.GITHUB_OAUTH_CLIENT_SECRET || !env.ADMIN_SESSION_SECRET) {
+        return createJsonResponse({ error: 'OAuth is not configured.' }, { status: 400 });
+      }
+      const state = crypto.randomUUID();
+      const redirectUri = `${baseUrl}/auth/github/callback`;
+      const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${encodeURIComponent(clientId)}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}&scope=read:user`;
+      const cookieName = env.ADMIN_SESSION_COOKIE_NAME || 'xhalo_admin_session';
+      return new Response(null, {
+        status: 302,
+        headers: {
+          'Location': githubAuthUrl,
+          'Set-Cookie': `xhalo_oauth_state=${state}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=600`
+        }
+      });
+    }
+
+    if (url.pathname === '/auth/github/callback' && request.method === 'GET') {
+      const clientId = env.GITHUB_OAUTH_CLIENT_ID;
+      const clientSecret = env.GITHUB_OAUTH_CLIENT_SECRET;
+      const sessionSecret = env.ADMIN_SESSION_SECRET;
+      const baseUrl = env.ADMIN_AUTH_BASE_URL || url.origin;
+      if (!clientId || !clientSecret || !sessionSecret) {
+        return createJsonResponse({ error: 'OAuth is not configured.' }, { status: 400 });
+      }
+
+      const code = url.searchParams.get('code');
+      const state = url.searchParams.get('state');
+      if (!code || !state) {
+        return createJsonResponse({ error: 'Missing code or state parameter.' }, { status: 400 });
+      }
+
+      // Verify state cookie
+      const { parseCookies: parseCk } = await import('../../../packages/core/src/auth-github-oauth.js');
+      const cookieHeader = request.headers.get('Cookie') || '';
+      const cookies = parseCk(cookieHeader);
+      const expectedState = cookies['xhalo_oauth_state'];
+      if (!expectedState || expectedState !== state) {
+        logSecurity('oauth_state_mismatch', extractRequestMeta(request));
+        return createJsonResponse({ error: 'Invalid OAuth state.' }, { status: 403 });
+      }
+
+      // Exchange code for token
+      const ghFetch = env.GITHUB_FETCH || fetch;
+      let accessToken;
+      try {
+        const tokenRes = await ghFetch('https://github.com/login/oauth/access_token', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'xhalo-blog-api'
+          },
+          body: JSON.stringify({
+            client_id: clientId,
+            client_secret: clientSecret,
+            code,
+            redirect_uri: `${baseUrl}/auth/github/callback`
+          })
+        });
+        const tokenData = await tokenRes.json();
+        accessToken = tokenData.access_token;
+        if (!accessToken) {
+          logSecurity('oauth_token_exchange_failed', extractRequestMeta(request));
+          return createJsonResponse({ error: 'Failed to exchange OAuth code.' }, { status: 403 });
+        }
+      } catch (err) {
+        logSecurity('oauth_token_exchange_error', { ...extractRequestMeta(request), error: err.message });
+        return createJsonResponse({ error: 'OAuth token exchange failed.' }, { status: 500 });
+      }
+
+      // Fetch GitHub user
+      let ghUser;
+      try {
+        const userRes = await ghFetch('https://api.github.com/user', {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'xhalo-blog-api'
+          }
+        });
+        ghUser = await userRes.json();
+      } catch (err) {
+        return createJsonResponse({ error: 'Failed to fetch GitHub user.' }, { status: 500 });
+      }
+
+      // Check allowed logins
+      const allowedLogins = (env.GITHUB_OAUTH_ALLOWED_LOGINS || '').split(',').map(s => s.trim().toLowerCase());
+      if (!ghUser.login || !allowedLogins.includes(ghUser.login.toLowerCase())) {
+        logSecurity('oauth_unauthorized_login', { ...extractRequestMeta(request), login: ghUser.login || 'unknown' });
+        await insertAuditLog(env, {
+          action: 'oauth_unauthorized_login',
+          ...extractRequestMeta(request),
+          resource: 'auth',
+          resource_id: ghUser.login || 'unknown',
+          status_code: 403,
+          duration_ms: Date.now() - requestStart
+        });
+        return createJsonResponse({ error: 'Unauthorized GitHub login.' }, { status: 403 });
+      }
+
+      // Sign session cookie
+      const { signSessionPayload } = await import('../../../packages/core/src/auth-github-oauth.js');
+      const ttl = parseInt(env.ADMIN_SESSION_TTL_SECONDS || '86400', 10);
+      const sessionPayload = {
+        login: ghUser.login,
+        id: ghUser.id,
+        avatarUrl: ghUser.avatar_url || '',
+        name: ghUser.name || ghUser.login,
+        expiresAt: Date.now() + (ttl * 1000)
+      };
+      const signedSession = await signSessionPayload(sessionPayload, sessionSecret);
+      const cookieName = env.ADMIN_SESSION_COOKIE_NAME || 'xhalo_admin_session';
+
+      logInfo('oauth_login_success', { login: ghUser.login });
+      await insertAuditLog(env, {
+        action: 'oauth_login_success',
+        ...extractRequestMeta(request),
+        resource: 'auth',
+        resource_id: ghUser.login,
+        status_code: 302,
+        duration_ms: Date.now() - requestStart
+      });
+
+      return new Response(null, {
+        status: 302,
+        headers: {
+          'Location': `${baseUrl}/admin`,
+          'Set-Cookie': `${cookieName}=${encodeURIComponent(signedSession)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${ttl}`
+        }
+      });
+    }
+
+    if (url.pathname === '/api/auth/session' && request.method === 'GET') {
+      const isOAuthConfigured = Boolean(env.GITHUB_OAUTH_CLIENT_ID) && Boolean(env.GITHUB_OAUTH_CLIENT_SECRET) && Boolean(env.ADMIN_SESSION_SECRET);
+      if (!isOAuthConfigured) {
+        if (!(await verifyAdminRequest(request, env))) {
+          logSecurity('auth_rejected', extractRequestMeta(request));
+          await insertAuditLog(env, {
+            action: 'auth_rejected',
+            ...extractRequestMeta(request),
+            status_code: 401,
+            duration_ms: Date.now() - requestStart
+          });
+          return rejectUnauthorized();
+        }
+      }
+      const session = await verifySessionCookie(request, env);
+      if (!session) {
+        return createJsonResponse({ authenticated: false });
+      }
+      return createJsonResponse({
+        authenticated: true,
+        user: {
+          login: session.login,
+          id: session.id,
+          avatarUrl: session.avatarUrl,
+          name: session.name
+        }
+      });
+    }
+
+    if (url.pathname === '/api/auth/logout' && request.method === 'POST') {
+      const cookieName = env.ADMIN_SESSION_COOKIE_NAME || 'xhalo_admin_session';
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Set-Cookie': `${cookieName}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`
+        }
+      });
     }
 
     if (url.pathname === '/webhooks/github' && request.method === 'POST') {
@@ -2046,6 +2238,160 @@ export default {
         task_id: taskRecord.id,
         task_type: taskRecord.type,
         queue_binding: 'TASK_QUEUE'
+      });
+    }
+
+    // ── Media Asset Manager Routes ──────────────────────────────────────────
+    if (url.pathname === '/api/assets/media-preview' && request.method === 'POST') {
+      const { input, error: parseError } = await readJsonBody(request);
+      if (parseError) return createJsonResponse({ error: parseError }, { status: 400 });
+
+      const validationError = validateMediaUpload({
+        filename: input.filename,
+        contentType: input.contentType,
+        size: input.size || 0,
+        storageTarget: input.storageTarget,
+        slug: input.slug
+      });
+      if (validationError) {
+        return createJsonResponse({ error: validationError }, { status: 400 });
+      }
+
+      const safeFilename = sanitizeFilename(input.filename);
+      const targetPath = input.storageTarget === 'git_asset_folder'
+        ? `source/_posts/${input.slug}/${safeFilename}`
+        : `posts/${input.slug}/${safeFilename}`;
+
+      const markdownSnippet = generateMediaSnippet({
+        filename: input.filename,
+        contentType: input.contentType,
+        storageTarget: input.storageTarget,
+        slug: input.slug,
+        label: input.label || '',
+        publicBaseUrl: env.ASSETS_PUBLIC_BASE_URL || 'https://assets.example.com'
+      });
+
+      await insertAuditLog(env, {
+        action: 'media_preview',
+        ...extractRequestMeta(request),
+        resource: 'media',
+        resource_id: input.slug,
+        status_code: 200,
+        detail: { filename: safeFilename, storageTarget: input.storageTarget, contentType: input.contentType },
+        duration_ms: Date.now() - requestStart
+      });
+
+      return createJsonResponse({
+        ok: true,
+        mode: 'dry-run',
+        asset: {
+          slug: input.slug,
+          filename: safeFilename,
+          contentType: input.contentType,
+          storageTarget: input.storageTarget,
+          targetPath,
+          markdownSnippet
+        }
+      });
+    }
+
+    if (url.pathname === '/api/assets/media-insert-snippet' && request.method === 'POST') {
+      const { input, error: parseError } = await readJsonBody(request);
+      if (parseError) return createJsonResponse({ error: parseError }, { status: 400 });
+
+      if (!input.filename || !input.contentType || !input.storageTarget || !input.slug) {
+        return createJsonResponse({ error: 'Missing required fields: filename, contentType, storageTarget, slug.' }, { status: 400 });
+      }
+
+      const snippet = generateMediaSnippet({
+        filename: input.filename,
+        contentType: input.contentType,
+        storageTarget: input.storageTarget,
+        slug: input.slug,
+        label: input.label || '',
+        publicBaseUrl: env.ASSETS_PUBLIC_BASE_URL || 'https://assets.example.com'
+      });
+
+      return createJsonResponse({ ok: true, markdownSnippet: snippet });
+    }
+
+    // ── Site Menu Manager Routes ────────────────────────────────────────────
+    if (url.pathname === '/api/site/menu' && request.method === 'GET') {
+      try {
+        const configData = await getConfigFromMain(env);
+        const config = JSON.parse(configData.raw);
+        const menuItems = normalizeMenuFromConfig(config);
+        return createJsonResponse({
+          ok: true,
+          source: configData.filename,
+          sha: configData.sha,
+          menu: menuItems
+        });
+      } catch (err) {
+        return createJsonResponse({
+          error: `Failed to load menu config: ${err.message}`,
+          code: 'CONFIG_FETCH_FAILED'
+        }, { status: 500 });
+      }
+    }
+
+    if (url.pathname === '/api/site/menu/preview' && request.method === 'POST') {
+      const { input, error: parseError } = await readJsonBody(request);
+      if (parseError) return createJsonResponse({ error: parseError }, { status: 400 });
+
+      if (!Array.isArray(input.menu)) {
+        return createJsonResponse({ error: 'Request body must include a menu array.' }, { status: 400 });
+      }
+
+      const menuError = validateMenuList(input.menu);
+      if (menuError) {
+        return createJsonResponse({ error: menuError }, { status: 400 });
+      }
+
+      try {
+        const configData = await getConfigFromMain(env);
+        const oldConfig = JSON.parse(configData.raw);
+        const newConfig = updateConfigWithMenu(oldConfig, input.menu);
+
+        const oldJson = JSON.stringify(oldConfig, null, 2);
+        const newJson = JSON.stringify(newConfig, null, 2);
+
+        const diff = generateUnifiedDiff(oldJson, newJson, configData.filename);
+
+        return createJsonResponse({
+          ok: true,
+          mode: 'preview',
+          source: configData.filename,
+          sha: configData.sha,
+          diff
+        });
+      } catch (err) {
+        return createJsonResponse({
+          error: `Failed to generate menu preview: ${err.message}`
+        }, { status: 500 });
+      }
+    }
+
+    if (url.pathname === '/api/site/menu/pr' && request.method === 'POST') {
+      return createJsonResponse({
+        ok: false,
+        mode: 'dry-run',
+        message: 'Menu config PR creation is not yet implemented. This endpoint will create a PR with menu changes in a future phase.'
+      });
+    }
+
+    if (url.pathname === '/api/site/menu/direct-update' && request.method === 'POST') {
+      const directConfigEnabled = String(env.OWNER_DIRECT_CONFIG_UPDATE_ENABLED || '').toLowerCase() === 'true';
+      if (!directConfigEnabled) {
+        return createJsonResponse({
+          error: 'Owner direct config update is disabled by default.',
+          code: 'DIRECT_CONFIG_DISABLED'
+        }, { status: 403 });
+      }
+      return createJsonResponse({
+        ok: false,
+        mode: 'dry-run',
+        message: 'Direct menu config update is reserved for a future phase.'
       });
     }
 
