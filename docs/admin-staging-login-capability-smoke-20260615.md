@@ -13,7 +13,7 @@
 
 ## Deployment Target
 
-* **HTTP API Worker URL**: `https://xhalo-blog-staging-api.ranbei.workers.dev`
+* **HTTP API Worker URL**: `https://xhalo-blog-staging-api.<staging-subdomain>.workers.dev`
 * **Queue Consumer Worker**: `xhalo-blog-staging-queue`
 * **Admin Frontend Pages URL**: `https://staging.xhalo-admin.pages.dev`
 
@@ -30,7 +30,7 @@ Staging Worker variables were verified to conform to safe defaults:
 
 * **Application name**: `xHalo Blog Admin Staging`
 * **Homepage URL**: `https://staging.xhalo-admin.pages.dev/admin`
-* **Authorization callback URL**: `https://xhalo-blog-staging-api.ranbei.workers.dev/auth/github/callback`
+* **Authorization callback URL**: `https://xhalo-blog-staging-api.<staging-subdomain>.workers.dev/auth/github/callback`
 
 ## Login Flow Results
 
