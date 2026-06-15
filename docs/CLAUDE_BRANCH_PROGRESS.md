@@ -3113,6 +3113,67 @@ Implement a preview session, upload media validation, and configuration manageme
 
 Phase 081 has been successfully completed. GitHub OAuth Login, Media Asset Manager, and Site Menu Manager features are fully implemented via dry-run mock logic and verified. Session cookie signatures are secured via HMAC-SHA256. Media uploads prevent path traversals and restrict formats/sizes. Menu updates compute unified JSON diffs based on config values. All 152 tests pass, including the new 34 OAuth/Media/Menu tests and the updated static layout assertions. No staging or production writes occurred.
 
+---
+
+## Phase 086 - Release Candidate Evidence Sync and Tag Readiness
+
+### Executed by Model
+Antigravity
+
+### Type
+Documentation / Release Candidate Prep / Git Sync
+
+### Goal
+Sync the local Phase 082–085 evidence, verify security boundaries, and prepare release candidate checklists and release notes drafts for version `v0.1.0-alpha.1`.
+
+### Files changed
+
+| File | Change summary | Reason |
+|---|---|---|
+| [docs/release-candidate-v0.1.0-alpha.1-checklist.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/release-candidate-v0.1.0-alpha.1-checklist.md) [NEW] | Create release candidate checklist | Verify scope, safe defaults, security checks, and risks |
+| [docs/release-notes-v0.1.0-alpha.1-draft.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/release-notes-v0.1.0-alpha.1-draft.md) [NEW] | Create draft release notes | Detail release highlights, defaults, limitations, and verification commands |
+
+### Validation
+
+| Command | Result | Notes |
+|---|---|---|
+| npm ci | Passed | Clean package installation |
+| npm run check:all | Passed | Full syntax, build, D1, queues, and test suite verification |
+| npm run check:secrets | Passed | No secrets or forbidden markers committed |
+| npm test | Passed | 174/174 assertions pass successfully |
+| npm run test:secrets-fixture | Passed | Secrets scanner fixture checks pass |
+| npm run build:admin | Passed | Bundling of the admin application finishes successfully |
+
+### Final Gate Decision
+Phase 086 has been successfully completed. Release candidate checklist and draft release notes have been prepared and committed. All security boundaries have been verified as safe. No production writes, auto-merges, or direct main writes occurred.
+
+---
+
+## Phase 087 - Create v0.1.0-alpha.1 Release Tag and GitHub Draft Release
+
+### Executed by Model
+Antigravity
+
+### Type
+Release Candidate Tagging / Release Deployment / Git Tag
+
+### Goal
+Create the official `v0.1.0-alpha.1` release tag, push it to GitHub, and create a draft release using the release notes from `docs/release-notes-v0.1.0-alpha.1-draft.md`.
+
+### Files changed
+(No new files; main merged with sync branch)
+
+### Validation
+
+| Command | Result | Notes |
+|---|---|---|
+| git show v0.1.0-alpha.1 | Passed | Tag created and verified locally and remotely |
+| gh release list | Passed | Release created in Draft state on GitHub |
+
+### Final Gate Decision
+Phase 087 has been successfully completed. Annotated tag `v0.1.0-alpha.1` has been pushed to origin, and the Draft Release has been successfully created on GitHub. The release candidate is ready for final review.
+
+
 
 
 
