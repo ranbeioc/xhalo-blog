@@ -72,3 +72,12 @@ If PR is not merged:
 * **PR-only workbench**: The Admin UI only supports PR-only publishing. It does not expose `Publish to D1` as a primary action.
 * **Exclusion of D1 Writes**: Direct D1 writes are considered experimental prototypes. They are not part of the normal production publishing workflow and require separate, explicit owner approval.
 
+---
+
+## 7. Admin Smoke Gate Before First Real Publish
+
+Before Phase 077, the operator must complete the Admin MVP staging smoke checklist and record sanitized evidence.
+
+Passing smoke evidence does not authorize production live-write. The first real article publish still requires a separate owner-approved write window.
+
+

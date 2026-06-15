@@ -103,3 +103,18 @@ D1 direct publishing is not part of the Admin PR-only Publishing MVP.
 
 The Admin MVP is limited to owner-reviewed GitHub Pull Requests. Any D1 live write or non-PR write path is an experimental prototype and requires separate owner approval, separate UI, and separate evidence. The Admin UI Workbench strictly supports PR-only publishing and does not expose direct D1 writes.
 
+---
+
+## 7. Staging Smoke Test Gate
+
+Before the first real controlled article publish, the Admin MVP must pass a staging/manual smoke test:
+
+- Admin PR-only workbench loads.
+- `Publish to D1` is not exposed as a primary PR-only action.
+- Owner-approved write-window confirmation blocks accidental live requests.
+- Preview and GitHub plan work without creating branches or PRs.
+- Dry-run task status can be observed when staging Queue/D1 is available.
+- `LIVE_WRITES_ENABLED=false` blocks live Create Review PR with HTTP 403.
+- No production branch, PR, D1 live publish, R2 live write, direct main write, or auto-merge occurs.
+
+

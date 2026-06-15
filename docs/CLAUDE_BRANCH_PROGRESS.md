@@ -2904,6 +2904,43 @@ Align the Admin MVP with PR-only publishing boundaries by removing D1 live publi
 
 The safety boundaries of the Admin MVP have been strictly aligned. Direct D1 publishing is completely out of scope and removed from the primary UI workspace. Creating a Pull Request requires explicit confirmation of an owner-approved write window. No production writes, auto-merges, or direct main writes occurred. All validation commands and test suites pass successfully.
 
+---
+
+## Step 076-B - Admin MVP Staging Smoke Test
+
+### Goal
+
+Record staging/manual smoke evidence for the Admin PR-only Publishing MVP after PR #77.
+
+### Scope
+
+Documentation and evidence only. No production execution.
+
+### Evidence
+
+- Admin PR-only workbench checked.
+- `Publish to D1` absent from primary workbench.
+- Owner-approved checkbox checked.
+- Create Review PR blocked without confirmation.
+- Preview / plan / dry-run behavior checked.
+- `LIVE_WRITES_ENABLED=false` live gate checked.
+- Task status fields checked.
+- No production branch or PR created.
+
+### Validation
+
+- `npm ci`
+- `npm run check:all`
+- `npm run check:secrets`
+- `npm test`
+- `npm run test:secrets-fixture`
+- `npm run build:admin`
+
+### Final Gate
+
+Admin MVP smoke gate passed. No production execution occurred.
+
+
 
 
 
