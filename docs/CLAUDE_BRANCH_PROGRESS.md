@@ -3204,6 +3204,33 @@ Deploy the HTTP API Worker, Queue Worker, and Admin UI frontend to a live Cloudf
 ### Final Gate Decision
 Phase 087-B has been successfully completed. The API and Queue Workers and Admin UI are deployed to the Cloudflare staging environment. Staging verification proves that all capabilities (login redirection, session creation/cookie options, posts preview, draft loading, diff generation, media dry-run format snippets, and menu configuration diff previews) are operational. All live write gates reject changes. No production writes, R2 writes, or repository mutations occurred.
 
+---
+
+## Phase 088 - Release Tag Finalization
+
+### Executed by Model
+Antigravity
+
+### Type
+Release Candidate Tagging / Release Deployment / Git Tag Update
+
+### Goal
+Update the official `v0.1.0-alpha.1` release tag to point to the latest main merge commit (`c61e987`) containing the staging smoke test evidence, and force-push the tag to GitHub.
+
+### Files changed
+(No new files; tag updated and pushed)
+
+### Validation
+
+| Command | Result | Notes |
+|---|---|---|
+| git show v0.1.0-alpha.1 | Passed | Tag successfully points to the merge commit `c61e987` |
+| gh release list | Passed | Draft Release remains linked to the updated tag |
+
+### Final Gate Decision
+Phase 088 has been successfully completed. Annotated tag `v0.1.0-alpha.1` has been updated to point to the latest main commit containing the staging smoke test evidence and force-pushed to origin. The release candidate finalization is complete.
+
+
 
 
 
