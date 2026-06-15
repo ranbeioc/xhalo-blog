@@ -84,3 +84,12 @@ export async function verifySessionCookie(request, env) {
   if (!sessionValue) return null;
   return await verifySessionCookieValue(sessionValue, env.ADMIN_SESSION_SECRET, env.GITHUB_OAUTH_ALLOWED_LOGINS);
 }
+
+export function appendSetCookie(headers, value) {
+  if (!headers) return;
+  if (typeof headers.append === 'function') {
+    headers.append('Set-Cookie', value);
+  } else if (typeof headers.set === 'function') {
+    headers.set('Set-Cookie', value);
+  }
+}
