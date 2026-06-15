@@ -1237,6 +1237,310 @@ test('POST /api/drafts/direct-publish succeeds with mock GitHub when all gates p
   assert.ok(directCommitCalled);
 });
 
+test('GET /api/posts/source rejects invalid slug', async () => {
+  const { response, json } = await requestJson('/api/posts/source?slug=invalid_slug', {
+    method: 'GET',
+    headers: {
+      'x-xhalo-admin-secret': adminSecret
+    }
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret
+  });
+
+  assert.equal(response.status, 400);
+  assert.equal(json.error, 'Validation failed.');
+});
+
+test('GET /api/posts/source returns 404 if missing', async () => {
+  const mockGithubFetch = async (url, init) => {
+    return new Response(JSON.stringify({}), { status: 404 });
+  };
+
+  const { response, json } = await requestJson('/api/posts/source?slug=missing-post', {
+    method: 'GET',
+    headers: {
+      'x-xhalo-admin-secret': adminSecret
+    }
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    GITHUB_OWNER: 'test-owner',
+    GITHUB_REPO: 'test-repo',
+    GITHUB_BRANCH: 'main',
+    GITHUB_TOKEN: 'mock-token',
+    GITHUB_FETCH: mockGithubFetch
+  });
+
+  assert.equal(response.status, 404);
+  assert.equal(json.code, 'TARGET_NOT_FOUND');
+});
+
+test('GET /api/posts/source returns raw/frontmatter/body/sha if exists', async () => {
+  const mockGithubFetch = async (url, init) => {
+    const rawContent = `---\ntitle: "Existing Article"\ndate: 2026-06-15\ntags:\n  - test\ncategories:\n  - notes\nsummary: "summary"\nstatus: "published"\n---\n\nhello world body`;
+    const base64Content = Buffer.from(rawContent).toString('base64');
+    return new Response(JSON.stringify({
+      content: base64Content,
+      sha: 'existing-sha-111'
+    }), { status: 200 });
+  };
+
+  const { response, json } = await requestJson('/api/posts/source?slug=existing-post', {
+    method: 'GET',
+    headers: {
+      'x-xhalo-admin-secret': adminSecret
+    }
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    GITHUB_OWNER: 'test-owner',
+    GITHUB_REPO: 'test-repo',
+    GITHUB_BRANCH: 'main',
+    GITHUB_TOKEN: 'mock-token',
+    GITHUB_FETCH: mockGithubFetch
+  });
+
+  assert.equal(response.status, 200);
+  assert.ok(json.ok);
+  assert.equal(json.sha, 'existing-sha-111');
+  assert.equal(json.frontmatter.title, 'Existing Article');
+  assert.equal(json.body, 'hello world body');
+});
+
+test('POST /api/drafts/direct-update-preview returns diff summary', async () => {
+  const mockGithubFetch = async (url, init) => {
+    const rawContent = `---\ntitle: "Existing Article"\ndate: 2026-06-15\ntags:\n  - test\ncategories:\n  - notes\nsummary: "summary"\nstatus: "published"\n---\n\nhello world body`;
+    const base64Content = Buffer.from(rawContent).toString('base64');
+    return new Response(JSON.stringify({
+      content: base64Content,
+      sha: 'existing-sha-111'
+    }), { status: 200 });
+  };
+
+  const { response, json } = await requestJson('/api/drafts/direct-update-preview', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      slug: 'existing-post',
+      title: 'New Title',
+      body: 'new body text',
+      summary: 'new summary',
+      categories: ['notes'],
+      tags: ['test']
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    GITHUB_OWNER: 'test-owner',
+    GITHUB_REPO: 'test-repo',
+    GITHUB_BRANCH: 'main',
+    GITHUB_TOKEN: 'mock-token',
+    GITHUB_FETCH: mockGithubFetch
+  });
+
+  assert.equal(response.status, 200);
+  assert.ok(json.ok);
+  assert.equal(json.mode, 'owner_direct_update_preview');
+  assert.ok(json.diffSummary);
+  assert.ok(json.diffSummary.frontmatterChanged);
+  assert.ok(json.diffSummary.bodyChanged);
+  assert.ok(json.previewHtml.includes('New Title'));
+});
+
+test('POST /api/drafts/direct-update rejects in pr_only mode', async () => {
+  const { response, json } = await requestJson('/api/drafts/direct-update', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      slug: 'existing-post',
+      title: 'New Title',
+      body: 'new body text',
+      baseSha: 'existing-sha-111',
+      confirmationPhrase: 'DIRECT UPDATE EXISTING POST'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    PUBLISH_MODE: 'pr_only',
+    OWNER_DIRECT_PUBLISH_ENABLED: 'true',
+    OWNER_DIRECT_UPDATE_ENABLED: 'true'
+  });
+
+  assert.equal(response.status, 403);
+  assert.equal(json.code, 'OWNER_DIRECT_UPDATE_DISABLED');
+});
+
+test('POST /api/drafts/direct-update rejects when OWNER_DIRECT_UPDATE_ENABLED=false', async () => {
+  const { response, json } = await requestJson('/api/drafts/direct-update', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      slug: 'existing-post',
+      title: 'New Title',
+      body: 'new body text',
+      baseSha: 'existing-sha-111',
+      confirmationPhrase: 'DIRECT UPDATE EXISTING POST'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    PUBLISH_MODE: 'owner_direct',
+    OWNER_DIRECT_PUBLISH_ENABLED: 'true',
+    OWNER_DIRECT_UPDATE_ENABLED: 'false'
+  });
+
+  assert.equal(response.status, 403);
+  assert.equal(json.code, 'OWNER_DIRECT_UPDATE_DISABLED');
+});
+
+test('POST /api/drafts/direct-update rejects missing or wrong confirmation', async () => {
+  const { response, json } = await requestJson('/api/drafts/direct-update', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      slug: 'existing-post',
+      title: 'New Title',
+      body: 'new body text',
+      baseSha: 'existing-sha-111',
+      confirmationPhrase: 'WRONG PHRASE'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    PUBLISH_MODE: 'owner_direct',
+    OWNER_DIRECT_PUBLISH_ENABLED: 'true',
+    OWNER_DIRECT_UPDATE_ENABLED: 'true'
+  });
+
+  assert.equal(response.status, 400);
+  assert.equal(json.code, 'INVALID_CONFIRMATION');
+});
+
+test('POST /api/drafts/direct-update rejects missing baseSha', async () => {
+  const { response, json } = await requestJson('/api/drafts/direct-update', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      slug: 'existing-post',
+      title: 'New Title',
+      body: 'new body text',
+      confirmationPhrase: 'DIRECT UPDATE EXISTING POST'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    PUBLISH_MODE: 'owner_direct',
+    OWNER_DIRECT_PUBLISH_ENABLED: 'true',
+    OWNER_DIRECT_UPDATE_ENABLED: 'true'
+  });
+
+  assert.equal(response.status, 400);
+  assert.equal(json.code, 'MISSING_BASE_SHA');
+});
+
+test('POST /api/drafts/direct-update rejects stale baseSha', async () => {
+  const mockGithubFetch = async (url, init) => {
+    return new Response(JSON.stringify({ sha: 'fresh-sha-from-server' }), { status: 200 });
+  };
+
+  const { response, json } = await requestJson('/api/drafts/direct-update', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      slug: 'existing-post',
+      title: 'New Title',
+      body: 'new body text',
+      baseSha: 'stale-sha-from-client',
+      confirmationPhrase: 'DIRECT UPDATE EXISTING POST'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    PUBLISH_MODE: 'owner_direct',
+    OWNER_DIRECT_PUBLISH_ENABLED: 'true',
+    OWNER_DIRECT_UPDATE_ENABLED: 'true',
+    GITHUB_OWNER: 'test-owner',
+    GITHUB_REPO: 'test-repo',
+    GITHUB_BRANCH: 'main',
+    GITHUB_TOKEN: 'mock-token',
+    GITHUB_FETCH: mockGithubFetch
+  });
+
+  assert.equal(response.status, 409);
+  assert.equal(json.code, 'STALE_BASE_SHA');
+});
+
+test('POST /api/drafts/direct-update succeeds with mock GitHub when all gates pass', async () => {
+  let putCalled = false;
+  let putUrl = '';
+
+  const mockGithubFetch = async (url, init) => {
+    if (!init.method || init.method === 'GET') {
+      return new Response(JSON.stringify({ sha: 'current-sha-123' }), { status: 200 });
+    }
+    if (init.method === 'PUT') {
+      putCalled = true;
+      putUrl = url;
+      return new Response(JSON.stringify({
+        content: { path: 'source/_posts/existing-post.md' },
+        commit: { sha: 'updated-commit-sha-999' }
+      }), { status: 200 });
+    }
+    return new Response(JSON.stringify({}), { status: 404 });
+  };
+
+  const mockDb = {
+    prepare: () => ({
+      bind: () => ({
+        run: async () => ({ success: true })
+      })
+    })
+  };
+
+  const { response, json } = await requestJson('/api/drafts/direct-update', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-xhalo-admin-secret': adminSecret
+    },
+    body: JSON.stringify({
+      slug: 'existing-post',
+      title: 'Updated Title',
+      body: 'new body content text',
+      baseSha: 'current-sha-123',
+      confirmationPhrase: 'DIRECT UPDATE EXISTING POST'
+    })
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    PUBLISH_MODE: 'owner_direct',
+    OWNER_DIRECT_PUBLISH_ENABLED: 'true',
+    OWNER_DIRECT_UPDATE_ENABLED: 'true',
+    GITHUB_OWNER: 'test-owner',
+    GITHUB_REPO: 'test-repo',
+    GITHUB_BRANCH: 'main',
+    GITHUB_TOKEN: 'mock-token',
+    GITHUB_FETCH: mockGithubFetch,
+    DB: mockDb
+  });
+
+  assert.equal(response.status, 200);
+  assert.ok(json.ok);
+  assert.equal(json.commitSha, 'updated-commit-sha-999');
+  assert.ok(putCalled);
+  assert.ok(putUrl.endsWith('/contents/source/_posts/existing-post.md'));
+  assert.ok(!putUrl.includes('%2F'));
+});
+
 
 
 

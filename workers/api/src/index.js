@@ -32,11 +32,15 @@ import {
   createBranchIfMissing,
   createDraftFileCommit,
   createDirectMainCommit,
+  createDirectMainUpdateCommit,
+  getPostFileFromMain,
+  generateUnifiedDiff,
   createPullRequest,
   decodeBase64ToBytes,
   encodeBase64Url,
   validateDraftInput,
-  validateDraftPath
+  validateDraftPath,
+  validateDraftSlug
 } from '../../../packages/core/src/index.js';
 
 
@@ -670,7 +674,7 @@ function rejectUnauthorized() {
 }
 
 function isProtectedAdminRoute(pathname) {
-  if (pathname === '/api/readiness' || pathname === '/api/posts' || pathname === '/api/tasks' || pathname === '/api/tasks/example' || pathname === '/api/audit-logs' || pathname.startsWith('/api/tasks/')) {
+  if (pathname.startsWith('/api/posts') || pathname === '/api/readiness' || pathname === '/api/tasks' || pathname === '/api/tasks/example' || pathname === '/api/audit-logs' || pathname.startsWith('/api/tasks/')) {
     return true;
   }
 
@@ -902,6 +906,321 @@ export default {
         source_of_truth: 'git',
         note: items ? 'Read-only posts_index prototype.' : 'D1 posts_index integration pending; showing fallback examples.'
       });
+    }
+
+    if (url.pathname === '/api/posts/source' && request.method === 'GET') {
+      const slug = url.searchParams.get('slug');
+      const slugErrors = validateDraftSlug(slug);
+      if (slugErrors.length > 0) {
+        return createJsonResponse({ error: 'Validation failed.', details: slugErrors }, { status: 400 });
+      }
+
+      try {
+        const postData = await getPostFileFromMain(env, { slug });
+        const repository = getGitHubRepository(env);
+        return createJsonResponse({
+          ok: true,
+          slug: postData.slug,
+          targetRepo: `${repository.owner}/${repository.repo}`,
+          targetBranch: repository.baseBranch,
+          targetPath: postData.filePath,
+          sha: postData.sha,
+          frontmatter: postData.frontmatter,
+          body: postData.body,
+          raw: postData.raw
+        });
+      } catch (err) {
+        if (err.status === 404) {
+          return createJsonResponse({
+            error: 'Target post not found.',
+            code: 'TARGET_NOT_FOUND'
+          }, { status: 404 });
+        }
+        if (err.status === 400 && err.code === 'OWNER_DIRECT_MAIN_REQUIRED') {
+          return createJsonResponse({
+            error: err.message,
+            code: err.code
+          }, { status: 400 });
+        }
+        return createJsonResponse({
+          error: `Failed to fetch file from GitHub: ${err.message}`,
+          code: 'GITHUB_FETCH_FAILED'
+        }, { status: 500 });
+      }
+    }
+
+    if (url.pathname === '/api/drafts/direct-update-preview' && request.method === 'POST') {
+      const { input, error: jsonError } = await readJsonBody(request);
+      if (jsonError) {
+        return createJsonResponse({ error: jsonError }, { status: 400 });
+      }
+
+      const slugErrors = validateDraftSlug(input.slug);
+      if (slugErrors.length > 0) {
+        return createJsonResponse({ error: 'Validation failed.', details: slugErrors }, { status: 400 });
+      }
+
+      const pathErrors = validateDraftPath(input);
+      if (pathErrors.length > 0) {
+        return createJsonResponse({ error: 'Validation failed.', details: pathErrors }, { status: 400 });
+      }
+
+      if (!input.body || String(input.body).trim().length === 0) {
+        return createJsonResponse({ error: 'Validation failed.', details: ['Missing required field: body'] }, { status: 400 });
+      }
+
+      if (Array.isArray(input)) {
+        return createJsonResponse({ error: 'Validation failed.', details: ['Batch payload is not allowed'] }, { status: 400 });
+      }
+
+      try {
+        const postData = await getPostFileFromMain(env, { slug: input.slug });
+        const updatedMarkdown = buildDraftMarkdownDocument(input);
+        const diff = generateUnifiedDiff(postData.raw, updatedMarkdown, `${input.slug}.md`);
+
+        const previewHtml = updatedMarkdown.split('\n\n').map(p => {
+          let text = p.trim();
+          if (!text) return '';
+          if (text.startsWith('#')) {
+            const level = text.match(/^#+/)[0].length;
+            const cleanText = text.replace(/^#+\s*/, '');
+            return `<h${level}>${cleanText}</h${level}>`;
+          }
+          text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+          text = text.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+          text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
+          return `<p>${text}</p>`;
+        }).filter(Boolean).join('\n');
+
+        return createJsonResponse({
+          ok: true,
+          mode: 'owner_direct_update_preview',
+          targetPath: postData.filePath,
+          baseSha: postData.sha,
+          diffSummary: {
+            addedLines: diff.addedLines,
+            removedLines: diff.removedLines,
+            frontmatterChanged: diff.frontmatterChanged,
+            bodyChanged: diff.bodyChanged
+          },
+          diffText: diff.diffText,
+          previewHtml
+        });
+      } catch (err) {
+        if (err.status === 404) {
+          return createJsonResponse({
+            error: 'Target post not found.',
+            code: 'TARGET_NOT_FOUND'
+          }, { status: 404 });
+        }
+        return createJsonResponse({
+          error: `Failed to fetch file from GitHub: ${err.message}`,
+          code: 'GITHUB_FETCH_FAILED'
+        }, { status: 500 });
+      }
+    }
+
+    if (url.pathname === '/api/drafts/direct-update' && request.method === 'POST') {
+      const { input, error: jsonError } = await readJsonBody(request);
+      if (jsonError) {
+        return createJsonResponse({ error: jsonError }, { status: 400 });
+      }
+
+      const publishMode = env.PUBLISH_MODE || 'pr_only';
+      const ownerDirectPublishEnabled = String(env.OWNER_DIRECT_PUBLISH_ENABLED || '').toLowerCase() === 'true';
+      const ownerDirectUpdateEnabled = String(env.OWNER_DIRECT_UPDATE_ENABLED || '').toLowerCase() === 'true';
+
+      if (publishMode !== 'owner_direct' || !ownerDirectPublishEnabled || !ownerDirectUpdateEnabled) {
+        await insertAuditLog(env, {
+          action: 'owner_direct_update_failed',
+          ...extractRequestMeta(request),
+          status_code: 403,
+          duration_ms: Date.now() - requestStart,
+          error: 'Owner direct update is disabled.',
+          detail: { code: 'OWNER_DIRECT_UPDATE_DISABLED' }
+        });
+        return createJsonResponse({
+          error: 'Owner direct update is disabled.',
+          code: 'OWNER_DIRECT_UPDATE_DISABLED'
+        }, { status: 403 });
+      }
+
+      const expectedPhrase = env.OWNER_DIRECT_UPDATE_CONFIRMATION_PHRASE || 'DIRECT UPDATE EXISTING POST';
+      if (!input.confirmationPhrase || input.confirmationPhrase !== expectedPhrase) {
+        await insertAuditLog(env, {
+          action: 'owner_direct_update_failed',
+          ...extractRequestMeta(request),
+          status_code: 400,
+          duration_ms: Date.now() - requestStart,
+          error: 'Invalid confirmation phrase.',
+          detail: { code: 'INVALID_CONFIRMATION' }
+        });
+        return createJsonResponse({
+          error: 'Invalid confirmation phrase.',
+          code: 'INVALID_CONFIRMATION'
+        }, { status: 400 });
+      }
+
+      if (!input.baseSha) {
+        await insertAuditLog(env, {
+          action: 'owner_direct_update_failed',
+          ...extractRequestMeta(request),
+          status_code: 400,
+          duration_ms: Date.now() - requestStart,
+          error: 'Missing required field: baseSha',
+          detail: { code: 'MISSING_BASE_SHA' }
+        });
+        return createJsonResponse({
+          error: 'Missing required field: baseSha',
+          code: 'MISSING_BASE_SHA'
+        }, { status: 400 });
+      }
+
+      const slugErrors = validateDraftSlug(input.slug);
+      if (slugErrors.length > 0) {
+        await insertAuditLog(env, {
+          action: 'owner_direct_update_failed',
+          ...extractRequestMeta(request),
+          status_code: 400,
+          duration_ms: Date.now() - requestStart,
+          error: 'Validation failed.',
+          detail: { code: 'VALIDATION_FAILED', errors: slugErrors }
+        });
+        return createJsonResponse({ error: 'Validation failed.', details: slugErrors }, { status: 400 });
+      }
+
+      const pathErrors = validateDraftPath(input);
+      if (pathErrors.length > 0) {
+        await insertAuditLog(env, {
+          action: 'owner_direct_update_failed',
+          ...extractRequestMeta(request),
+          status_code: 400,
+          duration_ms: Date.now() - requestStart,
+          error: 'Validation failed.',
+          detail: { code: 'PATH_VALIDATION_FAILED', errors: pathErrors }
+        });
+        return createJsonResponse({ error: 'Validation failed.', details: pathErrors }, { status: 400 });
+      }
+
+      if (!input.body || String(input.body).trim().length === 0) {
+        return createJsonResponse({ error: 'Validation failed.', details: ['Missing required field: body'] }, { status: 400 });
+      }
+
+      if (Array.isArray(input)) {
+        return createJsonResponse({ error: 'Validation failed.', details: ['Batch payload is not allowed'] }, { status: 400 });
+      }
+
+      const repository = getGitHubRepository(env);
+      if (repository.baseBranch !== 'main') {
+        await insertAuditLog(env, {
+          action: 'owner_direct_update_failed',
+          ...extractRequestMeta(request),
+          status_code: 400,
+          duration_ms: Date.now() - requestStart,
+          error: 'Owner direct publish requires GITHUB_BRANCH=main.',
+          detail: { code: 'OWNER_DIRECT_MAIN_REQUIRED' }
+        });
+        return createJsonResponse({
+          error: 'Owner direct publish requires GITHUB_BRANCH=main.',
+          code: 'OWNER_DIRECT_MAIN_REQUIRED'
+        }, { status: 400 });
+      }
+
+      const filePath = `source/_posts/${input.slug}.md`;
+      const auditId = crypto.randomUUID();
+      const updatedMarkdown = buildDraftMarkdownDocument(input);
+      const commitMessage = `[owner-direct-update] update post: ${input.title}`;
+
+      try {
+        let oldRaw = '';
+        try {
+          const existingPost = await getPostFileFromMain(env, { slug: input.slug });
+          oldRaw = existingPost.raw;
+        } catch (existingErr) {
+          // ignore
+        }
+
+        const diff = generateUnifiedDiff(oldRaw, updatedMarkdown, `${input.slug}.md`);
+
+        const commitResult = await createDirectMainUpdateCommit(env, {
+          branch: repository.baseBranch,
+          filePath,
+          content: updatedMarkdown,
+          baseSha: input.baseSha,
+          commitMessage
+        });
+
+        const persisted = await upsertPostIndexRecord(env, {
+          id: input.slug,
+          slug: input.slug,
+          title: input.title,
+          path: filePath,
+          status: 'published',
+          created_at: nowIso(),
+          updated_at: nowIso(),
+          published_at: nowIso(),
+          github_branch: repository.baseBranch,
+          github_pr_url: null,
+          preview_url: null,
+          content: updatedMarkdown
+        });
+
+        await insertAuditLog(env, {
+          action: 'owner_direct_update',
+          ...extractRequestMeta(request),
+          resource: 'post',
+          resource_id: input.slug,
+          status_code: 200,
+          duration_ms: Date.now() - requestStart,
+          detail: {
+            mode: 'owner_direct_update',
+            target_repo: `${repository.owner}/${repository.repo}`,
+            target_branch: repository.baseBranch,
+            target_path: filePath,
+            old_sha: input.baseSha,
+            new_commit_sha: commitResult.commitSha,
+            audit_id: auditId,
+            diffSummary: {
+              addedLines: diff.addedLines,
+              removedLines: diff.removedLines,
+              frontmatterChanged: diff.frontmatterChanged,
+              bodyChanged: diff.bodyChanged
+            }
+          }
+        });
+
+        return createJsonResponse({
+          ok: true,
+          mode: 'owner_direct_update',
+          targetRepo: `${repository.owner}/${repository.repo}`,
+          targetBranch: repository.baseBranch,
+          targetPath: filePath,
+          oldSha: input.baseSha,
+          commitSha: commitResult.commitSha,
+          commitUrl: commitResult.commitUrl,
+          auditId,
+          message: 'Existing post updated on main. Cloudflare Pages build may start automatically.'
+        });
+      } catch (err) {
+        const isStale = err.code === 'STALE_BASE_SHA' || err.status === 409;
+        const isNotFound = err.code === 'TARGET_NOT_FOUND' || err.status === 404;
+        const statusCode = isStale ? 409 : isNotFound ? 404 : 500;
+        const errCode = isStale ? 'STALE_BASE_SHA' : isNotFound ? 'TARGET_NOT_FOUND' : 'COMMIT_FAILED';
+
+        await insertAuditLog(env, {
+          action: 'owner_direct_update_failed',
+          ...extractRequestMeta(request),
+          status_code: statusCode,
+          duration_ms: Date.now() - requestStart,
+          error: err.message,
+          detail: { code: errCode }
+        });
+
+        return createJsonResponse({
+          error: err.message,
+          code: errCode
+        }, { status: statusCode });
+      }
     }
 
     if (url.pathname === '/api/tasks') {
@@ -1208,6 +1527,21 @@ export default {
       }
 
       const repository = getGitHubRepository(env);
+      if (repository.baseBranch !== 'main') {
+        await insertAuditLog(env, {
+          action: 'owner_direct_publish_failed',
+          ...extractRequestMeta(request),
+          status_code: 400,
+          duration_ms: Date.now() - requestStart,
+          error: 'Owner direct publish requires GITHUB_BRANCH=main.',
+          detail: { code: 'OWNER_DIRECT_MAIN_REQUIRED' }
+        });
+        return createJsonResponse({
+          error: 'Owner direct publish requires GITHUB_BRANCH=main.',
+          code: 'OWNER_DIRECT_MAIN_REQUIRED'
+        }, { status: 400 });
+      }
+
       const filePath = `source/_posts/${input.slug}.md`;
       const auditId = crypto.randomUUID();
       const markdown = buildDraftMarkdownDocument(input);

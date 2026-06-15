@@ -99,6 +99,8 @@ http://localhost:4000
 - [`docs/theme-config.md`](./docs/theme-config.md)
 - [`docs/security.md`](./docs/security.md)
 - [`docs/github-pr-publishing.md`](./docs/github-pr-publishing.md)
+- [`docs/owner-direct-publish-mode.md`](./docs/owner-direct-publish-mode.md)
+- [`docs/owner-direct-existing-article-update-mode.md`](./docs/owner-direct-existing-article-update-mode.md)
 
 ## Cloudflare Pages deployment
 

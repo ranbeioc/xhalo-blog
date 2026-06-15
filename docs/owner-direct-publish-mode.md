@@ -80,9 +80,7 @@ The worker API enforces the following constraints before performing any writes:
 3. **Mode Guard**: Rejects the request if `PUBLISH_MODE !== 'owner_direct'` or `OWNER_DIRECT_PUBLISH_ENABLED !== true`.
 4. **Confirmation Matching**: Rejects the request if `confirmationPhrase` does not match the configured `OWNER_DIRECT_CONFIRMATION_PHRASE`.
 5. **Path Validation**: The target file path must resolve strictly under `source/_posts/` (no path traversals like `../`).
-6. **Overwrite Protection**: If the target file already exists on the target branch, the API will fail with `409 Conflict` and return:
-   `Target post already exists. Use explicit update flow in a separate phase.`
-   Overwrite commits are not allowed in this phase.
+6. **Overwrite Protection**: If the target file already exists on the target branch, the direct publish API will fail with `409 Conflict`. Overwriting an existing post requires using the explicit Owner Direct Update workflow (see [owner-direct-existing-article-update-mode.md](./owner-direct-existing-article-update-mode.md)).
 7. **Single Article Constraints**: Only accepts a single JSON post object. No batch payload commits, no R2 bucket writes, and no D1 schema changes.
 
 ## Audit Log
