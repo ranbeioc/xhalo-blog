@@ -7,16 +7,16 @@
 The admin UI is deployed as part of the `xhalo-blog` Cloudflare Pages project. Serving the admin under `/admin` is preferred to avoid cross-origin CORS and cookie issues.
 
 > [!IMPORTANT]
-> Admin is served inside xhalo-blog project under `/admin`. No separate `xhalo-blog-admin` project is required. `xhalo-admin` is not the blog admin target.
-> Test deployment belongs to xhalo-blog.
+> Admin is served inside xhalo-blog project under `/admin`. No separate `xhalo-blog-admin` project is required. `xhalo-admin` is not used.
+> Real test deployment target is existing `xhalo-blog-test`.
 
 1. Open the [Cloudflare Dashboard → Pages](https://dash.cloudflare.com/?to=/:account/pages).
-2. Click on your `xhalo-blog` project.
+2. Click on your `xhalo-blog-test` project.
 3. Configure the build settings to compile the admin UI as a subdirectory (or configure routes to serve it under `/admin`):
 
 | Setting          | Value                                |
 | ---------------- | ------------------------------------ |
-| Project name     | `xhalo-blog`                         |
+| Project name     | `xhalo-blog-test`                    |
 | Build command    | `node apps/admin/scripts/build.mjs`  |
 | Output directory | `apps/admin/dist`                    |
 | Public route path  | `/admin`                             |
