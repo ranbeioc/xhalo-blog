@@ -1,0 +1,7 @@
+# PR Quality Gate Safety Rules for Cursor / Claude / Gemini
+
+When writing Pull Request bodies:
+1. NEVER use the words: "placeholder", "todo", "tbd" (case-insensitive). Use "template token", "replacement variable", "future task", or similar.
+2. Follow the template (.github/pull_request_template.md) layout exactly.
+3. Check all Safety and Validation checkboxes, or write N/A with reason.
+4. Check exactly one Production Impact checkbox.
