@@ -69,8 +69,8 @@ export function renderTopbar(container, { title, session, onLogin, onLogout }) {
     userHtml = `
       <div class="topbar-user unauth" style="display: flex; align-items: center; gap: 15px;">
         <span class="api-info-badge" style="font-size: 0.8rem; color: var(--text-muted); padding: 4px 8px; border: 1px dashed var(--border-color); border-radius: 4px;">API: ${escapeHtml(apiBase)}</span>
-        <span class="write-warning" style="font-size: 0.85rem; color: var(--color-warning);">⚠️ All write actions are disabled by default</span>
-        <button class="topbar-btn login-github-btn" id="btn-login-github" style="background: var(--color-primary); color: white; border: none; font-weight: 500; padding: 6px 12px; border-radius: 4px;">Login with GitHub</button>
+        <span class="write-warning" style="font-size: 0.85rem; color: var(--yellow);">⚠️ All write actions are disabled by default</span>
+        <button class="topbar-btn login-github-btn" id="btn-login-github" style="background: var(--accent); color: white; border: none; font-weight: 500; padding: 6px 12px; border-radius: 4px;">Login with GitHub</button>
       </div>`;
   }
 
