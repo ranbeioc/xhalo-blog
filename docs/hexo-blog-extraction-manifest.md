@@ -24,3 +24,4 @@ Open-source repository: `ranbeioc/xhalo-blog`
 
 - `mmedia` compatibility beyond documentation-only status
 - theme adapter generalization beyond the default `hexo-next` path
+- URL-based Admin import that crawls posts, menus, categories, tags, and assets into a reviewable import manifest
