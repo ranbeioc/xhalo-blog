@@ -1,5 +1,6 @@
 import { ADMIN_API_BASE_URL } from '../config.js';
 import { getAdminSecret, saveAdminSecret } from './api-client.js';
+import { showToast } from './ui.js';
 
 export function renderSettings(container, { dashboardData }) {
   const configUrl = ADMIN_API_BASE_URL || window.location.origin;
@@ -73,18 +74,18 @@ export function renderSettings(container, { dashboardData }) {
     btnSave.addEventListener('click', () => {
       const val = inputSecret.value.trim();
       if (val === '••••••••••••••••') {
-        alert('Secret unchanged.');
+        showToast('Secret unchanged.', 'info');
         return;
       }
       if (!val) {
-        alert('Please enter a secret value or click Clear.');
+        showToast('Please enter a secret value or click Clear.', 'warning');
         return;
       }
       saveAdminSecret(val);
       statusText.style.color = 'var(--color-success)';
       statusText.textContent = 'Status: Legacy secret is currently configured.';
       inputSecret.value = '••••••••••••••••';
-      alert('Legacy secret saved successfully.');
+      showToast('Legacy secret saved successfully.', 'success');
     });
   }
 
@@ -94,7 +95,7 @@ export function renderSettings(container, { dashboardData }) {
       statusText.style.color = 'var(--text-muted)';
       statusText.textContent = 'Status: No legacy secret configured.';
       inputSecret.value = '';
-      alert('Legacy secret cleared.');
+      showToast('Legacy secret cleared.', 'info');
     });
   }
 }

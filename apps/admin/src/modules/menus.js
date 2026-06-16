@@ -1,4 +1,5 @@
 import { apiFetch } from './api-client.js';
+import { showToast } from './ui.js';
 
 export async function fetchSiteMenu() {
   try {
@@ -46,8 +47,10 @@ export function renderMenuManager(container, { initialMenuData }) {
           </div>
         </div>
       `;
+      showToast('Menu diff generated successfully', 'success');
     } catch (err) {
       diffHtml = `<div class="alert alert-error">Failed to generate preview: ${err.message}</div>`;
+      showToast(`Failed to generate preview: ${err.message}`, 'error');
     } finally {
       loadingState = false;
       draw();
@@ -57,18 +60,21 @@ export function renderMenuManager(container, { initialMenuData }) {
   function addMenuItem(e) {
     e.preventDefault();
     if (!newItem.name || !newItem.path) {
-      alert('Please fill out Name and Path fields.');
+      showToast('Please fill out Name and Path fields.', 'warning');
       return;
     }
     menuItems.push({ ...newItem });
     newItem = { name: '', path: '', icon: '' };
     diffHtml = '';
+    showToast('Menu item added locally', 'success');
     draw();
   }
 
   function deleteMenuItem(index) {
+    const deletedName = menuItems[index]?.name || 'Item';
     menuItems.splice(index, 1);
     diffHtml = '';
+    showToast(`Deleted "${deletedName}" locally`, 'info');
     draw();
   }
 

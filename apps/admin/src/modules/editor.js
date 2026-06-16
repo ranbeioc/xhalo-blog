@@ -1,4 +1,5 @@
 import { apiFetch } from './api-client.js';
+import { showToast } from './ui.js';
 
 export async function fetchPostSource(slug) {
   try {
@@ -37,8 +38,10 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
         sha: data.sha || ''
       };
       actionResultHtml = `<div class="alert alert-success">Source loaded successfully (SHA: <code>${post.sha.substring(0, 7)}</code>)</div>`;
+      showToast('Source loaded successfully', 'success');
     } catch (err) {
       actionResultHtml = `<div class="alert alert-error">Failed to load source: ${err.message}</div>`;
+      showToast(`Failed to load source: ${err.message}`, 'error');
     } finally {
       loadingState = false;
       draw();
@@ -47,7 +50,7 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
 
   async function fetchDiffPreview() {
     if (!post.slug) {
-      alert('Please fill out the Slug field before requesting a diff.');
+      showToast('Please fill out the Slug field before requesting a diff.', 'warning');
       return;
     }
     loadingState = true;
@@ -81,8 +84,10 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
           </div>
         </div>
       `;
+      showToast('Diff generated successfully', 'success');
     } catch (err) {
       diffHtml = `<div class="alert alert-error">Failed to generate diff: ${err.message}</div>`;
+      showToast(`Failed to generate diff: ${err.message}`, 'error');
     } finally {
       loadingState = false;
       draw();
@@ -128,8 +133,10 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
           </div>
         </div>
       `;
+      showToast('Publish plan computed', 'success');
     } catch (err) {
       planHtml = `<div class="alert alert-error">Failed to retrieve plan: ${err.message}</div>`;
+      showToast(`Failed to retrieve plan: ${err.message}`, 'error');
     } finally {
       loadingState = false;
       draw();
@@ -161,17 +168,20 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
             <code>${data.error || 'Live writes are disabled'}</code>
           </div>
         `;
+        showToast('Action Blocked: Staging write is disabled', 'warning');
       } else if (res.ok) {
         actionResultHtml = `
           <div class="alert alert-success">
             <strong>Task Dispatched:</strong> PR request queued successfully. Task ID: <code>${data.task_id || ''}</code>
           </div>
         `;
+        showToast('PR creation task dispatched', 'success');
       } else {
         throw new Error(data.error || 'Unexpected error');
       }
     } catch (err) {
       actionResultHtml = `<div class="alert alert-error">Operation failed: ${err.message}</div>`;
+      showToast(`Operation failed: ${err.message}`, 'error');
     } finally {
       loadingState = false;
       draw();
@@ -332,13 +342,83 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
   }
 
   function renderSimpleMarkdown(md) {
-    return md
+    if (!md) return '';
+    let escaped = md
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/\n/g, '<br/>')
+      .replace(/>/g, '&gt;');
+
+    const blocks = escaped.split(/\n\n+/);
+    let htmlBlocks = [];
+
+    for (let block of blocks) {
+      block = block.trim();
+      if (!block) continue;
+
+      if (block.startsWith('```')) {
+        const lines = block.split('\n');
+        const firstLine = lines[0];
+        const lang = firstLine.substring(3).trim();
+        const codeLines = lines.slice(1, lines[lines.length - 1] === '```' ? -1 : undefined);
+        const code = codeLines.join('\n');
+        htmlBlocks.push(`<pre><code class="language-${lang}">${code}</code></pre>`);
+        continue;
+      }
+
+      if (block.startsWith('#')) {
+        const match = block.match(/^(#{1,6})\s+(.*)$/);
+        if (match) {
+          const level = match[1].length;
+          const text = parseInlineMarkdown(match[2]);
+          htmlBlocks.push(`<h${level}>${text}</h${level}>`);
+          continue;
+        }
+      }
+
+      if (block.startsWith('>')) {
+        const lines = block.split('\n').map(line => line.replace(/^>\s?/, ''));
+        const text = parseInlineMarkdown(lines.join('\n'));
+        htmlBlocks.push(`<blockquote><p>${text}</p></blockquote>`);
+        continue;
+      }
+
+      if (block.startsWith('* ') || block.startsWith('- ')) {
+        const lines = block.split('\n');
+        let listHtml = '<ul>';
+        for (const line of lines) {
+          const itemText = line.replace(/^[\*\-]\s+/, '');
+          listHtml += `<li>${parseInlineMarkdown(itemText)}</li>`;
+        }
+        listHtml += '</ul>';
+        htmlBlocks.push(listHtml);
+        continue;
+      }
+
+      if (/^\d+\.\s+/.test(block)) {
+        const lines = block.split('\n');
+        let listHtml = '<ol>';
+        for (const line of lines) {
+          const itemText = line.replace(/^\d+\.\s+/, '');
+          listHtml += `<li>${parseInlineMarkdown(itemText)}</li>`;
+        }
+        listHtml += '</ol>';
+        htmlBlocks.push(listHtml);
+        continue;
+      }
+
+      const text = parseInlineMarkdown(block.split('\n').join('<br/>'));
+      htmlBlocks.push(`<p>${text}</p>`);
+    }
+
+    return htmlBlocks.join('\n');
+  }
+
+  function parseInlineMarkdown(text) {
+    return text
       .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
   }
 
   function escapeHtml(str) {

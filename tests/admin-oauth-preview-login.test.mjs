@@ -130,4 +130,27 @@ describe('Admin GitHub OAuth Preview Login tests', () => {
     assert.ok(!settingsJs.includes('ADMIN_API_SHARED_SECRET'), 'Settings must not reference raw backend secret variable');
     assert.ok(!settingsJs.includes('GITHUB_OAUTH_CLIENT_SECRET'), 'Settings must not reference raw client secret variable');
   });
+
+  it('no modules contain raw browser alert calls (uses toast notifications instead)', () => {
+    const modules = ['editor.js', 'media.js', 'menus.js', 'settings.js'];
+    for (const mod of modules) {
+      const content = fs.readFileSync(path.join(ADMIN_SRC_DIR, 'modules', mod), 'utf8');
+      assert.ok(content.includes('showToast'), `${mod} must import or use showToast`);
+      assert.strictEqual(
+        content.match(/\balert\s*\(/g),
+        null,
+        `${mod} must not contain raw alert() calls`
+      );
+    }
+  });
+
+  it('markdown renderer in editor.js supports headers, blockquotes, lists, and links', () => {
+    const editorJs = fs.readFileSync(path.join(ADMIN_SRC_DIR, 'modules', 'editor.js'), 'utf8');
+    assert.ok(editorJs.includes('htmlBlocks.push'), 'Renderer must push html blocks');
+    assert.ok(editorJs.includes('h${level}'), 'Renderer must support headings');
+    assert.ok(editorJs.includes('blockquote'), 'Renderer must support blockquotes');
+    assert.ok(editorJs.includes('ul'), 'Renderer must support unordered lists');
+    assert.ok(editorJs.includes('ol'), 'Renderer must support ordered lists');
+    assert.ok(editorJs.includes('href'), 'Renderer must support links');
+  });
 });
