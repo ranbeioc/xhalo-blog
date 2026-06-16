@@ -1,67 +1,74 @@
-# xhalo-blog Admin — Deployment Boundary
+# xhalo-blog Admin - Deployment Boundary
 
-> Defines the integrated deployment boundary for the xhalo-blog admin UI.
+> Defines the deployment boundary for the in-project xhalo-blog admin UI.
 
-## Project Location
+## Project location
 
-The admin UI source lives in **`apps/admin/`** inside the `ranbeioc/xhalo-blog` repository. It is a self-contained single-page application with no dependency on the main blog build pipeline.
+The admin UI source lives in `apps/admin/` inside `ranbeioc/xhalo-blog`.
 
-## Cloudflare Pages Project
+- Main source repository: `ranbeioc/xhalo-blog`
+- Content / production blog repository: `ranbeioc/hexo-blog`
+- Global admin project: `ranbeioc/xhalo-admin` (not used for xhalo-blog admin)
 
-| Property           | Value                        |
-| ------------------ | ---------------------------- |
-| Pages project name | `xhalo-blog`                 |
-| Build command      | `node apps/admin/scripts/build.mjs` |
-| Output directory   | `apps/admin/dist`            |
-| Public route path  | `/admin`                     |
+The admin must remain inside `ranbeioc/xhalo-blog/apps/admin`.
 
-Served URL follows the standard Cloudflare Pages pattern under `/admin`:
+## Real test deployment target
 
-```
-https://<hash>.xhalo-blog.pages.dev/admin
-```
+The current real test deployment target is the existing Cloudflare Pages project `xhalo-blog-test`.
+
+Current owner-verified test links:
+
+- Home: `https://xhalo-blog-test.pages.dev/`
+- Admin: `https://xhalo-blog-test.pages.dev/admin`
+
+Owner-reported result:
+
+- GitHub account can authorize and log in successfully.
+
+## Cloudflare Pages boundary
+
+| Property | Value |
+| --- | --- |
+| Pages project name | `xhalo-blog-test` |
+| Build command | `node apps/admin/scripts/build.mjs` |
+| Output directory | `apps/admin/dist` |
+| Public route path | `/admin` |
 
 > [!IMPORTANT]
-> The Admin UI is built from `apps/admin` and served as part of the `xhalo-blog` project, preferably under `/admin`.
+> The Admin UI is built from `apps/admin` and served as part of the `xhalo-blog` project boundary.
 > No separate Cloudflare Pages project is required for the blog admin.
-> It is **NOT** part of the global `xhalo-admin` project. The two are entirely separate deployment targets with independent configuration, environment variables, and domains.
-> Real test deployment target is existing `xhalo-blog-test`.
+> `xhalo-blog-admin` does not exist and is not needed.
+> `xhalo-admin` is not the blog admin target.
 
-## Environment Variables
+## Cloudflare deployment map
 
-### `XHALO_ADMIN_API_BASE_URL`
+| Project | Type | Purpose | Current phase status | Write permission |
+| --- | --- | --- | --- | --- |
+| `xhalo-blog-test` | Cloudflare Pages | Test site and `/admin` UI | Active test target | No production write |
+| `xhalo-blog-staging-api` | Worker | Staging API/Auth | Staging only | No production write |
+| `xhalo-blog-staging-queue` | Queue Worker | Staging async tasks | Staging only | No production write |
+| `xhalo-blog-production-api` | Worker | Production API/Auth | Approval gate only | Read-only only |
+| `xhalo-blog-production-queue` | Queue Worker | Production async tasks | Approval gate only | No live-write |
 
-This variable is injected during the build step and controls which API worker the admin UI communicates with.
+## Environment boundary
 
-| Environment | Example Value                                      |
-| ----------- | -------------------------------------------------- |
-| Staging     | `https://xhalo-blog-api-staging.<account>.workers.dev` |
-| Production  | `https://xhalo-blog-api.<account>.workers.dev`         |
+The real test deployment is expected to use:
 
-### Build-Time Placeholder Replacement
+- `ADMIN_FRONTEND_BASE_URL=https://xhalo-blog-test.pages.dev`
+- `ADMIN_FRONTEND_PATH=/admin`
+- `ADMIN_AUTH_BASE_URL=https://<staging-api-domain>`
 
-The build script (`apps/admin/scripts/build.mjs`) reads `XHALO_ADMIN_API_BASE_URL` from the environment and replaces the placeholder token inside `config.js`:
+## Production preview gate
 
-```
-__XHALO_ADMIN_API_BASE_URL_PLACEHOLDER__  →  <actual URL>
-```
+In the current phase:
 
-This ensures that the compiled output contains the correct API base URL without requiring runtime configuration.
+- `xhalo-blog-production-api` is approval-gate only
+- `xhalo-blog-production-queue` is approval-gate only
+- no production direct publish is approved
+- no production direct update is approved
+- no production R2 live upload is approved
+- no production menu config write is approved
+- no production queue live-write task is approved
+- no `hexo-blog/main` mutation is approved
 
-## Boundary Summary
-
-```
-ranbeioc/xhalo-blog (repo)
-└── apps/
-    └── admin/                  ← admin UI source
-        ├── scripts/
-        │   └── build.mjs       ← build entry point
-        ├── src/
-        │   ├── config.js       ← contains placeholder token
-        │   └── modules/        ← feature modules
-        └── dist/               ← build output (deployed under /admin)
-```
-
-- **Repo**: `ranbeioc/xhalo-blog`
-- **Deploy target**: Cloudflare Pages → `xhalo-blog` / `xhalo-blog-test` (served under `/admin`)
-- **Not related to**: `xhalo-admin` (a separate, global project)
+Any future production preview must stay within read-only, dry-run, and auth-check scope until explicit owner approval is recorded.

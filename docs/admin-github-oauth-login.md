@@ -1,83 +1,92 @@
 # GitHub OAuth Login Preview
 
-This document details the configuration, security boundaries, and staging verification parameters for the Admin GitHub OAuth Login Preview module in `xhalo-blog`.
+This document defines the configuration, security boundaries, and current verification status for the xhalo-blog admin GitHub OAuth login flow.
 
 ## Scope
 
-The GitHub OAuth Login module provides an optional preview-only authentication path for administrative routes. It allows designated users to sign in with GitHub, creating an HTTP-only cookie session.
+The GitHub OAuth login module provides the authenticated preview path for the in-project admin routes. It is currently verified on the real test deployment and remains separate from any production write approval.
 
 > [!IMPORTANT]
-> Admin is served inside xhalo-blog project under `/admin`. No separate `xhalo-blog-admin` project is required. `xhalo-admin` is not used.
-> Real test deployment target is existing `xhalo-blog-test`.
+> Admin is served inside the `xhalo-blog` project under `/admin`.
+> No separate `xhalo-blog-admin` project is required.
+> `xhalo-admin` is not used for the xhalo-blog admin.
+> The current real test deployment target is `xhalo-blog-test`.
 
-> [!NOTE]
-> In the current phase, OAuth login does not replace the outer Cloudflare Access verification or the fallback `x-xhalo-admin-secret` authentication headers. It acts as an integration preview.
+Current owner-verified links:
 
-## Environment Variables
+- Home: `https://xhalo-blog-test.pages.dev/`
+- Admin: `https://xhalo-blog-test.pages.dev/admin`
 
-Configure the following variables in wrangler.toml or the Cloudflare dashboard:
+Owner-reported result:
 
-| Variable | Description | Value Example / Default |
+- GitHub account can authorize and log in successfully.
+
+## Environment variables
+
+Configure the following variables in Wrangler or the Cloudflare dashboard:
+
+| Variable | Description | Example |
 | --- | --- | --- |
-| `GITHUB_OAUTH_CLIENT_ID` | Client ID from GitHub OAuth Application | `Iv1.xxxxxxxxxxxx` |
-| `GITHUB_OAUTH_CLIENT_SECRET` | Client Secret from GitHub OAuth Application (sensitive) | *(Secret)* |
-| `GITHUB_OAUTH_ALLOWED_LOGINS` | Comma-separated list of whitelisted GitHub usernames | `ranbeioc` |
-| `ADMIN_SESSION_SECRET` | Secret key used to sign session cookies (HMAC-SHA256) | *(Secret, min 32 chars)* |
-| `ADMIN_AUTH_BASE_URL` | Base URL of the API/Auth endpoints (OAuth start/callback origin) | `https://xhalo-blog.pages.dev` |
-| `ADMIN_FRONTEND_BASE_URL` | Base URL of the Admin frontend UI | `https://xhalo-blog.pages.dev` |
-| `ADMIN_FRONTEND_PATH` | Path prefix where the Admin UI is served | `/admin` |
-| `ADMIN_SESSION_COOKIE_NAME` | Name of the session cookie | `xhalo_admin_session` |
-| `ADMIN_SESSION_TTL_SECONDS` | Time-to-live for sessions in seconds | `86400` (24 hours) |
+| `GITHUB_OAUTH_CLIENT_ID` | GitHub OAuth app client ID | `Iv1.xxxxxxxxxxxx` |
+| `GITHUB_OAUTH_CLIENT_SECRET` | GitHub OAuth app client secret | secret |
+| `GITHUB_OAUTH_ALLOWED_LOGINS` | Allowed GitHub usernames | `ranbeioc` |
+| `ADMIN_SESSION_SECRET` | HMAC signing secret for admin sessions | secret, minimum 32 chars |
+| `ADMIN_AUTH_BASE_URL` | Base URL for auth endpoints | `https://<staging-api-domain>` |
+| `ADMIN_FRONTEND_BASE_URL` | Base URL for the admin frontend | `https://xhalo-blog-test.pages.dev` |
+| `ADMIN_FRONTEND_PATH` | Admin route path | `/admin` |
+| `ADMIN_SESSION_COOKIE_NAME` | Session cookie name | `xhalo_admin_session` |
+| `ADMIN_SESSION_TTL_SECONDS` | Session TTL in seconds | `86400` |
 
-## GitHub OAuth App Setup
+## OAuth app setup
 
-1. Go to **Developer Settings** > **OAuth Apps** in your GitHub account/organization.
-2. Click **New OAuth App**.
-3. Set **Application Name** to `xhalo-blog` or similar.
-4. Set **Homepage URL** to your blog site (e.g., `https://xhalo.co` or `https://xhalo-blog.pages.dev`).
-5. Set **Authorization callback URL** to the callback endpoint (see examples below).
-6. Save and generate a new Client Secret.
+Use the staging/test app configuration for the current real test deployment:
 
-> [!IMPORTANT]
-> **Separate Staging and Production Apps**: Production and staging environments must use separate GitHub OAuth Apps to prevent redirect cross-contamination and ensure distinct credentials.
+- Application name: `xhalo-blog-test Admin`
+- Homepage URL: `https://xhalo-blog-test.pages.dev/admin`
+- Authorization callback URL: `https://<staging-api-domain>/auth/github/callback`
 
-## Callback URL Examples
+Production and staging/test must continue to use separate OAuth app credentials.
 
-- **Production**: `https://xhalo.co/auth/github/callback`
-- **Staging**: `https://<staging-preview-domain>/auth/github/callback`
-- **Local Dev**: `http://localhost:8787/auth/github/callback`
+## Current verified flow
 
-## Session Cookie Behavior
+The current verified real test flow is:
 
-* **Secure Handling**: Cookies are written using `HttpOnly; Secure; SameSite=Lax; Path=/`.
-* **State Verification**: OAuth states are tracked via `xhalo_oauth_state` transient cookie. The state cookie is cleared (`Max-Age=0`) upon successful token exchange.
-* **Payload Isolation**: The signed session cookie contains user metadata (`login`, `id`, `avatarUrl`, `name`, `expiresAt`) signed using HMAC-SHA256. It **never** exposes or stores the GitHub API access token in the payload or logs.
+1. Open `https://xhalo-blog-test.pages.dev/admin`
+2. Click **Login with GitHub**
+3. Redirect to `https://<staging-api-domain>/auth/github/start`
+4. Complete GitHub authorization
+5. Return through `https://<staging-api-domain>/auth/github/callback`
+6. Redirect back to `https://xhalo-blog-test.pages.dev/admin`
+7. Verify `GET /api/auth/session` returns `authenticated=true`
+8. Verify logout returns `authenticated=false`
 
-## Security Boundaries
+## Session cookie behavior
 
-1. **Strict Whitelist**: Only logins explicitly listed in `GITHUB_OAUTH_ALLOWED_LOGINS` are permitted. Any other login returns HTTP 403 and triggers an `oauth_unauthorized_login` security audit event.
-2. **Access Token Non-leakage**: GitHub OAuth tokens retrieved from the token exchange are only used in-memory during callback and discarded immediately. They are never written to D1, session cookies, or logs.
-3. **Session Expiry**: Sessions expire after `ADMIN_SESSION_TTL_SECONDS` and are automatically rejected.
-4. **Tamper Prevention**: Any change to the session cookie payload invalidates the signature and results in authentication rejection.
+- Cookies are written with `HttpOnly; Secure; SameSite=Lax; Path=/`
+- The transient OAuth state cookie is cleared after successful callback
+- The signed admin session stores user metadata only
+- GitHub access tokens must not be written to cookies, logs, D1, or docs
+
+## Production boundary
+
+This OAuth preview does not grant or imply production write approval.
+
+- `xhalo-blog-production-api` remains approval-gate only
+- `xhalo-blog-production-queue` remains approval-gate only
+- production preview scope is limited to read-only, dry-run, and auth-check operations
+- no production direct publish is approved
+- no production direct update is approved
+- no production R2 live upload is approved
 
 ## Verification
 
-### Local Mock Test
+Automated verification:
 
-Run the automated test suite which includes full mock token exchanges and callback assertions:
 ```bash
 npm test
 ```
 
-### Staging Preview Test
+Real test evidence:
 
-1. Navigate to the `/auth/github/start` endpoint of your staging deployment.
-2. Verify redirect to GitHub authorization page.
-3. Login using a whitelisted username.
-4. Verify redirection back to `/admin` and presence of the secure `xhalo_admin_session` cookie.
-5. Attempt login with a non-whitelisted account and verify HTTP 403 behavior.
-
-## What This Does Not Do
-
-* This does **not** write configuration settings to production repositories.
-* This does **not** grant repository write permissions directly to users; writing remains gated behind internal Cloudflare deployment credentials.
+- `docs/xhalo-blog-test-real-deployment-links-20260616.md`
+- `docs/phase096-owner-test-review-production-preview-gate.md`

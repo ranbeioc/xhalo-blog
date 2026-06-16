@@ -6,6 +6,8 @@ It starts as a clean community edition template, not as a copy of any production
 
 > Status: `v0.1.0-alpha / Controlled PR-only production pipeline verified`. Core Stage 4 paths and Queue Worker async publishing are implemented for staging evaluation. Production writes require manual owner approval, direct main writes and auto-merge remain prohibited, and `LIVE_WRITES_ENABLED=false` is the default production baseline.
 
+> Current admin verification status: the real test deployment target is `xhalo-blog-test` with owner-verified links at `https://xhalo-blog-test.pages.dev/` and `https://xhalo-blog-test.pages.dev/admin`. `xhalo-admin` is not used, `xhalo-blog-admin` does not exist, and production preview resources remain approval-gate only.
+
 ## Production warning
 
 Do not expose live write routes on a public domain until Cloudflare Access, request authentication, Turnstile, rate limiting, and route-level tests are configured and verified.
@@ -58,6 +60,15 @@ xhalo-blog/
 - **Async Publishing Alpha**: Queue Worker `draft_publish` execution is implemented in Phase 7.1 for staging-only GitHub PR publishing. It creates or reuses draft branches, commits Markdown, opens or reuses Pull Requests, updates D1 task/post status, and writes audit logs. This path remains alpha and must pass operator staging verification before any production use.
 - **Hexo Compatibility**: Theme adapter with fixture-backed asset rewriting and regression checking.
 - **Admin PR-only Publishing MVP**: Reusable, vanilla HTML/JS workbench (under `apps/admin`) facilitating article creation, frontmatter overrides, safe Markdown previews, and PR status polling. Served directly inside the `xhalo-blog` project under the `/admin` path (no separate `xhalo-blog-admin` Pages project is required, and `xhalo-admin` is not used; real test deployment target is existing `xhalo-blog-test`). All write actions are strictly locked behind owner-reviewed manual Pull Request generation with zero direct main writes, auto-merging, or direct D1 publishing.
+
+## Current admin test boundary
+
+- Real test home: `https://xhalo-blog-test.pages.dev/`
+- Real test admin: `https://xhalo-blog-test.pages.dev/admin`
+- Owner-reported result: GitHub account can authorize and log in successfully
+- `xhalo-blog-production-api`: approval gate only, read-only preview only
+- `xhalo-blog-production-queue`: approval gate only, no live-write processing
+- No production direct publish, direct update, R2 live upload, menu direct update, or `hexo-blog/main` mutation is approved in Phase 096
 
 ## Quick start
 
