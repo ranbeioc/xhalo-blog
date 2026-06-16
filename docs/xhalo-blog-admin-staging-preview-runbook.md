@@ -4,18 +4,19 @@
 
 ## 1. Current real test target
 
-The admin UI is deployed as part of the `xhalo-blog` project boundary and is currently verified through the existing Cloudflare Pages project `xhalo-blog-test`.
+The admin UI source is maintained in the open-source `ranbeioc/xhalo-blog` framework repository, but the real test deployment is served from the private Cloudflare Pages source repository `ranbeioc/xhalo-blog-test`.
 
 > [!IMPORTANT]
-> Admin is served inside the `xhalo-blog` project under `/admin`.
+> Admin is served on the test domain under `/admin`.
 > No separate `xhalo-blog-admin` project is required.
 > `xhalo-admin` is not used for the xhalo-blog admin.
-> The current real test deployment target is `xhalo-blog-test`.
+> The current real test deployment target is Cloudflare Pages project `xhalo-blog-test`, bound to private repo `ranbeioc/xhalo-blog-test`.
 
 Current owner-verified public test links:
 
 - Home: `https://xhalo-blog-test.pages.dev/`
 - Admin: `https://xhalo-blog-test.pages.dev/admin`
+- Legacy landing page: `https://xhalo-blog-test.pages.dev/landing/`
 
 Owner-reported verification status:
 
@@ -28,11 +29,13 @@ Open the Cloudflare Pages dashboard and select the existing `xhalo-blog-test` pr
 | Setting | Value |
 | --- | --- |
 | Project name | `xhalo-blog-test` |
-| Build command | `npm run build:test-pages` |
-| Output directory | `dist/pages` |
-| Public route paths | `/`, `/posts/xhalo-blog-first-test-post/`, `/admin` |
+| GitHub source | `ranbeioc/xhalo-blog-test` |
+| Branch | `main` |
+| Build command | `npm ci && npm run build` |
+| Output directory | `public` |
+| Public route paths | `/`, `/landing/`, `/admin`, generated Hexo/NexT article paths |
 
-Pages serves the blog HTML, Admin frontend, and normal static assets. R2 only remains a media/attachment asset layer and must not be configured as whole-site hosting for this test project.
+Pages serves the Hexo/NexT blog HTML, Admin frontend, legacy landing page, and normal static assets. R2 only remains a media/attachment asset layer and must not be configured as whole-site hosting for this test project.
 
 ## 3. Configure preview environment variables
 
@@ -50,7 +53,7 @@ Configure the admin preview against the staging API/Auth worker. Keep this envir
 | `FIRST_GITHUB_LOGIN_ADMIN_ENABLED` | Preview | `true` only for test/staging bootstrap |
 
 > [!NOTE]
-> The build script replaces `__XHALO_ADMIN_API_BASE_URL_PLACEHOLDER__` in `apps/admin/src/config.js`.
+> The private test-site repository carries the built Admin static assets under `source/admin/` and exposes them through Hexo `skip_render`.
 > Successful login redirects back to `ADMIN_FRONTEND_BASE_URL + ADMIN_FRONTEND_PATH`.
 
 ## 4. GitHub OAuth callback
@@ -74,6 +77,8 @@ Use the current real test links instead of placeholder preview URLs.
 ### Authentication and topbar
 
 - [ ] `https://xhalo-blog-test.pages.dev/admin` opens successfully.
+- [ ] `https://xhalo-blog-test.pages.dev/` shows the real Hexo/NexT test homepage.
+- [ ] `https://xhalo-blog-test.pages.dev/landing/` opens the preserved framework landing page.
 - [ ] Topbar displays **Login with GitHub** when unauthenticated.
 - [ ] Clicking **Login with GitHub** redirects to the GitHub OAuth authorize page.
 - [ ] Successful authorization returns to `https://xhalo-blog-test.pages.dev/admin`.
