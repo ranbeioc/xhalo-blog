@@ -3499,6 +3499,48 @@ Deploy a test version of the in-project xhalo-blog Admin under `/admin`, verify 
 Phase 094 completed successfully. Test deployment verification report added, live upload gate semantics hardened, and 208 tests validated. No production writes, R2 writes, or main branch mutations occurred.
 
 
+## Phase 096 - Owner Test Review, CI Visibility, and Production Preview Approval Gate
+
+### Executed by Model
+Codex (GPT-5)
+
+### Type
+Documentation consolidation / CI visibility alignment / Approval-gate definition
+
+### Goal
+Record the owner-confirmed `xhalo-blog-test` result as the next formal phase document, align the surrounding admin docs to the same boundary, keep GitHub Actions validation visible through the existing single workflow, and block Phase 097 behind an explicit owner approval phrase.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [docs/phase096-owner-test-review-production-preview-gate.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/phase096-owner-test-review-production-preview-gate.md) [NEW] | Add the formal Phase 096 owner-review document with repository map, Cloudflare deployment map, write-gate summary, explicit non-approvals, and required Phase 097 approval phrase | Establish the next source of truth |
+| [docs/xhalo-blog-admin-staging-preview-runbook.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/xhalo-blog-admin-staging-preview-runbook.md) [MODIFY] | Reframe the runbook around the real `xhalo-blog-test` target, current public links, and approval-gate-only production scope | Align staging guidance with the current verified state |
+| [docs/xhalo-blog-admin-deployment-boundary.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/xhalo-blog-admin-deployment-boundary.md) [MODIFY] | Add repository map, Cloudflare deployment map, and explicit production gate boundaries | Remove ambiguity about admin ownership and deployment targets |
+| [docs/admin-github-oauth-login.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/admin-github-oauth-login.md) [MODIFY] | Record the owner-verified `xhalo-blog-test` login flow while keeping staging API domains as placeholders to satisfy secret scanning | Keep OAuth docs accurate without leaking concrete worker domains |
+| [docs/xhalo-blog-admin-ui-smoke-test.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/xhalo-blog-admin-ui-smoke-test.md) [MODIFY] | Update the manual smoke checklist to use the real `xhalo-blog-test` links and restate the production gate reminder | Keep QA instructions aligned with the active target |
+| [README.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/README.md) [MODIFY] | Add current admin verification status and Phase 096 production gate boundary notes | Surface the current verified state at the repo root |
+| [.github/workflows/check.yml](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/.github/workflows/check.yml) [MODIFY] | Keep the existing single visible validation workflow and scope `push` to `main` | Avoid duplicate CI workflows while meeting the phase requirement |
+| [tests/admin-real-test-links.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/admin-real-test-links.test.mjs) [MODIFY] | Repoint assertions from the Phase 095 evidence file to the new Phase 096 source-of-truth doc | Keep automated link verification on the current phase doc |
+| [tests/phase096-project-map.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/phase096-project-map.test.mjs) [NEW] | Assert required repository and Cloudflare project mapping entries | Guard the documentation boundary |
+| [tests/production-preview-gate.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/production-preview-gate.test.mjs) [NEW] | Assert explicit non-approvals, Phase 097 gate wording, and validation-only CI commands | Prevent preview-gate regressions |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm ci` | Passed | Workspace dependencies installed cleanly |
+| `npm run check:all` | Passed | Full monorepo checks, builds, tests, syntax, and secret scanning passed |
+| `npm run check:secrets` | Passed | No forbidden production markers or secret-like values found |
+| `npm test` | Passed | All 217 tests passed |
+| `npm run test:secrets-fixture` | Passed | Fixture scanner checks passed |
+| `npm run build:admin` | Passed | Admin build completed successfully |
+| `npm test -- tests/phase096-project-map.test.mjs` | Passed | Phase 096 project map assertions passed |
+| `npm test -- tests/admin-real-test-links.test.mjs` | Passed | Real test link assertions passed |
+| `npm test -- tests/production-preview-gate.test.mjs` | Passed | Production preview gate assertions passed |
+
+### Final Gate Decision
+Phase 096 implementation completed successfully on branch `codex/phase096-owner-test-review-production-preview-gate`. Owner test evidence is formalized, the single visible CI workflow is retained as validation-only, and Phase 097 remains blocked until the exact owner approval phrase is provided. No production writes, `hexo-blog/main` mutations, release publications, or secret commits occurred.
+
+
 
 
 

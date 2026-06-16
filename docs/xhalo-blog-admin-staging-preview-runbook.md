@@ -1,96 +1,103 @@
-# xhalo-blog Admin — Staging Preview Runbook
+# xhalo-blog Admin - Staging Preview Runbook
 
-> Step-by-step guide to setting up and validating a staging preview deployment of the in-project admin console.
+> Step-by-step guide to setting up and validating the current real test deployment for the in-project admin console.
 
-## 1. Configure the Cloudflare Pages Project
+## 1. Current real test target
 
-The admin UI is deployed as part of the `xhalo-blog` Cloudflare Pages project. Serving the admin under `/admin` is preferred to avoid cross-origin CORS and cookie issues.
+The admin UI is deployed as part of the `xhalo-blog` project boundary and is currently verified through the existing Cloudflare Pages project `xhalo-blog-test`.
 
 > [!IMPORTANT]
-> Admin is served inside xhalo-blog project under `/admin`. No separate `xhalo-blog-admin` project is required. `xhalo-admin` is not used.
-> Real test deployment target is existing `xhalo-blog-test`.
+> Admin is served inside the `xhalo-blog` project under `/admin`.
+> No separate `xhalo-blog-admin` project is required.
+> `xhalo-admin` is not used for the xhalo-blog admin.
+> The current real test deployment target is `xhalo-blog-test`.
 
-1. Open the [Cloudflare Dashboard → Pages](https://dash.cloudflare.com/?to=/:account/pages).
-2. Click on your `xhalo-blog-test` project.
-3. Configure the build settings to compile the admin UI as a subdirectory (or configure routes to serve it under `/admin`):
+Current owner-verified public test links:
 
-| Setting          | Value                                |
-| ---------------- | ------------------------------------ |
-| Project name     | `xhalo-blog-test`                    |
-| Build command    | `node apps/admin/scripts/build.mjs`  |
-| Output directory | `apps/admin/dist`                    |
-| Public route path  | `/admin`                             |
+- Home: `https://xhalo-blog-test.pages.dev/`
+- Admin: `https://xhalo-blog-test.pages.dev/admin`
 
-## 2. Configure Environment Variables
+Owner-reported verification status:
 
-Navigate to **Settings → Environment variables** for the `xhalo-blog` project and add/verify:
+- GitHub account can authorize and log in successfully.
 
-| Variable                     | Environment | Value                                              |
-| ---------------------------- | ----------- | -------------------------------------------------- |
-| `XHALO_ADMIN_API_BASE_URL`  | Preview     | `https://xhalo-blog-api-staging.<account>.workers.dev` |
-| `XHALO_ADMIN_API_BASE_URL`  | Production  | `https://xhalo-blog-api.<account>.workers.dev`         |
-| `ADMIN_AUTH_BASE_URL`        | Preview     | `https://xhalo-blog-api-staging.<account>.workers.dev` |
-| `ADMIN_FRONTEND_BASE_URL`    | Preview     | `https://<preview-id>.xhalo-blog.pages.dev`        |
-| `ADMIN_FRONTEND_PATH`        | Preview     | `/admin`                                           |
+## 2. Configure the Cloudflare Pages project
+
+Open the Cloudflare Pages dashboard and select the existing `xhalo-blog-test` project.
+
+| Setting | Value |
+| --- | --- |
+| Project name | `xhalo-blog-test` |
+| Build command | `node apps/admin/scripts/build.mjs` |
+| Output directory | `apps/admin/dist` |
+| Public route path | `/admin` |
+
+## 3. Configure preview environment variables
+
+Configure the admin preview against the staging API/Auth worker. Keep this environment non-mutating.
+
+| Variable | Environment | Value |
+| --- | --- | --- |
+| `XHALO_ADMIN_API_BASE_URL` | Preview | `https://<staging-api-domain>` |
+| `ADMIN_AUTH_BASE_URL` | Preview | `https://<staging-api-domain>` |
+| `ADMIN_FRONTEND_BASE_URL` | Preview | `https://xhalo-blog-test.pages.dev` |
+| `ADMIN_FRONTEND_PATH` | Preview | `/admin` |
 
 > [!NOTE]
-> The build script replaces `__XHALO_ADMIN_API_BASE_URL_PLACEHOLDER__` in `config.js` with the value of `XHALO_ADMIN_API_BASE_URL`.
-> The post-login redirect directs users back to `ADMIN_FRONTEND_BASE_URL + ADMIN_FRONTEND_PATH`.
+> The build script replaces `__XHALO_ADMIN_API_BASE_URL_PLACEHOLDER__` in `apps/admin/src/config.js`.
+> Successful login redirects back to `ADMIN_FRONTEND_BASE_URL + ADMIN_FRONTEND_PATH`.
 
-## 3. Set Up GitHub OAuth Callback
+## 4. GitHub OAuth callback
 
-The admin UI authenticates via GitHub OAuth. The OAuth app's callback URL must point to the API Worker auth callback endpoint:
+The GitHub OAuth callback for the real test deployment must point to:
 
-```
-https://xhalo-blog-api-staging.<account>.workers.dev/auth/github/callback
-```
-
-On successful authentication, the API Worker sets the session cookie and redirects the browser back to:
-
-```
-https://<preview-id>.xhalo-blog.pages.dev/admin
+```text
+https://<staging-api-domain>/auth/github/callback
 ```
 
-## 4. Trigger a Preview Deploy
+After successful authentication, the API worker redirects the browser back to:
 
-Push a commit or open a pull request against the connected branch. Cloudflare Pages will build and deploy a preview automatically. Note the preview URL from the Cloudflare dashboard or the GitHub commit status check.
+```text
+https://xhalo-blog-test.pages.dev/admin
+```
 
-## 5. Dry-Run Validation
+## 5. Real test validation checklist
 
-Open the staging preview URL `/admin` path in a browser and verify the following:
+Use the current real test links instead of placeholder preview URLs.
 
-### Authentication & Topbar
-- [ ] Topbar displays a visible "Login with GitHub" button when unauthenticated.
-- [ ] Topbar shows warning text: `⚠️ All write actions are disabled by default`.
-- [ ] Clicking "Login with GitHub" redirects to GitHub OAuth authorize page.
-- [ ] Successful authorization redirects back to `/admin` and updates topbar to show the GitHub login name and avatar.
-- [ ] Logging out deletes the session cookie and updates the topbar back to the unauthenticated state.
+### Authentication and topbar
 
-### Sidebar & Navigation
-- [ ] The sidebar renders with all 8 route links (Dashboard, Posts, Editor, Media, Menus, Publishing, Audit Logs, Settings).
-- [ ] Clicking each sidebar link loads the corresponding panel in the content area.
-- [ ] The URL hash updates to match the selected route.
+- [ ] `https://xhalo-blog-test.pages.dev/admin` opens successfully.
+- [ ] Topbar displays **Login with GitHub** when unauthenticated.
+- [ ] Clicking **Login with GitHub** redirects to the GitHub OAuth authorize page.
+- [ ] Successful authorization returns to `https://xhalo-blog-test.pages.dev/admin`.
+- [ ] Authenticated state shows the GitHub login name and avatar.
+- [ ] Logout clears the session and returns the UI to the unauthenticated state.
 
-### Panel Loading (Logged In)
-- [ ] **Dashboard** — displays system health and readiness information.
-- [ ] **Posts** — shows a post list (may be empty) with a search input.
-- [ ] **Editor** — renders tab navigation (Edit, Preview, Diff, Plan).
-- [ ] **Media** — shows the dry-run upload form; no actual uploads occur.
-- [ ] **Menus** — displays menu items with add/delete controls.
-- [ ] **Publishing** — shows the safety center gate status matrix.
-- [ ] **Audit Logs** — renders the log table (may be empty if no entries exist).
-- [ ] **Settings** — shows deployment boundary and build configuration info.
-- [ ] **Settings Debug Section** — collapsed Advanced / Debug legacy secret fallback panel is visible.
+### Admin panels
 
-### Write-Action Gates
-- [ ] All **Direct Publish** buttons are visibly disabled.
-- [ ] All **Direct Update** buttons are visibly disabled.
-- [ ] All **Direct Config Update** buttons are visibly disabled.
-- [ ] Clicking a disabled button does **not** trigger an API request (verify in the browser Network tab).
+- [ ] Dashboard loads.
+- [ ] Posts loads.
+- [ ] Editor loads.
+- [ ] Media remains dry-run only.
+- [ ] Menus remains preview-only.
+- [ ] Publishing shows the safety center and locked write gates.
+- [ ] Audit Logs loads.
+- [ ] Settings confirms the `xhalo-blog-test` configuration.
 
-### Console & Network
-- [ ] No 404 errors in the Network tab for any static assets.
-- [ ] No uncaught JavaScript errors in the browser console.
+### Write-gate expectations
 
-> [!IMPORTANT]
-> Do not proceed to production deployment until every item above passes.
+- [ ] Direct publish remains disabled.
+- [ ] Direct update remains disabled.
+- [ ] Direct config update remains disabled.
+- [ ] Live R2 upload remains disabled.
+- [ ] No production write action is enabled.
+
+## 6. Production preview boundary
+
+The production resources `xhalo-blog-production-api` and `xhalo-blog-production-queue` are not enabled for writes in this phase.
+
+- `xhalo-blog-production-api`: approval gate only, read-only preview scope only
+- `xhalo-blog-production-queue`: approval gate only, no live-write processing
+
+Do not use this runbook to enable production direct publish, direct update, R2 live upload, menu direct update, queue live-write tasks, or `hexo-blog/main` mutation.
