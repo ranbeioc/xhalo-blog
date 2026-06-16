@@ -3,6 +3,10 @@ main = "src/index.js"
 compatibility_date = "2026-06-01"
 
 [vars]
+DEPLOYMENT_ENV = "test"
+PUBLISH_MODE = "pr_only"
+TEST_DIRECT_PUBLISH_ENABLED = "false"
+FIRST_GITHUB_LOGIN_ADMIN_ENABLED = "false"
 LIVE_WRITES_ENABLED = "false"
 ASSETS_PUBLIC_BASE_URL = "https://assets.example.com"
 # GITHUB_OWNER = "your-github-username"
