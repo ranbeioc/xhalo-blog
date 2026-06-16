@@ -7,19 +7,21 @@
 The admin UI source lives in `apps/admin/` inside `ranbeioc/xhalo-blog`.
 
 - Main source repository: `ranbeioc/xhalo-blog`
+- Private test-site repository: `ranbeioc/xhalo-blog-test`
 - Content / production blog repository: `ranbeioc/hexo-blog`
 - Global admin project: `ranbeioc/xhalo-admin` (not used for xhalo-blog admin)
 
-The admin must remain inside `ranbeioc/xhalo-blog/apps/admin`.
+The reusable Admin source must remain inside `ranbeioc/xhalo-blog/apps/admin`. The built Admin static assets may be copied into the private `ranbeioc/xhalo-blog-test` test-site repository under `source/admin/` for same-domain Cloudflare Pages testing.
 
 ## Real test deployment target
 
-The current real test deployment target is the existing Cloudflare Pages project `xhalo-blog-test`.
+The current real test deployment target is the existing Cloudflare Pages project `xhalo-blog-test`, now bound to private repository `ranbeioc/xhalo-blog-test@main`.
 
 Current owner-verified test links:
 
 - Home: `https://xhalo-blog-test.pages.dev/`
 - Admin: `https://xhalo-blog-test.pages.dev/admin`
+- Legacy landing page: `https://xhalo-blog-test.pages.dev/landing/`
 
 Owner-reported result:
 
@@ -30,12 +32,15 @@ Owner-reported result:
 | Property | Value |
 | --- | --- |
 | Pages project name | `xhalo-blog-test` |
-| Build command | `npm run build:test-pages` |
-| Output directory | `dist/pages` |
-| Public route paths | `/`, `/posts/xhalo-blog-first-test-post/`, `/admin` |
+| GitHub source | `ranbeioc/xhalo-blog-test` |
+| Branch | `main` |
+| Build command | `npm ci && npm run build` |
+| Output directory | `public` |
+| Public route paths | `/`, `/landing/`, `/admin`, generated Hexo/NexT article paths |
 
 > [!IMPORTANT]
-> The Admin UI is built from `apps/admin` and served as part of the `xhalo-blog` project boundary.
+> `ranbeioc/xhalo-blog` is the open-source framework source and must not receive real private posts, uploads, or production content.
+> The real-content test site is `ranbeioc/xhalo-blog-test`.
 > No separate Cloudflare Pages project is required for the blog admin.
 > `xhalo-blog-admin` does not exist and is not needed.
 > `xhalo-admin` is not the blog admin target.

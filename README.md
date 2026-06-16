@@ -4,11 +4,11 @@
 
 It starts as a clean community edition template, not as a copy of any production blog. The repository contains example content, placeholder configuration, and a minimal Cloudflare platform skeleton for Pages, Workers, D1, R2, Queues, Turnstile, Access, and GitHub PR-based publishing workflows.
 
-> Status: `v0.1.0-alpha / Phase 097 test Pages and test-only publish gate`. Core Stage 4 paths and Queue Worker async publishing are implemented for staging evaluation. Production writes require manual owner approval, production direct main writes and auto-merge remain prohibited, and `LIVE_WRITES_ENABLED=false` is the default production baseline.
+> Status: `v0.1.0-alpha / Phase 098 test-site boundary correction`. Core Stage 4 paths and Queue Worker async publishing are implemented for staging evaluation. Production writes require manual owner approval, production direct main writes and auto-merge remain prohibited, and `LIVE_WRITES_ENABLED=false` is the default production baseline.
 
-> Current admin verification status: the real test deployment target is `xhalo-blog-test` with owner-verified links at `https://xhalo-blog-test.pages.dev/` and `https://xhalo-blog-test.pages.dev/admin`. `xhalo-admin` is not used, `xhalo-blog-admin` does not exist, and production preview resources remain approval-gate only.
+> Current admin verification status: the real test deployment target is Cloudflare Pages project `xhalo-blog-test` with owner-verified links at `https://xhalo-blog-test.pages.dev/` and `https://xhalo-blog-test.pages.dev/admin`. `xhalo-admin` is not used, `xhalo-blog-admin` does not exist, and production preview resources remain approval-gate only.
 
-> Phase 097 update: `xhalo-blog-test` is intended to be a full Cloudflare Pages test site built with `npm run build:test-pages` and output from `dist/pages`. Pages serves blog HTML, `/admin`, and normal static assets. R2 remains a media/attachment asset layer only, not whole-site hosting.
+> Phase 098 update: this repository remains the open-source framework source and must not receive real private blog posts, uploads, or production blog configuration. The private repository `ranbeioc/xhalo-blog-test` is the real-content test-site source bound to Cloudflare Pages project `xhalo-blog-test`; it builds with `npm ci && npm run build` and outputs `public`. The legacy framework landing page is preserved on the test domain at `/landing/`, `/admin` remains same-domain, and R2 remains a media/attachment asset layer only, not whole-site hosting.
 
 ## Production warning
 
@@ -63,11 +63,15 @@ xhalo-blog/
 - **Hexo Compatibility**: Theme adapter with fixture-backed asset rewriting and regression checking.
 - **Admin PR-only Publishing MVP**: Reusable, vanilla HTML/JS workbench (under `apps/admin`) facilitating article creation, frontmatter overrides, safe Markdown previews, and PR status polling. Served directly inside the `xhalo-blog` project under the `/admin` path (no separate `xhalo-blog-admin` Pages project is required, and `xhalo-admin` is not used; real test deployment target is existing `xhalo-blog-test`). All write actions are strictly locked behind owner-reviewed manual Pull Request generation with zero direct main writes, auto-merging, or direct D1 publishing.
 - **Phase 097 test-only publish path**: `POST /api/drafts/test-direct-publish` is separate from production owner-direct publish and only works with `DEPLOYMENT_ENV=test`, `PUBLISH_MODE=test_direct`, `TEST_DIRECT_PUBLISH_ENABLED=true`, an authenticated GitHub admin session, and a safe non-production target. `ranbeioc/hexo-blog@main` is explicitly forbidden.
+- **Phase 098 test-site source boundary**: `ranbeioc/xhalo-blog-test@main` is the private real-content Hexo/NexT test site. It imports real content from `ranbeioc/hexo-blog` as a read-only source, keeps the legacy landing page at `/landing/`, keeps Admin at `/admin`, and uses Pages `_worker.js` only for `/api/*` and `/auth/*` staging proxying.
 
 ## Current admin test boundary
 
 - Real test home: `https://xhalo-blog-test.pages.dev/`
 - Real test admin: `https://xhalo-blog-test.pages.dev/admin`
+- Legacy framework landing page: `https://xhalo-blog-test.pages.dev/landing/`
+- Cloudflare Pages source repo: `ranbeioc/xhalo-blog-test@main`
+- Cloudflare Pages build: `npm ci && npm run build`, output `public`
 - Owner-reported result: GitHub account can authorize and log in successfully
 - First successful GitHub OAuth login can bootstrap the first admin only in `DEPLOYMENT_ENV=test` or with `FIRST_GITHUB_LOGIN_ADMIN_ENABLED=true`; production does not auto-bootstrap by default
 - Test direct publish target: preferred `ranbeioc/xhalo-blog-test@main`, fallback `ranbeioc/hexo-blog@xhalo-blog-test-content`
@@ -80,7 +84,6 @@ xhalo-blog/
 ```bash
 npm install
 npm run check:all
-npm run build:test-pages
 ```
 
 See [`docs/getting-started.md`](./docs/getting-started.md) for the full Stage 4 setup flow.
