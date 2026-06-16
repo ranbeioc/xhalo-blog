@@ -28,9 +28,11 @@ Open the Cloudflare Pages dashboard and select the existing `xhalo-blog-test` pr
 | Setting | Value |
 | --- | --- |
 | Project name | `xhalo-blog-test` |
-| Build command | `node apps/admin/scripts/build.mjs` |
-| Output directory | `apps/admin/dist` |
-| Public route path | `/admin` |
+| Build command | `npm run build:test-pages` |
+| Output directory | `dist/pages` |
+| Public route paths | `/`, `/posts/xhalo-blog-first-test-post/`, `/admin` |
+
+Pages serves the blog HTML, Admin frontend, and normal static assets. R2 only remains a media/attachment asset layer and must not be configured as whole-site hosting for this test project.
 
 ## 3. Configure preview environment variables
 
@@ -42,6 +44,10 @@ Configure the admin preview against the staging API/Auth worker. Keep this envir
 | `ADMIN_AUTH_BASE_URL` | Preview | `https://<staging-api-domain>` |
 | `ADMIN_FRONTEND_BASE_URL` | Preview | `https://xhalo-blog-test.pages.dev` |
 | `ADMIN_FRONTEND_PATH` | Preview | `/admin` |
+| `DEPLOYMENT_ENV` | Preview | `test` |
+| `PUBLISH_MODE` | Preview | `test_direct` |
+| `TEST_DIRECT_PUBLISH_ENABLED` | Preview | `true` only during Phase 097-B verification |
+| `FIRST_GITHUB_LOGIN_ADMIN_ENABLED` | Preview | `true` only for test/staging bootstrap |
 
 > [!NOTE]
 > The build script replaces `__XHALO_ADMIN_API_BASE_URL_PLACEHOLDER__` in `apps/admin/src/config.js`.
@@ -84,6 +90,15 @@ Use the current real test links instead of placeholder preview URLs.
 - [ ] Publishing shows the safety center and locked write gates.
 - [ ] Audit Logs loads.
 - [ ] Settings confirms the `xhalo-blog-test` configuration.
+
+### Phase 097-B test publish gate
+
+- [ ] First successful GitHub OAuth login has `role=admin` and `isAdmin=true` in `/api/auth/session`.
+- [ ] Editor shows **Publish to Test** only when `DEPLOYMENT_ENV=test`, `PUBLISH_MODE=test_direct`, `TEST_DIRECT_PUBLISH_ENABLED=true`, and the target is safe.
+- [ ] `POST /api/drafts/test-direct-publish` refuses `ranbeioc/hexo-blog@main`.
+- [ ] Preferred test target is `ranbeioc/xhalo-blog-test@main`.
+- [ ] Fallback test target is `ranbeioc/hexo-blog@xhalo-blog-test-content`.
+- [ ] First test article slug is `xhalo-blog-first-test-post`.
 
 ### Write-gate expectations
 

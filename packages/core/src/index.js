@@ -20,6 +20,7 @@ export const defaultScaffoldMetadata = {
     '/api/drafts/github-plan',
     '/api/drafts/publish',
     '/api/drafts/direct-publish',
+    '/api/drafts/test-direct-publish',
     '/api/posts/source',
     '/api/drafts/direct-update-preview',
     '/api/drafts/direct-update',
@@ -95,6 +96,9 @@ export const requiredEnvKeys = [
   'OWNER_DIRECT_CONFIRMATION_PHRASE',
   'OWNER_DIRECT_UPDATE_ENABLED',
   'OWNER_DIRECT_UPDATE_CONFIRMATION_PHRASE',
+  'DEPLOYMENT_ENV',
+  'TEST_DIRECT_PUBLISH_ENABLED',
+  'FIRST_GITHUB_LOGIN_ADMIN_ENABLED',
   'GITHUB_OAUTH_CLIENT_ID',
   'GITHUB_OAUTH_CLIENT_SECRET',
   'GITHUB_OAUTH_ALLOWED_LOGINS',
@@ -113,6 +117,23 @@ export const defaultDraftTemplate = {
   },
   branchPrefix: 'draft/',
   postDir: 'source/_posts'
+};
+
+export const firstTestArticleTemplate = {
+  title: 'xHalo Blog 测试文章',
+  slug: 'xhalo-blog-first-test-post',
+  category: 'Test',
+  tags: ['xhalo-blog', 'test', 'Cloudflare'],
+  summary: 'Cloudflare Pages 完整测试站首篇验证文章。',
+  body: [
+    '# xHalo Blog 测试文章',
+    '',
+    '这是一篇用于验证 xhalo-blog-test Cloudflare Pages 完整测试站、GitHub OAuth 管理员登录和 test-only direct publish 流程的文章。',
+    '',
+    '- Pages 承载博客 HTML、Admin 前端和普通静态资源。',
+    '- R2 仅作为媒体和附件资产层，不作为整站托管层。',
+    '- 生产写入未被批准。'
+  ].join('\n')
 };
 
 export const defaultR2UploadTemplate = {
@@ -260,6 +281,17 @@ export function buildProviderReadinessSnapshot(env = {}) {
   const ownerDirectPublishEnabled = String(env.OWNER_DIRECT_PUBLISH_ENABLED || '').toLowerCase() === 'true';
   const ownerDirectUpdateEnabled = String(env.OWNER_DIRECT_UPDATE_ENABLED || '').toLowerCase() === 'true';
   const oauthEnabled = Boolean(env.GITHUB_OAUTH_CLIENT_ID) && Boolean(env.GITHUB_OAUTH_CLIENT_SECRET) && Boolean(env.ADMIN_SESSION_SECRET);
+  const deploymentEnv = env.DEPLOYMENT_ENV || 'development';
+  const testDirectPublishEnabled = String(env.TEST_DIRECT_PUBLISH_ENABLED || '').toLowerCase() === 'true';
+  const firstLoginAdminEnabled = deploymentEnv === 'test' || String(env.FIRST_GITHUB_LOGIN_ADMIN_ENABLED || '').toLowerCase() === 'true';
+  const targetOwner = env.GITHUB_OWNER || 'example';
+  const targetRepo = env.GITHUB_REPO || 'xhalo-blog';
+  const targetBranch = env.GITHUB_BRANCH || 'main';
+  const testDirectTargetSafe = !(
+    targetOwner.toLowerCase() === 'ranbeioc' &&
+    targetRepo.toLowerCase() === 'hexo-blog' &&
+    targetBranch.toLowerCase() === 'main'
+  );
 
   return {
     items,
@@ -268,6 +300,12 @@ export function buildProviderReadinessSnapshot(env = {}) {
     publishMode,
     ownerDirectPublishEnabled,
     ownerDirectUpdateEnabled,
+    deploymentEnv,
+    testDirectPublishEnabled,
+    testDirectTargetRepo: `${targetOwner}/${targetRepo}`,
+    testDirectTargetBranch: targetBranch,
+    testDirectTargetSafe,
+    firstLoginAdminEnabled,
     oauthEnabled,
     liveWritesEnabled
   };

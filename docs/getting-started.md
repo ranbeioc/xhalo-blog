@@ -27,6 +27,14 @@ npm run check:all
 
 This verifies the scaffold baseline, production-marker scan, admin build, both Hexo build paths, built compatibility fixtures, Worker syntax checks, and automated unit/integration tests.
 
+For the current `xhalo-blog-test` full Cloudflare Pages test site, build the combined blog/Admin output:
+
+```bash
+npm run build:test-pages
+```
+
+This writes `dist/pages`, including the blog home page, `/admin`, the first test article route, normal static assets, and a Pages `_worker.js` proxy for same-origin `/api/*` and `/auth/*` requests.
+
 When the API is deployed, protect it first with Cloudflare Access and `ADMIN_API_SHARED_SECRET`. The API expects that shared secret (or a valid Cloudflare Access JWT) before it will authorize queries to protected routes such as `GET /api/readiness`, `GET /api/posts`, `GET /api/tasks`, and `GET /api/audit-logs`.
 
 For live GitHub draft publishing, set up a GitHub App with the required permissions and register `GITHUB_APP_ID`, `GITHUB_APP_PRIVATE_KEY` (PEM format), and `GITHUB_INSTALLATION_ID`. The API handles commits, branch creation, and Pull Requests asynchronously using a Queue Worker backend.
@@ -34,6 +42,17 @@ For live GitHub draft publishing, set up a GitHub App with the required permissi
 For R2 asset uploads, bind `ASSETS` in Wrangler and set both `ASSETS_PUBLIC_BASE_URL` and `ASSETS_SIGNING_SECRET`. The pipeline includes built-in filename sanitation, MIME allowlist verification, and short-lived upload signatures.
 
 Keep `LIVE_WRITES_ENABLED` blank or `false` by default. Only enable it on your Cloudflare Staging/Production Worker variables once you have verified the deployment using our 17-point smoke test matrix and staging live-write runbook.
+
+For Phase 097 test-only direct publish, use only a test environment:
+
+```text
+DEPLOYMENT_ENV=test
+PUBLISH_MODE=test_direct
+TEST_DIRECT_PUBLISH_ENABLED=true
+FIRST_GITHUB_LOGIN_ADMIN_ENABLED=true
+```
+
+The first successful GitHub OAuth login can bootstrap an admin only in test or when explicitly enabled. Production does not auto-bootstrap by default. The endpoint `POST /api/drafts/test-direct-publish` refuses `ranbeioc/hexo-blog@main`.
 
 For webhook reconciliation, set `GITHUB_WEBHOOK_SECRET` and `PREVIEW_WEBHOOK_SECRET` to verify signatures and update the D1 database status when preview deployments finish.
 

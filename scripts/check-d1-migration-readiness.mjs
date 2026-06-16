@@ -5,6 +5,7 @@ const rootDir = process.cwd();
 const migration3Path = path.join(rootDir, 'workers/api/migrations/0003_harden_posts_index_constraints.sql');
 const migration4Path = path.join(rootDir, 'workers/api/migrations/0004_add_posts_index_preview_url.sql');
 const migration5Path = path.join(rootDir, 'workers/api/migrations/0005_create_audit_logs.sql');
+const migration6Path = path.join(rootDir, 'workers/api/migrations/0006_create_admin_users.sql');
 const docsPath = path.join(rootDir, 'docs/d1-migrations.md');
 
 console.log('Running D1 migration readiness preflight checks...');
@@ -71,7 +72,30 @@ for (const statement of required5Statements) {
 }
 console.log('✓ Migration 0005 file exists and contains audit_logs table and indexes.');
 
-// 7. Verify docs/d1-migrations.md exists
+// 7. Verify migration 0006 file exists
+if (!fs.existsSync(migration6Path)) {
+  console.error(`Error: Migration 0006 file not found at ${migration6Path}`);
+  process.exit(1);
+}
+
+const migration6Content = fs.readFileSync(migration6Path, 'utf8');
+
+// 8. Verify migration 0006 file contains admin_users table creation
+const required6Statements = [
+  'CREATE TABLE IF NOT EXISTS admin_users',
+  'login TEXT PRIMARY KEY',
+  'CREATE INDEX IF NOT EXISTS idx_admin_users_role'
+];
+
+for (const statement of required6Statements) {
+  if (!migration6Content.includes(statement)) {
+    console.error(`Error: Migration 0006 is missing statement: "${statement}"`);
+    process.exit(1);
+  }
+}
+console.log('Migration 0006 file exists and contains admin_users table and index.');
+
+// 9. Verify docs/d1-migrations.md exists
 if (!fs.existsSync(docsPath)) {
   console.error(`Error: Documentation file not found at ${docsPath}`);
   process.exit(1);
@@ -79,7 +103,7 @@ if (!fs.existsSync(docsPath)) {
 
 const docsContent = fs.readFileSync(docsPath, 'utf8');
 
-// 8. Verify docs contain preflight check SQL
+// 10. Verify docs contain preflight check SQL
 const requiredPreflightPhrases = [
   'SELECT slug, COUNT(*) AS count',
   'FROM posts_index',
@@ -95,13 +119,14 @@ for (const phrase of requiredPreflightPhrases) {
 }
 console.log('✓ Documentation contains duplicate slug preflight query.');
 
-// 9. Verify docs contain rollback SQL
+// 11. Verify docs contain rollback SQL
 const requiredRollbackPhrases = [
   'DROP INDEX IF EXISTS idx_posts_index_slug;',
   'DROP INDEX IF EXISTS idx_posts_index_status;',
   'DROP INDEX IF EXISTS idx_posts_index_published_at;',
   'ALTER TABLE posts_index DROP COLUMN preview_url;',
-  'DROP TABLE IF EXISTS audit_logs;'
+  'DROP TABLE IF EXISTS audit_logs;',
+  'DROP TABLE IF EXISTS admin_users;'
 ];
 
 for (const phrase of requiredRollbackPhrases) {

@@ -15,6 +15,7 @@ import {
   buildR2UploadTaskPrototype,
   buildR2UploadWritePlan,
   defaultDraftTemplate,
+  firstTestArticleTemplate,
   defaultModerationTemplate,
   defaultPublishNotificationTemplate,
   defaultR2UploadTemplate,
@@ -181,6 +182,105 @@ async function selectRows(env, sql) {
   if (!env.DB || typeof env.DB.prepare !== 'function') return null;
   const result = await env.DB.prepare(sql).all();
   return Array.isArray(result?.results) ? result.results : [];
+}
+
+function isFirstGithubLoginAdminEnabled(env) {
+  return env.DEPLOYMENT_ENV === 'test' || String(env.FIRST_GITHUB_LOGIN_ADMIN_ENABLED || '').toLowerCase() === 'true';
+}
+
+function getAllowedGithubLogins(env) {
+  return (env.GITHUB_OAUTH_ALLOWED_LOGINS || '')
+    .split(',')
+    .map((login) => login.trim().toLowerCase())
+    .filter(Boolean);
+}
+
+async function dbFirst(env, sql, ...params) {
+  if (!env.DB || typeof env.DB.prepare !== 'function') return null;
+  const prepared = env.DB.prepare(sql).bind(...params);
+  if (typeof prepared.first === 'function') return await prepared.first();
+  const result = typeof prepared.all === 'function' ? await prepared.all() : null;
+  return Array.isArray(result?.results) ? result.results[0] || null : null;
+}
+
+async function dbRun(env, sql, ...params) {
+  if (!env.DB || typeof env.DB.prepare !== 'function') return false;
+  await env.DB.prepare(sql).bind(...params).run();
+  return true;
+}
+
+async function countAdminUsers(env) {
+  const row = await dbFirst(env, 'SELECT COUNT(*) AS count FROM admin_users WHERE role = ?', 'admin');
+  return Number(row?.count || 0);
+}
+
+async function getAdminUser(env, login) {
+  if (!login) return null;
+  return dbFirst(env, 'SELECT login, github_id, role, bootstrap_source, created_at, last_login_at FROM admin_users WHERE lower(login) = lower(?)', login);
+}
+
+async function touchAdminLogin(env, login) {
+  if (!login) return false;
+  return dbRun(env, 'UPDATE admin_users SET last_login_at = ?, updated_at = ? WHERE lower(login) = lower(?)', nowIso(), nowIso(), login);
+}
+
+async function createFirstAdminUser(env, ghUser) {
+  const timestamp = nowIso();
+  await dbRun(
+    env,
+    `INSERT INTO admin_users (login, github_id, role, bootstrap_source, created_at, updated_at, last_login_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    ghUser.login,
+    String(ghUser.id || ''),
+    'admin',
+    'github_first_login',
+    timestamp,
+    timestamp,
+    timestamp
+  );
+  return getAdminUser(env, ghUser.login);
+}
+
+async function resolveGithubAdminIdentity(env, ghUser) {
+  const login = ghUser?.login ? String(ghUser.login).trim() : '';
+  if (!login) return { allowed: false, role: null, isAdmin: false, source: 'missing_login' };
+
+  const allowedLogins = getAllowedGithubLogins(env);
+  const isWhitelisted = allowedLogins.includes(login.toLowerCase());
+
+  let adminUser = null;
+  try {
+    adminUser = await getAdminUser(env, login);
+    if (!adminUser && isFirstGithubLoginAdminEnabled(env) && (await countAdminUsers(env)) === 0) {
+      adminUser = await createFirstAdminUser(env, { ...ghUser, login });
+    } else if (adminUser) {
+      await touchAdminLogin(env, login);
+    }
+  } catch (err) {
+    logError('admin_identity_lookup_failed', { login, error: err.message });
+  }
+
+  if (adminUser?.role === 'admin') {
+    return { allowed: true, role: 'admin', isAdmin: true, source: adminUser.bootstrap_source || 'd1_admin_users' };
+  }
+
+  if (isWhitelisted) {
+    return { allowed: true, role: 'admin', isAdmin: true, source: 'github_oauth_allowed_logins' };
+  }
+
+  return { allowed: false, role: null, isAdmin: false, source: 'not_authorized' };
+}
+
+function isTestDirectPublishEnabled(env) {
+  return env.DEPLOYMENT_ENV === 'test' &&
+    env.PUBLISH_MODE === 'test_direct' &&
+    String(env.TEST_DIRECT_PUBLISH_ENABLED || '').toLowerCase() === 'true';
+}
+
+function isForbiddenProductionContentTarget(repository) {
+  return repository.owner.toLowerCase() === 'ranbeioc' &&
+    repository.repo.toLowerCase() === 'hexo-blog' &&
+    repository.baseBranch.toLowerCase() === 'main';
 }
 
 async function insertTaskRecord(env, task) {
@@ -803,9 +903,8 @@ async function handleRequest(request, env, requestStart) {
         return createJsonResponse({ error: 'Failed to fetch GitHub user.' }, { status: 500 });
       }
 
-      // Check allowed logins
-      const allowedLogins = (env.GITHUB_OAUTH_ALLOWED_LOGINS || '').split(',').map(s => s.trim().toLowerCase());
-      if (!ghUser.login || !allowedLogins.includes(ghUser.login.toLowerCase())) {
+      const adminIdentity = await resolveGithubAdminIdentity(env, ghUser);
+      if (!adminIdentity.allowed) {
         logSecurity('oauth_unauthorized_login', { ...extractRequestMeta(request), login: ghUser.login || 'unknown' });
         await insertAuditLog(env, {
           action: 'oauth_unauthorized_login',
@@ -826,19 +925,22 @@ async function handleRequest(request, env, requestStart) {
         id: ghUser.id,
         avatarUrl: ghUser.avatar_url || '',
         name: ghUser.name || ghUser.login,
+        role: adminIdentity.role,
+        isAdmin: adminIdentity.isAdmin,
         expiresAt: Date.now() + (ttl * 1000)
       };
       const signedSession = await signSessionPayload(sessionPayload, sessionSecret);
       const cookieName = env.ADMIN_SESSION_COOKIE_NAME || 'xhalo_admin_session';
 
-      logInfo('oauth_login_success', { login: ghUser.login });
+      logInfo('oauth_login_success', { login: ghUser.login, role: adminIdentity.role, source: adminIdentity.source });
       await insertAuditLog(env, {
         action: 'oauth_login_success',
         ...extractRequestMeta(request),
         resource: 'auth',
         resource_id: ghUser.login,
         status_code: 302,
-        duration_ms: Date.now() - requestStart
+        duration_ms: Date.now() - requestStart,
+        detail: { role: adminIdentity.role, source: adminIdentity.source }
       });
 
       const responseHeaders = new Headers();
@@ -878,7 +980,9 @@ async function handleRequest(request, env, requestStart) {
           login: session.login,
           id: session.id,
           avatarUrl: session.avatarUrl,
-          name: session.name
+          name: session.name,
+          role: session.role || null,
+          isAdmin: session.isAdmin === true || session.role === 'admin'
         }
       });
     }
@@ -1644,6 +1748,167 @@ async function handleRequest(request, env, requestStart) {
         persisted,
         persisted_task: persistedTask
       }, { status: 202 });
+    }
+
+    if (url.pathname === '/api/drafts/test-direct-publish' && request.method === 'POST') {
+      const session = await verifySessionCookie(request, env);
+      if (!session || !(session.isAdmin === true || session.role === 'admin')) {
+        await insertAuditLog(env, {
+          action: 'test_direct_publish_failed',
+          ...extractRequestMeta(request),
+          status_code: 401,
+          duration_ms: Date.now() - requestStart,
+          error: 'GitHub admin session is required.',
+          detail: { code: 'ADMIN_SESSION_REQUIRED' }
+        });
+        return createJsonResponse({
+          error: 'GitHub admin session is required.',
+          code: 'ADMIN_SESSION_REQUIRED'
+        }, { status: 401 });
+      }
+
+      const { input, error: jsonError } = await readJsonBody(request);
+      if (jsonError) {
+        return createJsonResponse({ error: jsonError }, { status: 400 });
+      }
+
+      if (!isTestDirectPublishEnabled(env)) {
+        await insertAuditLog(env, {
+          action: 'test_direct_publish_failed',
+          ...extractRequestMeta(request),
+          actor: session.login,
+          status_code: 403,
+          duration_ms: Date.now() - requestStart,
+          error: 'Test direct publish is disabled.',
+          detail: {
+            code: 'TEST_DIRECT_PUBLISH_DISABLED',
+            deployment_env: env.DEPLOYMENT_ENV || null,
+            publish_mode: env.PUBLISH_MODE || null
+          }
+        });
+        return createJsonResponse({
+          error: 'Test direct publish is disabled.',
+          code: 'TEST_DIRECT_PUBLISH_DISABLED',
+          required_env: [
+            'DEPLOYMENT_ENV=test',
+            'PUBLISH_MODE=test_direct',
+            'TEST_DIRECT_PUBLISH_ENABLED=true'
+          ]
+        }, { status: 403 });
+      }
+
+      const validationInput = {
+        ...firstTestArticleTemplate,
+        ...(input || {}),
+        status: 'published'
+      };
+      const validationErrors = validatePublishInput(validationInput);
+      if (validationErrors.length > 0) {
+        await insertAuditLog(env, {
+          action: 'test_direct_publish_failed',
+          ...extractRequestMeta(request),
+          actor: session.login,
+          status_code: 400,
+          duration_ms: Date.now() - requestStart,
+          error: 'Validation failed.',
+          detail: { code: 'VALIDATION_FAILED', errors: validationErrors }
+        });
+        return createJsonResponse({ error: 'Validation failed.', details: validationErrors }, { status: 400 });
+      }
+
+      const repository = getGitHubRepository(env);
+      if (isForbiddenProductionContentTarget(repository)) {
+        await insertAuditLog(env, {
+          action: 'test_direct_publish_failed',
+          ...extractRequestMeta(request),
+          actor: session.login,
+          status_code: 403,
+          duration_ms: Date.now() - requestStart,
+          error: 'Refusing to write to production content branch from test direct publish.',
+          detail: { code: 'PRODUCTION_BRANCH_FORBIDDEN', target_repo: `${repository.owner}/${repository.repo}`, target_branch: repository.baseBranch }
+        });
+        return createJsonResponse({
+          error: 'Refusing to write to production content branch from test direct publish.',
+          code: 'PRODUCTION_BRANCH_FORBIDDEN'
+        }, { status: 403 });
+      }
+
+      const filePath = `source/_posts/${validationInput.slug}.md`;
+      const markdown = buildDraftMarkdownDocument(validationInput);
+      const commitMessage = `[test-direct] publish first test post: ${validationInput.title}`;
+
+      try {
+        const commitResult = await createDirectMainCommit(env, {
+          branch: repository.baseBranch,
+          filePath,
+          content: markdown,
+          commitMessage
+        });
+
+        const publishedAt = nowIso();
+        const persisted = await upsertPostIndexRecord(env, {
+          id: validationInput.slug,
+          slug: validationInput.slug,
+          title: validationInput.title,
+          path: filePath,
+          status: 'published',
+          created_at: publishedAt,
+          updated_at: publishedAt,
+          published_at: publishedAt,
+          github_branch: repository.baseBranch,
+          github_pr_url: null,
+          preview_url: `/posts/${validationInput.slug}/`,
+          content: markdown
+        });
+
+        await insertAuditLog(env, {
+          action: 'test_direct_publish',
+          ...extractRequestMeta(request),
+          actor: session.login,
+          resource: 'post',
+          resource_id: validationInput.slug,
+          status_code: 200,
+          duration_ms: Date.now() - requestStart,
+          detail: {
+            mode: 'test_direct',
+            target_repo: `${repository.owner}/${repository.repo}`,
+            target_branch: repository.baseBranch,
+            target_path: filePath,
+            commit_sha: commitResult.commitSha
+          }
+        });
+
+        return createJsonResponse({
+          ok: true,
+          mode: 'test_direct',
+          targetRepo: `${repository.owner}/${repository.repo}`,
+          targetBranch: repository.baseBranch,
+          targetPath: filePath,
+          postUrl: `/posts/${validationInput.slug}/`,
+          commitSha: commitResult.commitSha,
+          commitUrl: commitResult.commitUrl,
+          persisted,
+          message: 'Test direct commit created. Cloudflare Pages rebuild should be verified before production approval.'
+        });
+      } catch (err) {
+        const isExistsError = err.message.includes('Target post already exists');
+        const statusCode = isExistsError ? 409 : 500;
+
+        await insertAuditLog(env, {
+          action: 'test_direct_publish_failed',
+          ...extractRequestMeta(request),
+          actor: session.login,
+          status_code: statusCode,
+          duration_ms: Date.now() - requestStart,
+          error: err.message,
+          detail: { code: isExistsError ? 'TARGET_EXISTS' : 'COMMIT_FAILED' }
+        });
+
+        return createJsonResponse({
+          error: err.message,
+          code: isExistsError ? 'TARGET_EXISTS' : 'COMMIT_FAILED'
+        }, { status: statusCode });
+      }
     }
 
     if (url.pathname === '/api/drafts/direct-publish' && request.method === 'POST') {

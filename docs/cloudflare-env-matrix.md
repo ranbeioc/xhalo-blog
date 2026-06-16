@@ -8,6 +8,10 @@ This document maps all configuration environment variables and secrets used by t
 |---|---|---|---|---|
 | `ADMIN_API_SHARED_SECRET` | **Secret** | String | Cloudflare Secret (`wrangler secret`) | Shared secret token sent in `x-xhalo-admin-secret` to authorize admin actions. |
 | `LIVE_WRITES_ENABLED` | **Public** | String (`"true"`/`"false"`) | `wrangler.toml` (`[vars]`) | Gating flag to prevent write operations (like drafts creation and R2 uploads) unless set to `"true"`. |
+| `DEPLOYMENT_ENV` | **Public** | String | `wrangler.toml` (`[vars]`) | Set to `test` only on the test/staging Worker when first-login admin bootstrap or test direct publish is intended. |
+| `PUBLISH_MODE` | **Public** | String | `wrangler.toml` (`[vars]`) | Default `pr_only`; Phase 097 test direct publish requires `test_direct`. |
+| `TEST_DIRECT_PUBLISH_ENABLED` | **Public** | String (`"true"`/`"false"`) | `wrangler.toml` (`[vars]`) | Enables only `POST /api/drafts/test-direct-publish` when all other test gates pass. Keep `false` in production. |
+| `FIRST_GITHUB_LOGIN_ADMIN_ENABLED` | **Public** | String (`"true"`/`"false"`) | `wrangler.toml` (`[vars]`) | Allows first successful GitHub OAuth login to bootstrap admin outside the `DEPLOYMENT_ENV=test` default. Keep `false` in production. |
 | `TURNSTILE_SECRET_KEY` | **Secret** | String | Cloudflare Secret (`wrangler secret`) | Private Turnstile token used for validation requests to the siteverify challenge API. |
 | `TURNSTILE_SITE_KEY` | **Public** | String | `wrangler.toml` (`[vars]`) | Public Turnstile site key exposed in provider readiness endpoint and loaded by the Admin client. |
 | `ACCESS_TEAM_DOMAIN` | **Public** | String | `wrangler.toml` (`[vars]`) | Cloudflare Access team authentication domain (e.g. `your-team.cloudflareaccess.com`) used for JWKS checks. |

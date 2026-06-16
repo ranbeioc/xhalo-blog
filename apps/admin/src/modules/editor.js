@@ -1,6 +1,22 @@
 import { apiFetch } from './api-client.js';
 import { showToast } from './ui.js';
 
+export const FIRST_TEST_ARTICLE_TEMPLATE = {
+  title: 'xHalo Blog 测试文章',
+  slug: 'xhalo-blog-first-test-post',
+  category: 'Test',
+  tags: 'xhalo-blog, test, Cloudflare',
+  body: [
+    '# xHalo Blog 测试文章',
+    '',
+    '这是一篇用于验证 xhalo-blog-test Cloudflare Pages 完整测试站、GitHub OAuth 管理员登录和 test-only direct publish 流程的文章。',
+    '',
+    '- Pages 承载博客 HTML、Admin 前端和普通静态资源。',
+    '- R2 仅作为媒体和附件资产层，不作为整站托管层。',
+    '- 生产写入未被批准。'
+  ].join('\n')
+};
+
 export async function fetchPostSource(slug) {
   try {
     const res = await apiFetch(`/api/posts/source?slug=${slug}`);
@@ -13,7 +29,7 @@ export async function fetchPostSource(slug) {
 }
 
 export function renderEditor(container, { initialPost, onSaveSuccess, dashboardData }) {
-  let post = initialPost || { title: '', slug: '', category: '', tags: '', body: '', sha: '' };
+  let post = initialPost || { ...FIRST_TEST_ARTICLE_TEMPLATE, sha: '' };
   let activeTab = 'edit'; // edit, preview, diff, plan
   let diffHtml = '';
   let planHtml = '';
@@ -23,6 +39,20 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
   const isDirectPublishEnabled = dashboardData?.readiness?.ownerDirectPublishEnabled === true;
   const isDirectUpdateEnabled = dashboardData?.readiness?.ownerDirectUpdateEnabled === true;
   const isLiveWritesEnabled = dashboardData?.readiness?.liveWritesEnabled === true;
+  const readiness = dashboardData?.readiness || {};
+  const isTestDirectPublishEnabled = readiness.deploymentEnv === 'test' &&
+    readiness.publishMode === 'test_direct' &&
+    readiness.testDirectPublishEnabled === true &&
+    readiness.testDirectTargetSafe === true;
+  const testPublishDisabledReason = readiness.deploymentEnv !== 'test'
+    ? 'DEPLOYMENT_ENV must be test'
+    : readiness.publishMode !== 'test_direct'
+      ? 'PUBLISH_MODE must be test_direct'
+      : readiness.testDirectPublishEnabled !== true
+        ? 'TEST_DIRECT_PUBLISH_ENABLED must be true'
+        : readiness.testDirectTargetSafe !== true
+          ? 'Target repository/branch is not test-safe'
+          : '';
 
   async function loadExistingSource() {
     if (!post.slug) return;
@@ -189,6 +219,44 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
     }
   }
 
+  async function handlePublishToTest() {
+    loadingState = true;
+    draw();
+    try {
+      const res = await apiFetch('/api/drafts/test-direct-publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: post.title,
+          slug: post.slug,
+          category: post.category,
+          tags: post.tags ? post.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+          body: post.body
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || data.code || 'Test publish failed');
+      }
+      actionResultHtml = `
+        <div class="alert alert-success">
+          <strong>Published to test target:</strong>
+          <code>${escapeHtml(data.targetRepo || '')}@${escapeHtml(data.targetBranch || '')}</code>
+          <br/>
+          Path: <code>${escapeHtml(data.targetPath || '')}</code>
+          ${data.commitSha ? `<br/>Commit: <code>${escapeHtml(data.commitSha.substring(0, 12))}</code>` : ''}
+        </div>
+      `;
+      showToast('Test publish request completed', 'success');
+    } catch (err) {
+      actionResultHtml = `<div class="alert alert-error">Test publish failed: ${err.message}</div>`;
+      showToast(`Test publish failed: ${err.message}`, 'error');
+    } finally {
+      loadingState = false;
+      draw();
+    }
+  }
+
   function draw() {
     const editActive = activeTab === 'edit' ? 'active' : '';
     const previewActive = activeTab === 'preview' ? 'active' : '';
@@ -283,6 +351,15 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
                 : '<button class="button-primary" id="btn-create-pr" disabled title="Staging write is disabled">Create Review PR unavailable: LIVE_WRITES_ENABLED=false</button>'
               }
             </div>
+
+            <div class="control-group">
+              <h4>Test-only Direct Publish</h4>
+              ${isTestDirectPublishEnabled
+                ? '<button class="button-primary" id="btn-publish-to-test">Publish to Test</button>'
+                : `<button class="button-primary" id="btn-publish-to-test" disabled title="${escapeHtml(testPublishDisabledReason)}">Publish to Test unavailable</button>`
+              }
+              <span class="control-help-text">Requires GitHub admin session, <code>DEPLOYMENT_ENV=test</code>, <code>PUBLISH_MODE=test_direct</code>, and a non-production target.</span>
+            </div>
             
             <div class="control-group">
               <h4>Direct Main Write (Disabled)</h4>
@@ -343,6 +420,9 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
 
     const createPrBtn = container.querySelector('#btn-create-pr');
     if (createPrBtn) createPrBtn.addEventListener('click', handleCreatePR);
+
+    const publishToTestBtn = container.querySelector('#btn-publish-to-test');
+    if (publishToTestBtn && !publishToTestBtn.disabled) publishToTestBtn.addEventListener('click', handlePublishToTest);
   }
 
   function renderSimpleMarkdown(md) {

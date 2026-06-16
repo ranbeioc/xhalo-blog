@@ -54,6 +54,8 @@ export function renderDashboard(container, data) {
           <div class="meta-row"><span>Publish Mode</span><strong>${readiness.publishMode || 'pr_only'}</strong></div>
           <div class="meta-row"><span>Direct Publish</span><strong class="${readiness.ownerDirectPublishEnabled ? 'text-danger' : 'text-success'}">${readiness.ownerDirectPublishEnabled ? 'Enabled (HIGH RISK)' : 'Disabled (Safe)'}</strong></div>
           <div class="meta-row"><span>Direct Update</span><strong class="${readiness.ownerDirectUpdateEnabled ? 'text-danger' : 'text-success'}">${readiness.ownerDirectUpdateEnabled ? 'Enabled (HIGH RISK)' : 'Disabled (Safe)'}</strong></div>
+          <div class="meta-row"><span>Test Direct Publish</span><strong class="${readiness.testDirectPublishEnabled && readiness.testDirectTargetSafe ? 'text-success' : 'text-muted'}">${readiness.testDirectPublishEnabled ? 'Gate enabled' : 'Disabled'}</strong></div>
+          <div class="meta-row"><span>Test Target</span><strong>${readiness.testDirectTargetRepo || 'not configured'}@${readiness.testDirectTargetBranch || 'unknown'}</strong></div>
           <div class="meta-row"><span>OAuth Login</span><strong>${readiness.oauthEnabled ? 'Enabled' : 'Disabled'}</strong></div>
         </div>
       </div>
@@ -94,7 +96,7 @@ export function renderDashboard(container, data) {
         <ul class="bullet-list">
           <li><strong>Media Asset Manager</strong> behaves as dry-run only. Image files are analyzed, and Markdown insert snippets are calculated, but no binary upload is sent to R2 storage.</li>
           <li><strong>Site Menu Manager</strong> runs in preview-only mode. Menu changes can be validated locally, but menu config direct updates remain gated.</li>
-          <li><strong>Direct Main Updates</strong> require explicit GITHUB_TOKEN and feature-flag approval via environment variables.</li>
+          <li><strong>Test Direct Publish</strong> requires GitHub admin session, <code>DEPLOYMENT_ENV=test</code>, <code>PUBLISH_MODE=test_direct</code>, and a safe non-production target.</li>
         </ul>
       </div>
     </div>

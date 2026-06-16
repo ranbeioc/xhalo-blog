@@ -218,4 +218,19 @@ Meaning:
 - project and deployment boundaries are recorded
 - CI visibility is explicitly bounded
 - production preview work is blocked behind owner approval
+
+## Phase 097 Implementation Update
+
+Phase 097 is implemented as a test-surface phase, not a production-write phase:
+
+- `xhalo-blog-test` is composed as a full Cloudflare Pages test site using `npm run build:test-pages`
+- Pages output is `dist/pages`
+- Pages serves blog HTML, `/admin`, and normal static assets
+- R2 remains media/attachment asset storage only and is not whole-site hosting
+- first successful GitHub OAuth login can bootstrap an admin only in `DEPLOYMENT_ENV=test` or when `FIRST_GITHUB_LOGIN_ADMIN_ENABLED=true`
+- `/api/auth/session` returns `user.role` and `user.isAdmin`
+- `POST /api/drafts/test-direct-publish` is test-only and requires `DEPLOYMENT_ENV=test`, `PUBLISH_MODE=test_direct`, `TEST_DIRECT_PUBLISH_ENABLED=true`, and GitHub admin session
+- `ranbeioc/hexo-blog@main` remains explicitly forbidden
+
+This update does not approve production direct publish, production direct update, R2 live upload, queue live-write tasks, auto-merge, or release publication.
 - no production writes are approved in Phase 096
