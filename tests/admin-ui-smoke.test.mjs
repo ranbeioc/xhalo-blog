@@ -72,4 +72,17 @@ describe('Admin UI smoke tests', () => {
     assert.ok(css.includes('.content-area'), 'Missing .content-area styles');
     assert.ok(css.includes('.sidebar-nav-btn'), 'Missing sidebar button styles');
   });
+
+  it('app.js should contain renderLoginScreen function and gate layout checks', () => {
+    const appJs = fs.readFileSync(path.join(ADMIN_SRC_DIR, 'app.js'), 'utf8');
+    assert.ok(appJs.includes('renderLoginScreen'), 'app.js must define renderLoginScreen');
+    assert.ok(appJs.includes('unauthenticated'), 'app.js must toggle unauthenticated body class');
+  });
+
+  it('style.css should contain unauthenticated layout and login-card styles', () => {
+    const css = fs.readFileSync(path.join(ADMIN_SRC_DIR, 'style.css'), 'utf8');
+    assert.ok(css.includes('body.unauthenticated'), 'Missing body.unauthenticated styles');
+    assert.ok(css.includes('.login-card'), 'Missing .login-card styles');
+    assert.ok(css.includes('.login-btn-github'), 'Missing .login-btn-github styles');
+  });
 });
