@@ -55,14 +55,18 @@ export default {
     if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/auth/')) {
       const targetUrl = new URL(url.pathname + url.search, '${apiBaseUrl}');
       
-      const newRequest = new Request(targetUrl, {
+      const requestInit = {
         method: request.method,
         headers: request.headers,
-        body: request.body,
         redirect: 'manual'
-      });
+      };
+      
+      if (request.method !== 'GET' && request.method !== 'HEAD') {
+        requestInit.body = request.body;
+      }
       
       try {
+        const newRequest = new Request(targetUrl, requestInit);
         return await fetch(newRequest);
       } catch (err) {
         return new Response(JSON.stringify({ error: 'Proxy failed', details: err.message }), {
