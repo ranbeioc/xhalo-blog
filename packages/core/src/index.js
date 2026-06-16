@@ -268,7 +268,8 @@ export function buildProviderReadinessSnapshot(env = {}) {
     publishMode,
     ownerDirectPublishEnabled,
     ownerDirectUpdateEnabled,
-    oauthEnabled
+    oauthEnabled,
+    liveWritesEnabled
   };
 }
 

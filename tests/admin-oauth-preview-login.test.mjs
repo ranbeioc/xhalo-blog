@@ -115,6 +115,13 @@ describe('Admin GitHub OAuth Preview Login tests', () => {
     assert.ok(editorJs.includes('disabled'), 'Direct publishing must be disabled in editor view');
   });
 
+  it('PR publish button copy and state checks based on write gates', () => {
+    const editorJs = fs.readFileSync(path.join(ADMIN_SRC_DIR, 'modules', 'editor.js'), 'utf8');
+    assert.ok(editorJs.includes('Create Review PR'), 'Publish button copy must be Create Review PR');
+    assert.ok(editorJs.includes('Create Review PR unavailable: LIVE_WRITES_ENABLED=false'), 'Must show disabled warning copy when writes are disabled');
+    assert.ok(editorJs.includes('disabled'), 'Create Review PR button must have disabled attribute support');
+  });
+
   it('media panel uses dry-run terminology for safety', () => {
     const mediaJs = fs.readFileSync(path.join(ADMIN_SRC_DIR, 'modules', 'media.js'), 'utf8');
     assert.ok(mediaJs.includes('dry-run') || mediaJs.includes('Dry-run'), 'Media module must display dry-run labeling');

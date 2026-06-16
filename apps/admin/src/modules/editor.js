@@ -22,6 +22,7 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
 
   const isDirectPublishEnabled = dashboardData?.readiness?.ownerDirectPublishEnabled === true;
   const isDirectUpdateEnabled = dashboardData?.readiness?.ownerDirectUpdateEnabled === true;
+  const isLiveWritesEnabled = dashboardData?.readiness?.liveWritesEnabled === true;
 
   async function loadExistingSource() {
     if (!post.slug) return;
@@ -277,7 +278,10 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
             
             <div class="control-group">
               <h4>Controlled PR Publish</h4>
-              <button class="button-primary" id="btn-create-pr">Submit for PR Review</button>
+              ${isLiveWritesEnabled 
+                ? '<button class="button-primary" id="btn-create-pr">Create Review PR</button>'
+                : '<button class="button-primary" id="btn-create-pr" disabled title="Staging write is disabled">Create Review PR unavailable: LIVE_WRITES_ENABLED=false</button>'
+              }
             </div>
             
             <div class="control-group">

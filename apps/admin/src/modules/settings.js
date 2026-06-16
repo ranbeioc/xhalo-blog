@@ -55,7 +55,7 @@ export function renderSettings(container, { dashboardData }) {
               <button id="btn-save-secret" class="btn btn-primary" style="padding: 8px 16px;">Save</button>
               <button id="btn-clear-secret" class="btn btn-secondary" style="padding: 8px 16px;">Clear</button>
             </div>
-            <p id="secret-status-text" style="margin-top: 10px; font-size: 0.85rem; font-weight: 500; color: ${hasSecret ? 'var(--color-success)' : 'var(--text-muted)'};">
+            <p id=\"secret-status-text\" style=\"margin-top: 10px; font-size: 0.85rem; font-weight: 500; color: ${hasSecret ? 'var(--green)' : 'var(--text-muted)'};\">
               Status: ${hasSecret ? 'Legacy secret is currently configured.' : 'No legacy secret configured.'}
             </p>
           </div>
@@ -82,7 +82,7 @@ export function renderSettings(container, { dashboardData }) {
         return;
       }
       saveAdminSecret(val);
-      statusText.style.color = 'var(--color-success)';
+      statusText.style.color = 'var(--green)';
       statusText.textContent = 'Status: Legacy secret is currently configured.';
       inputSecret.value = '••••••••••••••••';
       showToast('Legacy secret saved successfully.', 'success');
