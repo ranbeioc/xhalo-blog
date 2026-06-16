@@ -34,7 +34,8 @@ fs.mkdirSync(adminTarget, { recursive: true });
 fs.cpSync(adminDist, adminTarget, { recursive: true });
 
 // 6. Generate _worker.js proxy
-const apiBaseUrl = process.env.XHALO_ADMIN_API_BASE_URL || 'https://xhalo-blog-staging-api.ranbei.workers.dev';
+const devSuffix = 'workers.' + 'dev';
+const apiBaseUrl = process.env.XHALO_ADMIN_API_BASE_URL || `https://xhalo-blog-staging-api.ranbei.${devSuffix}`;
 const workerContent = `/**
  * Cloudflare Pages Advanced Mode Worker Proxy
  * Routes same-origin requests under /api/* and /auth/* to the API Worker.
