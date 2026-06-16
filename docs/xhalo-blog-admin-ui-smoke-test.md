@@ -5,10 +5,10 @@
 
 ## Prerequisites
 
-- A deployed instance of the `xhalo-blog` project with the admin UI accessible (e.g., under `/admin`).
+- A deployed instance of the `xhalo-blog-test` project with the admin UI accessible (e.g., under `/admin`).
   > [!IMPORTANT]
-  > Admin is served inside xhalo-blog project under `/admin`. No separate `xhalo-blog-admin` project is required. `xhalo-admin` is not the blog admin target.
-  > Test deployment belongs to xhalo-blog.
+  > Admin is served inside xhalo-blog project under `/admin`. No separate `xhalo-blog-admin` project is required. `xhalo-admin` is not used.
+  > Real test deployment target is existing `xhalo-blog-test`.
 - A modern browser with DevTools available (for console and network inspection).
 - GitHub OAuth credentials configured for the target domain.
 

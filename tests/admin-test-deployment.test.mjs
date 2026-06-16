@@ -24,4 +24,14 @@ describe('Admin Test Deployment checks', () => {
     const config = fs.readFileSync(path.join(ADMIN_SRC_DIR, 'config.js'), 'utf8');
     assert.ok(config.includes('__XHALO_ADMIN_API_BASE_URL_PLACEHOLDER__'), 'config.js must contain the replacement placeholder');
   });
+
+  it('documentation explicitly targets xhalo-blog-test for staging/test deployments', () => {
+    const runbook = fs.readFileSync(path.join(DOCS_DIR, 'xhalo-blog-admin-staging-preview-runbook.md'), 'utf8');
+    const boundary = fs.readFileSync(path.join(DOCS_DIR, 'xhalo-blog-admin-deployment-boundary.md'), 'utf8');
+    const oauthDoc = fs.readFileSync(path.join(DOCS_DIR, 'admin-github-oauth-login.md'), 'utf8');
+
+    assert.ok(runbook.includes('xhalo-blog-test'), 'Runbook must document xhalo-blog-test');
+    assert.ok(boundary.includes('xhalo-blog-test'), 'Boundary must document xhalo-blog-test');
+    assert.ok(oauthDoc.includes('xhalo-blog-test'), 'OAuth doc must document xhalo-blog-test');
+  });
 });
