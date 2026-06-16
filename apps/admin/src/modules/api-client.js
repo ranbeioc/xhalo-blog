@@ -48,6 +48,7 @@ export async function apiFetch(path, init = {}) {
   const url = `${ADMIN_API_BASE_URL}${path}`;
   const response = await fetch(url, {
     ...init,
+    credentials: 'include',
     headers
   });
 

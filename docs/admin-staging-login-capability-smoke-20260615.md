@@ -15,7 +15,7 @@
 
 * **HTTP API Worker URL**: `https://xhalo-blog-staging-api.<staging-subdomain>.workers.dev`
 * **Queue Consumer Worker**: `xhalo-blog-staging-queue`
-* **Admin Frontend Pages URL**: `https://staging.xhalo-admin.pages.dev`
+* **Admin Frontend Pages URL**: `https://staging.xhalo-blog.pages.dev/admin`
 
 ## Safety Defaults
 
@@ -29,7 +29,7 @@ Staging Worker variables were verified to conform to safe defaults:
 ## OAuth App Configuration
 
 * **Application name**: `xHalo Blog Admin Staging`
-* **Homepage URL**: `https://staging.xhalo-admin.pages.dev/admin`
+* **Homepage URL**: `https://staging.xhalo-blog.pages.dev/admin`
 * **Authorization callback URL**: `https://xhalo-blog-staging-api.<staging-subdomain>.workers.dev/auth/github/callback`
 
 ## Login Flow Results

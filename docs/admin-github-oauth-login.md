@@ -19,7 +19,9 @@ Configure the following variables in wrangler.toml or the Cloudflare dashboard:
 | `GITHUB_OAUTH_CLIENT_SECRET` | Client Secret from GitHub OAuth Application (sensitive) | *(Secret)* |
 | `GITHUB_OAUTH_ALLOWED_LOGINS` | Comma-separated list of whitelisted GitHub usernames | `ranbeioc` |
 | `ADMIN_SESSION_SECRET` | Secret key used to sign session cookies (HMAC-SHA256) | *(Secret, min 32 chars)* |
-| `ADMIN_AUTH_BASE_URL` | Base URL of the Admin interface (used for redirects) | `https://admin.xhalo.co` |
+| `ADMIN_AUTH_BASE_URL` | Base URL of the API/Auth endpoints (OAuth start/callback origin) | `https://xhalo-blog.pages.dev` |
+| `ADMIN_FRONTEND_BASE_URL` | Base URL of the Admin frontend UI | `https://xhalo-blog.pages.dev` |
+| `ADMIN_FRONTEND_PATH` | Path prefix where the Admin UI is served | `/admin` |
 | `ADMIN_SESSION_COOKIE_NAME` | Name of the session cookie | `xhalo_admin_session` |
 | `ADMIN_SESSION_TTL_SECONDS` | Time-to-live for sessions in seconds | `86400` (24 hours) |
 
@@ -27,8 +29,8 @@ Configure the following variables in wrangler.toml or the Cloudflare dashboard:
 
 1. Go to **Developer Settings** > **OAuth Apps** in your GitHub account/organization.
 2. Click **New OAuth App**.
-3. Set **Application Name** to `xhalo-blog-admin` or similar.
-4. Set **Homepage URL** to your Admin site (e.g., `https://admin.xhalo.co`).
+3. Set **Application Name** to `xhalo-blog` or similar.
+4. Set **Homepage URL** to your blog site (e.g., `https://xhalo.co` or `https://xhalo-blog.pages.dev`).
 5. Set **Authorization callback URL** to the callback endpoint (see examples below).
 6. Save and generate a new Client Secret.
 
@@ -37,7 +39,7 @@ Configure the following variables in wrangler.toml or the Cloudflare dashboard:
 
 ## Callback URL Examples
 
-- **Production**: `https://admin.xhalo.co/auth/github/callback`
+- **Production**: `https://xhalo.co/auth/github/callback`
 - **Staging**: `https://<staging-preview-domain>/auth/github/callback`
 - **Local Dev**: `http://localhost:8787/auth/github/callback`
 

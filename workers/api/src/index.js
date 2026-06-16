@@ -702,9 +702,7 @@ function isProtectedAdminRoute(pathname) {
   ].some((prefix) => pathname.startsWith(prefix));
 }
 
-export default {
-  async fetch(request, env) {
-    const requestStart = Date.now();
+async function handleRequest(request, env, requestStart) {
     try {
     const url = new URL(request.url);
 
@@ -844,7 +842,9 @@ export default {
       });
 
       const responseHeaders = new Headers();
-      responseHeaders.set('Location', `${baseUrl}/admin`);
+      const frontendBaseUrl = env.ADMIN_FRONTEND_BASE_URL || baseUrl;
+      const frontendPath = env.ADMIN_FRONTEND_PATH || '/admin';
+      responseHeaders.set('Location', `${frontendBaseUrl}${frontendPath}`);
       appendSetCookie(responseHeaders, `${cookieName}=${encodeURIComponent(signedSession)}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${ttl}`);
       appendSetCookie(responseHeaders, `xhalo_oauth_state=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`);
 
@@ -2401,6 +2401,77 @@ export default {
     }
 
     return createJsonResponse({ error: 'Not found' }, { status: 404 });
+    } catch (uncaughtError) {
+      const duration = Date.now() - requestStart;
+      logError('uncaught_error', {
+        ...extractRequestMeta(request),
+        error: uncaughtError.message || String(uncaughtError),
+        stack: uncaughtError.stack || null,
+        duration_ms: duration
+      });
+      await insertAuditLog(env, {
+        action: 'uncaught_error',
+        ...extractRequestMeta(request),
+        status_code: 500,
+        duration_ms: duration,
+        error: uncaughtError.message || String(uncaughtError)
+      });
+      return createJsonResponse({
+        error: 'Internal server error.',
+        request_id: crypto.randomUUID()
+      }, { status: 500 });
+    }
+}
+
+function handleCors(request, response, env) {
+  const origin = request.headers.get('Origin');
+  if (!origin) return response;
+
+  const allowedOrigins = [];
+  if (env.ADMIN_FRONTEND_BASE_URL) {
+    allowedOrigins.push(env.ADMIN_FRONTEND_BASE_URL.replace(/\/$/, ''));
+  }
+  // Allow localhost for local development
+  if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+    allowedOrigins.push(origin);
+  }
+  if (env.ADMIN_AUTH_BASE_URL) {
+    allowedOrigins.push(env.ADMIN_AUTH_BASE_URL.replace(/\/$/, ''));
+  }
+
+  const isAllowed = allowedOrigins.includes(origin);
+  if (isAllowed) {
+    const newHeaders = new Headers(response.headers);
+    newHeaders.set('Access-Control-Allow-Origin', origin);
+    newHeaders.set('Access-Control-Allow-Credentials', 'true');
+    newHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    newHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-xhalo-admin-secret, x-xhalo-turnstile-token, cf-turnstile-token, cf-access-jwt-assertion');
+    newHeaders.set('Vary', 'Origin');
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: newHeaders
+    });
+  }
+  return response;
+}
+
+export default {
+  async fetch(request, env) {
+    const requestStart = Date.now();
+    try {
+      // Handle CORS Preflight
+      if (request.method === 'OPTIONS') {
+        const origin = request.headers.get('Origin');
+        if (origin) {
+          const preflightResponse = new Response(null, { status: 204 });
+          return handleCors(request, preflightResponse, env);
+        }
+        return new Response(null, { status: 204 });
+      }
+
+      const response = await handleRequest(request, env, requestStart);
+      return handleCors(request, response, env);
     } catch (uncaughtError) {
       const duration = Date.now() - requestStart;
       logError('uncaught_error', {

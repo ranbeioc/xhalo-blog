@@ -5,11 +5,27 @@
 
 ## Prerequisites
 
-- A deployed instance of `xhalo-blog-admin` (staging preview or production).
+- A deployed instance of the `xhalo-blog` project with the admin UI accessible (e.g., under `/admin`).
 - A modern browser with DevTools available (for console and network inspection).
 - GitHub OAuth credentials configured for the target domain.
 
 ## Checklist
+
+### GitHub OAuth Login & Topbar
+
+- [ ] Unauthenticated State:
+  - [ ] Topbar displays a visible **Login with GitHub** button.
+  - [ ] Topbar displays the current API Base URL.
+  - [ ] Topbar displays the current deployment mode (e.g., `PR-only` or `read-only`).
+  - [ ] Topbar displays a clear warning: `All write actions are disabled by default`.
+- [ ] Authenticated State:
+  - [ ] Clicking **Login with GitHub** redirects to the GitHub OAuth start endpoint.
+  - [ ] Redirects back to the configured `/admin` path after successful authorization.
+  - [ ] Topbar displays the authenticated GitHub user login and avatar (if available).
+  - [ ] Topbar displays a **Logout** button.
+  - [ ] `/api/auth/session` API returns `authenticated=true`.
+  - [ ] Clicking **Logout** successfully terminates the session, and `/api/auth/session` returns `authenticated=false`.
+
 
 ### Sidebar & Routing
 

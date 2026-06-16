@@ -57,6 +57,9 @@ function render() {
   renderTopbar(topbar(), {
     title: getRouteLabel(appState.currentRoute),
     session: appState.session,
+    onLogin: () => {
+      window.location.href = getLoginUrl();
+    },
     onLogout: handleLogout
   });
 
