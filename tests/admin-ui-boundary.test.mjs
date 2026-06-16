@@ -22,14 +22,13 @@ function readAllSourceFiles(dir) {
 describe('Admin UI boundary checks', () => {
   const files = readAllSourceFiles(ADMIN_SRC_DIR);
 
-  it('should not reference the global xhalo-admin Pages project URL', () => {
+  it('should not reference the global xhalo-admin or separate xhalo-blog-admin Pages project URLs', () => {
     for (const file of files) {
-      // Match xhalo-admin.pages.dev but NOT xhalo-blog-admin.pages.dev
-      const matches = file.content.match(/(?<!blog-)xhalo-admin\.pages\.dev/g);
+      const matches = file.content.match(/(?:xhalo-admin|xhalo-blog-admin)\.pages\.dev/g);
       assert.strictEqual(
         matches,
         null,
-        `Found global xhalo-admin.pages.dev reference in ${file.path}`
+        `Found incorrect Pages URL reference in ${file.path}`
       );
     }
   });

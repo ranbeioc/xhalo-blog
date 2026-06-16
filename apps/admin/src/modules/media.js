@@ -1,4 +1,5 @@
 import { apiFetch } from './api-client.js';
+import { showToast } from './ui.js';
 
 export function renderMediaManager(container) {
   let formPayload = {
@@ -27,8 +28,9 @@ export function renderMediaManager(container) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to fetch media preview');
       previewResult = data.asset || {};
+      showToast('Media preview generated successfully', 'success');
     } catch (err) {
-      alert(`Error generating preview: ${err.message}`);
+      showToast(`Error generating preview: ${err.message}`, 'error');
       previewResult = null;
     } finally {
       loadingState = false;
@@ -39,8 +41,8 @@ export function renderMediaManager(container) {
   function copySnippetToClipboard() {
     if (!previewResult || !previewResult.markdownSnippet) return;
     navigator.clipboard.writeText(previewResult.markdownSnippet)
-      .then(() => alert('Markdown snippet copied to clipboard!'))
-      .catch(err => alert('Failed to copy: ' + err));
+      .then(() => showToast('Markdown snippet copied to clipboard!', 'success'))
+      .catch(err => showToast('Failed to copy: ' + err, 'error'));
   }
 
   function draw() {

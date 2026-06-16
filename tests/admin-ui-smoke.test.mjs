@@ -59,9 +59,10 @@ describe('Admin UI smoke tests', () => {
     assert.ok(publishingJs.includes('Gated'), 'Publishing module should reference gate status');
   });
 
-  it('settings module should reference xhalo-blog-admin project boundary', () => {
+  it('settings module should reference the in-project xhalo-blog boundary', () => {
     const settingsJs = fs.readFileSync(path.join(ADMIN_SRC_DIR, 'modules', 'settings.js'), 'utf8');
-    assert.ok(settingsJs.includes('xhalo-blog-admin'), 'Settings must reference the correct Pages project');
+    assert.ok(settingsJs.includes('xhalo-blog'), 'Settings must reference xhalo-blog project target');
+    assert.ok(settingsJs.includes('No separate Cloudflare Pages project'), 'Settings must reference that no separate Pages project is required');
   });
 
   it('style.css should contain sidebar and topbar styles', () => {

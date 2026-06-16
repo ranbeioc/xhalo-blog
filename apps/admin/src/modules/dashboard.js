@@ -32,7 +32,7 @@ export function renderDashboard(container, data) {
   const healthState = health.ok ? 'ok' : 'error';
   const healthLabel = health.ok ? 'Healthy' : 'Unhealthy';
 
-  let readinessListHtml = '<p class="info-text">Readiness status unavailable. Admin secret required.</p>';
+  let readinessListHtml = '<p class="info-text">Readiness status unavailable. Please login with GitHub or configure legacy secret in Settings.</p>';
   let boundaryHtml = '';
 
   if (readiness) {

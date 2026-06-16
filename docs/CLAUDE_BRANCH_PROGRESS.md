@@ -3298,8 +3298,7 @@ Antigravity (Gemini 3.5 Flash)
 ### Type
 UX Rebuild / Workspace Restructuring / Deployment Boundaries
 
-### Goal
-Refactor and productize the `xhalo-blog` Admin UI, separating it from the global `xhalo-admin` project. Modularize the frontend into dedicated routes, enforce safe defaults, and configure for a standalone Cloudflare Pages project named `xhalo-blog-admin`.
+Refactor and productize the `xhalo-blog` Admin UI, separating it from the global `xhalo-admin` project. Modularize the frontend into dedicated routes, enforce safe defaults, and serve it directly as part of the `xhalo-blog` project, under the `/admin` path.
 
 ### Files changed
 | File | Change summary | Reason |
@@ -3327,4 +3326,80 @@ Refactor and productize the `xhalo-blog` Admin UI, separating it from the global
 
 ### Final Gate Decision
 Phase 091 completed successfully. Pull Request #85 opened for owner review. Standalone admin workspace modularization, safety center, and independent deployment boundaries are established and validated locally. Staging/production write gates remain disabled. Next phase is Phase 092.
+
+
+## Phase 092 - In-project xhalo-blog Admin OAuth Preview Login
+
+### Executed by Model
+Antigravity (Gemini 3.5 Flash)
+
+### Type
+Deployment Boundary Correction / OAuth Login Integration / Security Hardening
+
+### Goal
+Correct the admin deployment boundary so that the Admin UI is served directly under the `xhalo-blog` project path `/admin`. Enable visible GitHub OAuth login in the topbar, configure separate auth base and frontend redirect domains, and support credentials-based CORS session authorization.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [workers/api/src/index.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/workers/api/src/index.js) [MODIFY] | Add CORS preflight OPTIONS interception, dynamic credentials CORS handling, and frontend redirect variables | Support staging/localhost multi-origin OAuth callback and credentials |
+| [wrangler.toml.example](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/wrangler.toml.example) [MODIFY] | Add `ADMIN_FRONTEND_BASE_URL` and `ADMIN_FRONTEND_PATH` placeholder values | Define OAuth callback destination parameters |
+| [.env.example](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/.env.example) [MODIFY] | Add `ADMIN_FRONTEND_BASE_URL` and `ADMIN_FRONTEND_PATH` placeholder comments | Document setup guidelines for local/staging runs |
+| [apps/admin/src/modules/api-client.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/modules/api-client.js) [MODIFY] | Set `credentials: 'include'` on all `apiFetch` calls | Direct browser to forward session cookies on CORS requests |
+| [apps/admin/src/modules/ui.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/modules/ui.js) [MODIFY] | Rebuild topbar to display "Login with GitHub" or user login/avatar, and active URL/safety parameters | Provide clear, user-facing login controls and safety warnings |
+| [apps/admin/src/app.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/app.js) [MODIFY] | Hook up click handler for the Login button | Direct user to login start endpoint |
+| [apps/admin/src/modules/settings.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/modules/settings.js) [MODIFY] | Update boundary text to show correct in-project scope and collapse legacy secret input under details | Enforce correct project boundaries and hide legacy secrets |
+| [apps/admin/src/modules/dashboard.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/modules/dashboard.js) [MODIFY] | Add unauthenticated warning text in the dashboard | Guide user to authorize before previewing |
+| [docs/xhalo-blog-in-project-admin-oauth-preview-login-20260616.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/xhalo-blog-in-project-admin-oauth-preview-login-20260616.md) [NEW] | Add Phase 092 execution evidence log | Document implementation details and boundaries |
+| [docs/xhalo-blog-admin-deployment-boundary.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/xhalo-blog-admin-deployment-boundary.md) [MODIFY] | Rephrase to target in-project `xhalo-blog` deployment | Eliminate separate Cloudflare Pages project descriptions |
+| [docs/xhalo-blog-admin-staging-preview-runbook.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/xhalo-blog-admin-staging-preview-runbook.md) [MODIFY] | Update configurations for multi-origin redirect environment variables | Standardize staging preview setups |
+| [docs/xhalo-blog-admin-ui-smoke-test.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/xhalo-blog-admin-ui-smoke-test.md) [MODIFY] | Add checklist items checking topbar login button and redirection | Ensure manual verification covers authentication details |
+| [docs/admin-github-oauth-login.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/admin-github-oauth-login.md) [MODIFY] | Align callback patterns and setup instructions with in-project serving | Fix obsolete standalone deployment references |
+| [docs/cloudflare-setup.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/cloudflare-setup.md) [MODIFY] | Update Zero Trust application name to avoid standalone project labels | Maintain naming consistency across Cloudflare Access |
+| [tests/admin-oauth-preview-login.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/admin-oauth-preview-login.test.mjs) [NEW] | Add automated tests checking login, config options, credentials, and URL patterns | Enforce automated regression coverage for OAuth mechanics |
+| [tests/admin-ui-boundary.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/admin-ui-boundary.test.mjs) [MODIFY] | Ensure both `xhalo-admin` and `xhalo-blog-admin` Pages references are blocked | Prevent separate project naming leakage |
+| [tests/admin-ui-smoke.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/admin-ui-smoke.test.mjs) [MODIFY] | Update settings check logic to expect in-project text | Maintain alignment between tests and updated settings layout |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm run check:all` | Passed | Full monorepo check (203 tests, syntax checks, secrets scanning) passes cleanly |
+| `npm run check:secrets` | Passed | Confirmed zero raw secrets or tokens committed |
+| `npm test` | Passed | 200 core and UI tests pass successfully |
+
+### Final Gate Decision
+Phase 092 completed successfully. Staging preview login validated, boundary references corrected, and 203 automated test assertions passed. Staging/production write gates remain disabled. Next phase is Phase 093.
+
+
+## Phase 093 - xhalo-blog Admin Usability Remediation and Preview Polish
+
+### Executed by Model
+Antigravity (Gemini 3.5 Flash)
+
+### Type
+UI Refactoring / Usability Polish / Markdown Engine Refinement
+
+### Goal
+Perform an extensive usability sweep of the `xhalo-blog` modular admin panel: replace all browser alert popups with modern, non-blocking toast notifications in all modules, and upgrade the custom client-side Markdown rendering engine to parse headings, blockquotes, ordered/unordered lists, code blocks, and links.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [apps/admin/src/modules/editor.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/modules/editor.js) [MODIFY] | Replace native alerts with toasts and upgrade `renderSimpleMarkdown` to support headings, blockquotes, lists, code blocks, and links | Polish editing preview capability and streamline error handling |
+| [apps/admin/src/modules/media.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/modules/media.js) [MODIFY] | Replace copy snippet and generation alerts with toasts | Improve copy-to-clipboard usability |
+| [apps/admin/src/modules/menus.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/modules/menus.js) [MODIFY] | Replace item addition/deletion alerts with toasts | Refine menu management workflows |
+| [apps/admin/src/modules/settings.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/modules/settings.js) [MODIFY] | Replace secret configurations feedback alerts with toasts | Modernize settings debug center |
+| [tests/admin-oauth-preview-login.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/admin-oauth-preview-login.test.mjs) [MODIFY] | Add test suites asserting absence of alert calls and verifying markdown tag parse rules | Automate regression coverage for new usability features |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm run check:all` | Passed | Full monorepo check (205 tests, syntax checks, secrets scanning) passes cleanly |
+| `npm run check:secrets` | Passed | Confirmed zero raw secrets or tokens committed |
+| `npm test` | Passed | 202 core and UI tests pass successfully |
+
+### Final Gate Decision
+Phase 093 completed successfully. Walkthrough, evidence, and PR body updated. Staging/production write gates remain disabled. Next phase is Phase 094.
+
+
 

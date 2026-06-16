@@ -1,6 +1,6 @@
 # xhalo-blog Admin — Deployment Boundary
 
-> Defines the isolated deployment boundary for the xhalo-blog admin UI.
+> Defines the integrated deployment boundary for the xhalo-blog admin UI.
 
 ## Project Location
 
@@ -10,20 +10,21 @@ The admin UI source lives in **`apps/admin/`** inside the `ranbeioc/xhalo-blog` 
 
 | Property           | Value                        |
 | ------------------ | ---------------------------- |
-| Pages project name | `xhalo-blog-admin`           |
+| Pages project name | `xhalo-blog`                 |
 | Build command      | `node apps/admin/scripts/build.mjs` |
 | Output directory   | `apps/admin/dist`            |
+| Public route path  | `/admin`                     |
 
-Preview URLs follow the standard Cloudflare Pages pattern:
+Served URL follows the standard Cloudflare Pages pattern under `/admin`:
 
 ```
-https://<hash>.xhalo-blog-admin.pages.dev
+https://<hash>.xhalo-blog.pages.dev/admin
 ```
 
 > [!IMPORTANT]
-> This project deploys to the dedicated **`xhalo-blog-admin`** Cloudflare Pages project.
-> It is **NOT** part of the global `xhalo-admin` project. The two are entirely separate
-> deployment targets with independent configuration, environment variables, and domains.
+> The Admin UI is built from `apps/admin` and served as part of the `xhalo-blog` project, preferably under `/admin`.
+> No separate Cloudflare Pages project is required for the blog admin.
+> It is **NOT** part of the global `xhalo-admin` project. The two are entirely separate deployment targets with independent configuration, environment variables, and domains.
 
 ## Environment Variables
 
@@ -57,9 +58,9 @@ ranbeioc/xhalo-blog (repo)
         ├── src/
         │   ├── config.js       ← contains placeholder token
         │   └── modules/        ← feature modules
-        └── dist/               ← build output (deployed)
+        └── dist/               ← build output (deployed under /admin)
 ```
 
 - **Repo**: `ranbeioc/xhalo-blog`
-- **Deploy target**: Cloudflare Pages → `xhalo-blog-admin`
+- **Deploy target**: Cloudflare Pages → `xhalo-blog` (served under `/admin`)
 - **Not related to**: `xhalo-admin` (a separate, global project)

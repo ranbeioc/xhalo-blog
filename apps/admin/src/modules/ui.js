@@ -2,6 +2,7 @@
  * ui.js – Shared layout utilities: sidebar navigation, panel routing,
  * topbar rendering, and common UI helpers.
  */
+import { ADMIN_API_BASE_URL } from '../config.js';
 
 // ── Route definitions ────────────────────────────────────────────────────────
 export const ROUTES = [
@@ -50,23 +51,36 @@ export function renderSidebar(container, { activeRoute, onNavigate }) {
 }
 
 // ── Topbar ───────────────────────────────────────────────────────────────────
-export function renderTopbar(container, { title, session, onLogout }) {
-  const userHtml = session?.authenticated
-    ? `<div class="topbar-user">
-         <span class="user-name">${escapeHtml(session.login || session.user || 'User')}</span>
-         <button class="topbar-btn" id="btn-logout" title="Sign out">Logout</button>
-       </div>`
-    : `<div class="topbar-user">
-         <span class="user-name guest">Guest</span>
-       </div>`;
+export function renderTopbar(container, { title, session, onLogin, onLogout }) {
+  let userHtml = '';
+
+  if (session?.authenticated) {
+    const avatarHtml = session.user?.avatarUrl 
+      ? `<img class="user-avatar" src="${escapeHtml(session.user.avatarUrl)}" alt="Avatar" style="width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border-color);" />`
+      : '';
+    userHtml = `
+      <div class="topbar-user" style="display: flex; align-items: center; gap: 10px;">
+        ${avatarHtml}
+        <span class="user-name">${escapeHtml(session.user?.login || session.user?.name || 'User')}</span>
+        <button class="topbar-btn" id="btn-logout" title="Sign out">Logout</button>
+      </div>`;
+  } else {
+    const apiBase = ADMIN_API_BASE_URL || 'Same Origin';
+    userHtml = `
+      <div class="topbar-user unauth" style="display: flex; align-items: center; gap: 15px;">
+        <span class="api-info-badge" style="font-size: 0.8rem; color: var(--text-muted); padding: 4px 8px; border: 1px dashed var(--border-color); border-radius: 4px;">API: ${escapeHtml(apiBase)}</span>
+        <span class="write-warning" style="font-size: 0.85rem; color: var(--color-warning);">⚠️ All write actions are disabled by default</span>
+        <button class="topbar-btn login-github-btn" id="btn-login-github" style="background: var(--color-primary); color: white; border: none; font-weight: 500; padding: 6px 12px; border-radius: 4px;">Login with GitHub</button>
+      </div>`;
+  }
 
   container.innerHTML = `
     <div class="topbar-left">
       <button class="topbar-menu-btn" id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
       <h1 class="topbar-title">${escapeHtml(title)}</h1>
     </div>
-    <div class="topbar-right">
-      <span class="env-badge">staging</span>
+    <div class="topbar-right" style="display: flex; align-items: center; gap: 15px;">
+      <span class="env-badge" style="background: rgba(255, 255, 255, 0.1); border: 1px solid var(--border-color);">PR-only Mode</span>
       ${userHtml}
     </div>
   `;
@@ -74,6 +88,11 @@ export function renderTopbar(container, { title, session, onLogout }) {
   const logoutBtn = container.querySelector('#btn-logout');
   if (logoutBtn && onLogout) {
     logoutBtn.addEventListener('click', onLogout);
+  }
+
+  const loginBtn = container.querySelector('#btn-login-github');
+  if (loginBtn && onLogin) {
+    loginBtn.addEventListener('click', onLogin);
   }
 
   const toggleBtn = container.querySelector('#sidebar-toggle');

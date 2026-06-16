@@ -105,8 +105,8 @@ Cloudflare Access secures `/api/*` and `/admin/*` routes. Protected endpoints in
 1. Go to your Cloudflare Zero Trust dashboard.
 2. Go to **Access** → **Applications** → **Add an Application** → **Self-hosted**.
 3. Configure Application Settings:
-   - **Application name**: `xhalo-blog-admin`
-   - **Domain**: `yourdomain.com/api` (and optionally another application for `/admin`)
+   - **Application name**: `xhalo-blog`
+   - **Domain**: `yourdomain.com/api` (and `/admin` path of your domain)
 4. Create an authentication policy (e.g., allow specific emails or identity providers).
 5. Obtain your **Access Audience Tag (AUD)** from the application settings.
 6. Configure the Worker environment variables:
