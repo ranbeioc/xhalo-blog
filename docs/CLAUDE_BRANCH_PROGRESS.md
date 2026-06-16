@@ -3288,14 +3288,43 @@ Execute Level 1 read-only connection and schema compatibility validation against
 ### Final Gate Decision
 Phase 090 completed successfully. Target repository schemas, read-only readiness, and dry-run flows are compatible. All write routes fail with 403 Forbidden as expected. Level 2 remains blocked.
 
+---
 
+## Phase 091 - xhalo-blog Admin Independence and UX Rebuild
 
+### Executed by Model
+Antigravity (Gemini 3.5 Flash)
 
+### Type
+UX Rebuild / Workspace Restructuring / Deployment Boundaries
 
+### Goal
+Refactor and productize the `xhalo-blog` Admin UI, separating it from the global `xhalo-admin` project. Modularize the frontend into dedicated routes, enforce safe defaults, and configure for a standalone Cloudflare Pages project named `xhalo-blog-admin`.
 
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [apps/admin/scripts/build.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/scripts/build.mjs) [MODIFY] | Use relative path helpers in copy and environment variable injection | Fix build CWD dependency |
+| [apps/admin/src/config.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/config.js) [NEW] | Add API URL config placeholder | Inject environment variable at compile time |
+| [apps/admin/src/index.html](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/index.html) [MODIFY] | Refactor monolithic template into sidebar-based IA layout | Improve admin console usability |
+| [apps/admin/src/style.css](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/style.css) [MODIFY] | Create dark-themed CSS system with custom variables | Establish product-grade user interface |
+| [apps/admin/src/app.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/app.js) [MODIFY] | Thin client router for modular panel navigation | Coordinate multi-view workflow |
+| [apps/admin/src/modules/](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/modules/) [NEW] | Implement 11 ES modules (api-client, auth, ui, dashboard, posts, editor, media, menus, publishing, audit, settings) | Decompose monolithic UI |
+| [docs/xhalo-blog-admin-deployment-boundary.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/xhalo-blog-admin-deployment-boundary.md) [NEW] | Document target Pages project setup and URL logs | Guard project boundaries |
+| [docs/xhalo-blog-admin-ux-rebuild-plan.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/xhalo-blog-admin-ux-rebuild-plan.md) [NEW] | Information architecture and routes documentation | Record design decisions |
+| [docs/xhalo-blog-admin-staging-preview-runbook.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/xhalo-blog-admin-staging-preview-runbook.md) [NEW] | Staging deployment configuration runbook | Support team validation |
+| [docs/xhalo-blog-admin-ui-smoke-test.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/xhalo-blog-admin-ui-smoke-test.md) [NEW] | Manual checklist for UI smoke test execution | Standardize QA steps |
+| [tests/admin-ui-boundary.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/admin-ui-boundary.test.mjs) [NEW] | Node unit tests for project boundary and URL leaks | Automated safety guard |
+| [tests/admin-ui-smoke.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/admin-ui-smoke.test.mjs) [NEW] | Node smoke tests for module structure and defaults | Automate frontend validation |
+| [tests/admin-publishing-mvp.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/admin-publishing-mvp.test.mjs) [MODIFY] | Adapt tests to match modular UI structure | Sync test assertions with UX |
 
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm run check:all` | Passed | Full monorepo check (198 tests, syntax checks, secrets scanning) passes cleanly |
+| `npm run check:secrets` | Passed | Confirmed zero raw secrets or tokens committed |
+| `npm test` | Passed | 186 core tests and 12 UI tests pass successfully |
 
-
-
-
+### Final Gate Decision
+Phase 091 completed successfully. Pull Request #85 opened for owner review. Standalone admin workspace modularization, safety center, and independent deployment boundaries are established and validated locally. Staging/production write gates remain disabled. Next phase is Phase 092.
 
