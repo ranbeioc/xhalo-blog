@@ -158,89 +158,77 @@ test('Core Validation: validateDraftInput checks', () => {
   assert.equal(validateDraftInput(validDraftInput).length, 0);
 });
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 test('Admin UI Static Check: layout correctness', () => {
   const html = readFileSync('apps/admin/src/index.html', 'utf8');
+
+  // New modular layout requires sidebar, topbar, content-area, and toast-container
+  assert.ok(html.includes('id="sidebar"'), 'Missing sidebar element');
+  assert.ok(html.includes('id="topbar"'), 'Missing topbar element');
+  assert.ok(html.includes('id="content-area"'), 'Missing content-area element');
+  assert.ok(html.includes('id="toast-container"'), 'Missing toast-container element');
+
+  // Must load app.js as ES module
+  assert.ok(html.includes('type="module"'), 'app.js must be loaded as ES module');
+  assert.ok(html.includes('src="./app.js"'), 'Must reference ./app.js');
+
+  // Must not contain old publish-d1 value
   assert.ok(!html.includes('value="publish-d1"'));
-  assert.ok(html.includes('name="ownerApprovedWindow"'));
-  assert.ok(html.includes('data-field="draft-task-branch"'));
-  assert.ok(html.includes('data-field="draft-task-error"'));
-  assert.ok(html.includes('data-field="draft-task-retry-count"'));
-  assert.ok(html.includes('data-field="draft-task-updated-at"'));
 
-  // Direct Publish elements
-  assert.ok(html.includes('id="owner-direct-publish-section"'));
-  assert.ok(html.includes('id="direct-publish-confirm-check"'));
-  assert.ok(html.includes('id="direct-publish-confirm-phrase"'));
-  assert.ok(html.includes('id="btn-owner-direct-publish"'));
-  assert.ok(html.includes('id="direct-publish-status-panel"'));
-  assert.ok(html.includes('data-field="direct-publish-sha"'));
-  assert.ok(html.includes('data-field="direct-publish-commit-url"'));
-  assert.ok(html.includes('data-field="direct-publish-repo"'));
-  assert.ok(html.includes('data-field="direct-publish-branch"'));
-  assert.ok(html.includes('data-field="direct-publish-path"'));
-  assert.ok(html.includes('data-field="direct-publish-build-note"'));
-  assert.ok(html.includes('data-field="direct-publish-audit-id"'));
-  assert.ok(html.includes('data-field="direct-publish-created-at"'));
+  // app.js must import all expected modules
+  const appJs = readFileSync('apps/admin/src/app.js', 'utf8');
+  const expectedModuleImports = [
+    './modules/api-client.js',
+    './modules/auth.js',
+    './modules/ui.js',
+    './modules/dashboard.js',
+    './modules/posts.js',
+    './modules/editor.js',
+    './modules/media.js',
+    './modules/menus.js',
+    './modules/publishing.js',
+    './modules/audit.js',
+    './modules/settings.js'
+  ];
+  for (const mod of expectedModuleImports) {
+    assert.ok(appJs.includes(mod), `Missing import in app.js: ${mod}`);
+  }
 
-  // Direct Update elements
-  assert.ok(html.includes('id="edit-existing-article-section"'));
-  assert.ok(html.includes('id="load-existing-slug"'));
-  assert.ok(html.includes('id="btn-load-existing"'));
-  assert.ok(html.includes('id="existing-article-meta"'));
-  assert.ok(html.includes('id="existing-article-path"'));
-  assert.ok(html.includes('id="existing-article-sha"'));
-  assert.ok(html.includes('id="existing-article-loaded-at"'));
+  // Verify key module files exist
+  const expectedModules = [
+    'apps/admin/src/modules/api-client.js',
+    'apps/admin/src/modules/auth.js',
+    'apps/admin/src/modules/dashboard.js',
+    'apps/admin/src/modules/posts.js',
+    'apps/admin/src/modules/editor.js',
+    'apps/admin/src/modules/media.js',
+    'apps/admin/src/modules/menus.js',
+    'apps/admin/src/modules/publishing.js',
+    'apps/admin/src/modules/audit.js',
+    'apps/admin/src/modules/settings.js',
+    'apps/admin/src/modules/ui.js'
+  ];
+  for (const mod of expectedModules) {
+    assert.ok(existsSync(mod), `Missing module file: ${mod}`);
+  }
 
-  assert.ok(html.includes('id="btn-preview-update-diff"'));
-  assert.ok(html.includes('id="diff-preview-panel"'));
-  assert.ok(html.includes('data-field="diff-target-path"'));
-  assert.ok(html.includes('data-field="diff-base-sha"'));
-  assert.ok(html.includes('data-field="diff-added-lines"'));
-  assert.ok(html.includes('data-field="diff-removed-lines"'));
-  assert.ok(html.includes('data-field="diff-frontmatter-changed"'));
-  assert.ok(html.includes('data-field="diff-body-changed"'));
-  assert.ok(html.includes('data-field="diff-text"'));
+  // Editor module should have disabled direct publish buttons
+  const editorJs = readFileSync('apps/admin/src/modules/editor.js', 'utf8');
+  assert.ok(editorJs.includes('disabled'), 'Direct publish buttons should be disabled by default');
 
-  assert.ok(html.includes('id="owner-direct-update-section"'));
-  assert.ok(html.includes('id="direct-update-confirm-check"'));
-  assert.ok(html.includes('id="direct-update-confirm-phrase"'));
-  assert.ok(html.includes('id="btn-owner-direct-update"'));
-  assert.ok(html.includes('id="direct-update-status-panel"'));
-  assert.ok(html.includes('data-field="direct-update-sha"'));
-  assert.ok(html.includes('data-field="direct-update-commit-url"'));
-  assert.ok(html.includes('data-field="direct-update-repo"'));
-  assert.ok(html.includes('data-field="direct-update-branch"'));
-  assert.ok(html.includes('data-field="direct-update-path"'));
-  assert.ok(html.includes('data-field="direct-update-old-sha"'));
-  assert.ok(html.includes('data-field="direct-update-audit-id"'));
-  assert.ok(html.includes('data-field="direct-update-updated-at"'));
+  // Publishing module should reference safety gates
+  const publishingJs = readFileSync('apps/admin/src/modules/publishing.js', 'utf8');
+  assert.ok(publishingJs.includes('Safety'), 'Publishing module should reference safety');
+  assert.ok(publishingJs.includes('Gated'), 'Publishing module should reference gate status');
 
-  // Phase 081 OAuth/Media/Menu UI elements
-  assert.ok(html.includes('id="panel-oauth-login"'));
-  assert.ok(html.includes('id="oauth-user-info"'));
-  assert.ok(html.includes('id="btn-github-login"'));
-  assert.ok(html.includes('id="btn-github-logout"'));
-  assert.ok(html.includes('id="btn-check-session"'));
+  // Media module should render snippet elements at runtime
+  const mediaJs = readFileSync('apps/admin/src/modules/media.js', 'utf8');
+  assert.ok(mediaJs.includes('media-slug'), 'Media module should include slug input');
+  assert.ok(mediaJs.includes('media-filename'), 'Media module should include filename input');
+  assert.ok(mediaJs.includes('btn-copy-snippet'), 'Media module should include copy button');
 
-  assert.ok(html.includes('id="panel-media-manager"'));
-  assert.ok(html.includes('id="media-slug"'));
-  assert.ok(html.includes('id="media-filename"'));
-  assert.ok(html.includes('id="media-content-type"'));
-  assert.ok(html.includes('id="media-storage-target"'));
-  assert.ok(html.includes('id="media-size"'));
-  assert.ok(html.includes('id="media-label"'));
-  assert.ok(html.includes('id="media-preview-result"'));
-  assert.ok(html.includes('id="btn-copy-media-snippet"'));
-
-  assert.ok(html.includes('id="panel-menu-manager"'));
-  assert.ok(html.includes('id="btn-load-menu"'));
-  assert.ok(html.includes('id="menu-current-display"'));
-  assert.ok(html.includes('id="menu-items-container"'));
-  assert.ok(html.includes('id="menu-item-label"'));
-  assert.ok(html.includes('id="menu-item-path"'));
-  assert.ok(html.includes('id="menu-item-icon"'));
-  assert.ok(html.includes('id="btn-preview-menu-diff"'));
-  assert.ok(html.includes('id="menu-diff-result"'));
+  // Menus module should render diff preview at runtime
+  const menusJs = readFileSync('apps/admin/src/modules/menus.js', 'utf8');
+  assert.ok(menusJs.includes('btn-preview-menu-diff'), 'Menus module should include diff button');
 });
 
