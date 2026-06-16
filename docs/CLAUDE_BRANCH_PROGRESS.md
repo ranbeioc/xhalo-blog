@@ -3371,3 +3371,35 @@ Correct the admin deployment boundary so that the Admin UI is served directly un
 Phase 092 completed successfully. Staging preview login validated, boundary references corrected, and 203 automated test assertions passed. Staging/production write gates remain disabled. Next phase is Phase 093.
 
 
+## Phase 093 - xhalo-blog Admin Usability Remediation and Preview Polish
+
+### Executed by Model
+Antigravity (Gemini 3.5 Flash)
+
+### Type
+UI Refactoring / Usability Polish / Markdown Engine Refinement
+
+### Goal
+Perform an extensive usability sweep of the `xhalo-blog` modular admin panel: replace all browser alert popups with modern, non-blocking toast notifications in all modules, and upgrade the custom client-side Markdown rendering engine to parse headings, blockquotes, ordered/unordered lists, code blocks, and links.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [apps/admin/src/modules/editor.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/modules/editor.js) [MODIFY] | Replace native alerts with toasts and upgrade `renderSimpleMarkdown` to support headings, blockquotes, lists, code blocks, and links | Polish editing preview capability and streamline error handling |
+| [apps/admin/src/modules/media.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/modules/media.js) [MODIFY] | Replace copy snippet and generation alerts with toasts | Improve copy-to-clipboard usability |
+| [apps/admin/src/modules/menus.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/modules/menus.js) [MODIFY] | Replace item addition/deletion alerts with toasts | Refine menu management workflows |
+| [apps/admin/src/modules/settings.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/modules/settings.js) [MODIFY] | Replace secret configurations feedback alerts with toasts | Modernize settings debug center |
+| [tests/admin-oauth-preview-login.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/admin-oauth-preview-login.test.mjs) [MODIFY] | Add test suites asserting absence of alert calls and verifying markdown tag parse rules | Automate regression coverage for new usability features |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm run check:all` | Passed | Full monorepo check (205 tests, syntax checks, secrets scanning) passes cleanly |
+| `npm run check:secrets` | Passed | Confirmed zero raw secrets or tokens committed |
+| `npm test` | Passed | 202 core and UI tests pass successfully |
+
+### Final Gate Decision
+Phase 093 completed successfully. Walkthrough, evidence, and PR body updated. Staging/production write gates remain disabled. Next phase is Phase 094.
+
+
+
