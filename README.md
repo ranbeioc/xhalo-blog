@@ -86,6 +86,20 @@ npm install
 npm run check:all
 ```
 
+Create a default Hexo/NexT starter site with a welcome test article:
+
+```bash
+npm run init:hexo-next -- --target ../my-blog-test
+```
+
+Seed a private test site from an existing local Hexo blog:
+
+```bash
+npm run init:hexo-next -- --target ../my-blog-test --source ../hexo-blog --site-url https://my-blog-test.pages.dev
+```
+
+The importer is an early standard flow for historical Hexo migration. It copies only safe Hexo/NexT content, disables deploy targets, and must be used with a private site repository when importing real posts or upload assets.
+
 See [`docs/getting-started.md`](./docs/getting-started.md) for the full Stage 4 setup flow.
 
 To test the Hexo NexT example:
@@ -110,6 +124,7 @@ http://localhost:4000
 - [`docs/compatibility-matrix.md`](./docs/compatibility-matrix.md)
 - [`docs/hexo-compat-fixtures.md`](./docs/hexo-compat-fixtures.md)
 - [`docs/hexo-next-optional-plugins.md`](./docs/hexo-next-optional-plugins.md)
+- [`docs/hexo-next-initialization-and-import.md`](./docs/hexo-next-initialization-and-import.md)
 - [`docs/hexo-blog-extraction-manifest.md`](./docs/hexo-blog-extraction-manifest.md)
 - [`docs/stable-deployment-guide.md`](./docs/stable-deployment-guide.md)
 - [`docs/stable-template-layout.md`](./docs/stable-template-layout.md)

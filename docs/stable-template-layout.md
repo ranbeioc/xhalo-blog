@@ -34,6 +34,7 @@ templates/hexo-next/_config.yml
 templates/hexo-next/scripts/hexo-asset-image.js
 templates/hexo-next/source/_headers
 templates/hexo-next/source/_posts/hello-xhalo-blog.md
+templates/hexo-next/source/_posts/welcome-to-xhalo-blog.md
 templates/hexo-next/source/about/index.md
 ```
 
@@ -45,6 +46,7 @@ Stable expected behavior:
 - article permalink structure preserved by the template config
 - asset rewrite helper present for post-asset-relative image, FancyBox, and video paths
 - `_headers` checked into source for Pages deployment
+- default welcome test article present for no-history starter sites
 
 ## Example baselines
 

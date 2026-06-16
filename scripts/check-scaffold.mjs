@@ -21,6 +21,7 @@ const required = [
   'examples/basic-blog/src/_headers',
   'templates/hexo-next/_config.yml',
   'templates/hexo-next/scripts/hexo-asset-image.js',
+  'templates/hexo-next/source/_posts/welcome-to-xhalo-blog.md',
   'examples/next-theme-blog/_config.yml',
   'examples/next-theme-blog/scripts/hexo-asset-image.js',
   'docs/getting-started.md',
@@ -28,15 +29,18 @@ const required = [
   'docs/compatibility-matrix.md',
   'docs/hexo-compat-fixtures.md',
   'docs/hexo-next-optional-plugins.md',
+  'docs/hexo-next-initialization-and-import.md',
   'docs/hexo-blog-extraction-manifest.md',
   'docs/public-config-contract.md',
   'docs/stable-deployment-guide.md',
   'docs/stable-template-layout.md',
   '.github/workflows/check.yml',
+  'scripts/init-hexo-next-site.mjs',
   'scripts/check-hexo-compat-fixtures.mjs',
   'scripts/check-no-production-markers.mjs',
   'tests/worker-security.test.mjs',
   'tests/provider-readiness.test.mjs',
+  'tests/hexo-next-init-import.test.mjs',
   'tests/theme-adapter-compatibility.test.mjs'
 ];
 

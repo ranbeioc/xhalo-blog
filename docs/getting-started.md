@@ -16,6 +16,20 @@ Use one of these directories as your first runnable baseline:
   - Reusable template directory for a fresh Hexo plus NexT site.
   - Good for forking into a new public project repository.
 
+For a generated project directory, use the standard initializer instead of copying files by hand:
+
+```bash
+npm run init:hexo-next -- --target ../my-blog-test
+```
+
+If a local Hexo source repository already exists, seed a private test site from it:
+
+```bash
+npm run init:hexo-next -- --target ../my-blog-test --source ../hexo-blog --site-url https://my-blog-test.pages.dev
+```
+
+The initializer keeps NexT as the default theme baseline. Without `--source`, it creates a starter site with a default welcome test article. With `--source`, it imports only safe Hexo/NexT paths and disables deploy targets.
+
 ## Check the scaffold
 
 From the repository root:
@@ -130,6 +144,7 @@ Do not commit real account IDs, zone IDs, analytics IDs, private keys, comment e
 - [public-config-contract.md](./public-config-contract.md)
 - [stable-deployment-guide.md](./stable-deployment-guide.md)
 - [stable-template-layout.md](./stable-template-layout.md)
+- [hexo-next-initialization-and-import.md](./hexo-next-initialization-and-import.md)
 - [functions-workers.md](./functions-workers.md)
 - [theme-config.md](./theme-config.md)
 - [security.md](./security.md)
