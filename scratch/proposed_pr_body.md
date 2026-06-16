@@ -1,57 +1,44 @@
 ## Summary
 
-Record the owner-confirmed xhalo-blog-test deployment result, document the current repository and Cloudflare project map, add a production preview approval gate, and keep validation visible through GitHub Actions.
+Implement Phase 097 as a test-only release candidate step: compose `xhalo-blog-test` as a full Cloudflare Pages site, add first-login GitHub admin bootstrap for test/staging, add a separate first-article test direct publish endpoint, and prepare the alpha tag to be recreated after merge.
 
-## Current Owner-Verified Test Links
+## Key Changes
 
-| Item | URL | Result |
-|---|---|---|
-| xhalo-blog-test Home | https://xhalo-blog-test.pages.dev/ | Owner confirmed accessible |
-| xhalo-blog-test Admin | https://xhalo-blog-test.pages.dev/admin | Owner confirmed accessible |
-| GitHub OAuth Login | https://xhalo-blog-test.pages.dev/admin | Owner confirmed login works |
+- Add `npm run build:test-pages` via `scripts/build-test-pages.mjs`, outputting `dist/pages`.
+- Generate the test blog home, `/admin`, first test article page, static assets, and a Pages `_worker.js` proxy for `/api/*` and `/auth/*`.
+- Add D1 migration `0006_create_admin_users.sql` for persistent admin identity.
+- Allow the first successful GitHub OAuth login to bootstrap admin only in `DEPLOYMENT_ENV=test` or with `FIRST_GITHUB_LOGIN_ADMIN_ENABLED=true`.
+- Return `user.role` and `user.isAdmin` from `/api/auth/session`.
+- Add `POST /api/drafts/test-direct-publish`, gated by `DEPLOYMENT_ENV=test`, `PUBLISH_MODE=test_direct`, `TEST_DIRECT_PUBLISH_ENABLED=true`, GitHub admin session, and safe target checks.
+- Add Admin Editor `Publish to Test` control and first test article template.
+- Add Phase 097-A and Phase 097-B evidence docs.
 
-## GitHub Repository Map
+## Test Article
 
-| Repository | Role | Current Phase Boundary |
-|---|---|---|
-| ranbeioc/xhalo-blog | Main source repo, Admin, API, docs, tests | Active development |
-| ranbeioc/hexo-blog | Content / production Hexo blog repo | Read-only / dry-run only |
-| ranbeioc/xhalo-admin | Global admin project | Not used for xhalo-blog Admin |
+| Field | Value |
+|---|---|
+| Title | `xHalo Blog 测试文章` |
+| Slug | `xhalo-blog-first-test-post` |
+| Category | `Test` |
+| Tags | `xhalo-blog`, `test`, `Cloudflare` |
 
-## Cloudflare Deployment Map
+## Deployment Boundary
 
-| Project | Type | Purpose | Current Phase Status |
-|---|---|---|---|
-| xhalo-blog-test | Pages | Test site and /admin | Active test target |
-| xhalo-blog-staging-api | Worker | Staging API/Auth | Staging only |
-| xhalo-blog-staging-queue | Queue Worker | Staging async tasks | Staging only |
-| xhalo-blog-production-api | Worker | Production API/Auth | Approval gate only |
-| xhalo-blog-production-queue | Queue Worker | Production async tasks | Approval gate only |
-
-## Scope
-
-- [x] Documentation update
-- [x] Test update
-- [x] CI visibility update
-- [ ] Production deployment
-- [ ] Production write enablement
-
-## Production Impact
-
-- [x] No production impact
-- [ ] Production read-only verification
-- [ ] Production dry-run
-- [ ] Production shadow-mode
-- [ ] Production PR trial
-- [ ] Production live-write trial
-- [ ] Production-impacting workflow
+- `xhalo-blog-test` Pages build command: `npm run build:test-pages`
+- Output directory: `dist/pages`
+- Pages serves blog HTML, `/admin`, and normal static assets.
+- R2 remains media/attachment assets only, not whole-site hosting.
+- Preferred test direct target: `ranbeioc/xhalo-blog-test@main`
+- Fallback test direct target: `ranbeioc/hexo-blog@xhalo-blog-test-content`
+- Forbidden target: `ranbeioc/hexo-blog@main`
 
 ## Safety
 
 - [x] No production writes
-- [x] No R2 live writes
-- [x] No direct main writes
-- [x] No hexo-blog/main mutation
+- [x] No production direct publish
+- [x] No production direct update
+- [x] No R2 live upload approval
+- [x] No `hexo-blog/main` mutation
 - [x] No auto-merge
 - [x] No release publication
 - [x] No secrets committed
@@ -64,23 +51,20 @@ Record the owner-confirmed xhalo-blog-test deployment result, document the curre
 - [x] `npm test`
 - [x] `npm run test:secrets-fixture`
 - [x] `npm run build:admin`
-- [x] `npm test -- tests/phase096-project-map.test.mjs`
-- [x] `npm test -- tests/admin-real-test-links.test.mjs`
-- [x] `npm test -- tests/production-preview-gate.test.mjs`
+- [x] `npm run build:test-pages`
+- [x] `npm test -- tests/pages-compose-build.test.mjs`
+- [x] `npm test -- tests/r2-boundary.test.mjs`
+- [x] `npm test -- tests/admin-bootstrap.test.mjs`
+- [x] `npm test -- tests/test-direct-publish-gate.test.mjs`
+- [x] `npm test -- tests/first-test-article-template.test.mjs`
+- [x] `npm test -- tests/publish-to-test-ui.test.mjs`
 
-## Production Preview Gate
+## Tag Follow-up
 
-Next phase requires explicit owner approval:
+After this PR is merged and final `origin/main` is validated:
 
-`I approve Phase 097 production read-only preview verification. No production writes are approved.`
-
-Without this approval, production preview verification must not start.
-
-## Evidence
-
-- `docs/phase096-owner-test-review-production-preview-gate.md`
-- `scratch/proposed_pr_body.md`
-
-## Notes
-
-This PR does not enable production writes, direct publish, direct update, R2 live upload, menu direct update, queue live-write processing, release publishing, or target repository mutation.
+- delete old local `v0.1.0-alpha.1`
+- delete old remote `v0.1.0-alpha.1`
+- recreate `v0.1.0-alpha.1` on the latest `origin/main`
+- push the tag
+- check the draft release target, but do not publish the release

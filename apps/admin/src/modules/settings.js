@@ -5,6 +5,9 @@ import { showToast } from './ui.js';
 export function renderSettings(container, { dashboardData }) {
   const configUrl = ADMIN_API_BASE_URL || window.location.origin;
   const hasSecret = Boolean(getAdminSecret());
+  const readiness = dashboardData?.readiness || {};
+  const targetRepo = readiness.testDirectTargetRepo || 'ranbeioc/xhalo-blog-test';
+  const targetBranch = readiness.testDirectTargetBranch || 'main';
 
   container.innerHTML = `
     <div class="settings-workspace">
@@ -19,8 +22,10 @@ export function renderSettings(container, { dashboardData }) {
           </div>
           <div class="meta-grid">
             <div class="meta-row"><span>Frontend Repository</span><strong>ranbeioc/xhalo-blog/apps/admin</strong></div>
-            <div class="meta-row"><span>Deployment Target</span><strong>xhalo-blog</strong></div>
-            <div class="meta-row"><span>Domain Specification</span><strong>https://&lt;preview-id&gt;.xhalo-blog.pages.dev/admin</strong></div>
+            <div class="meta-row"><span>Deployment Target</span><strong>xhalo-blog-test</strong></div>
+            <div class="meta-row"><span>Domain Specification</span><strong>https://xhalo-blog-test.pages.dev/admin</strong></div>
+            <div class="meta-row"><span>Pages Build Command</span><code>npm run build:test-pages</code></div>
+            <div class="meta-row"><span>Pages Output Directory</span><code>dist/pages</code></div>
           </div>
         </div>
 
@@ -37,9 +42,9 @@ export function renderSettings(container, { dashboardData }) {
         <div class="card repo-settings-card">
           <h3>Target Content Repository</h3>
           <div class="meta-grid">
-            <div class="meta-row"><span>Repository Owner</span><strong>ranbeioc</strong></div>
-            <div class="meta-row"><span>Repository Name</span><strong>hexo-blog</strong></div>
-            <div class="meta-row"><span>Default Branch</span><strong>main</strong></div>
+            <div class="meta-row"><span>Test Direct Target</span><strong>${targetRepo}</strong></div>
+            <div class="meta-row"><span>Target Branch</span><strong>${targetBranch}</strong></div>
+            <div class="meta-row"><span>Forbidden Target</span><strong>ranbeioc/hexo-blog@main</strong></div>
           </div>
         </div>
 

@@ -30,6 +30,7 @@ Configure the following variables in Wrangler or the Cloudflare dashboard:
 | `GITHUB_OAUTH_CLIENT_ID` | GitHub OAuth app client ID | `Iv1.xxxxxxxxxxxx` |
 | `GITHUB_OAUTH_CLIENT_SECRET` | GitHub OAuth app client secret | secret |
 | `GITHUB_OAUTH_ALLOWED_LOGINS` | Allowed GitHub usernames | `ranbeioc` |
+| `FIRST_GITHUB_LOGIN_ADMIN_ENABLED` | Allows first successful GitHub login to bootstrap an admin outside production defaults | `true` for test/staging only |
 | `ADMIN_SESSION_SECRET` | HMAC signing secret for admin sessions | secret, minimum 32 chars |
 | `ADMIN_AUTH_BASE_URL` | Base URL for auth endpoints | `https://<staging-api-domain>` |
 | `ADMIN_FRONTEND_BASE_URL` | Base URL for the admin frontend | `https://xhalo-blog-test.pages.dev` |
@@ -65,7 +66,15 @@ The current verified real test flow is:
 - Cookies are written with `HttpOnly; Secure; SameSite=Lax; Path=/`
 - The transient OAuth state cookie is cleared after successful callback
 - The signed admin session stores user metadata only
+- Test/staging first-login bootstrap stores the first admin in D1 table `admin_users`
+- `/api/auth/session` returns `user.role` and `user.isAdmin`
 - GitHub access tokens must not be written to cookies, logs, D1, or docs
+
+## First-login admin boundary
+
+The first successful GitHub OAuth login becomes admin only when `DEPLOYMENT_ENV=test` or `FIRST_GITHUB_LOGIN_ADMIN_ENABLED=true`.
+
+After the first admin exists, later users must match `admin_users` or `GITHUB_OAUTH_ALLOWED_LOGINS`. Production does not auto-bootstrap by default.
 
 ## Production boundary
 

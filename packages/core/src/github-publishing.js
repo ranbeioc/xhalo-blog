@@ -309,7 +309,7 @@ export async function createDirectMainCommit(env, { branch = 'main', filePath, c
     throw new Error('Target post already exists. Use explicit update flow in a separate phase.');
   }
 
-  const finalCommitMessage = commitMessage.includes('[owner-direct]')
+  const finalCommitMessage = commitMessage.includes('[owner-direct]') || commitMessage.includes('[test-direct]')
     ? commitMessage
     : `[owner-direct] ${commitMessage}`;
 

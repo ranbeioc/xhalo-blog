@@ -3541,6 +3541,35 @@ Record the owner-confirmed `xhalo-blog-test` result as the next formal phase doc
 Phase 096 implementation completed successfully on branch `codex/phase096-owner-test-review-production-preview-gate`. Owner test evidence is formalized, the single visible CI workflow is retained as validation-only, and Phase 097 remains blocked until the exact owner approval phrase is provided. No production writes, `hexo-blog/main` mutations, release publications, or secret commits occurred.
 
 
+## Phase 097 - Pages Full Test Site, First-Login Admin, and Test Direct Publish
+
+### Executed by Model
+Codex (GPT-5)
+
+### Type
+Test deployment composition / GitHub OAuth admin bootstrap / Test-only direct publish gate / Alpha tag preparation
+
+### Goal
+Compose `xhalo-blog-test` as a full Cloudflare Pages test site, add a persistent first-login GitHub admin model for test/staging, introduce a separate test-only direct publish endpoint for the first test article, and prepare `v0.1.0-alpha.1` to be retagged after merge to `main`.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [scripts/build-test-pages.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/scripts/build-test-pages.mjs) [NEW] | Build `dist/pages` with blog home, first article route, `/admin`, assets, and Pages `_worker.js` proxy | Make `xhalo-blog-test` a full Pages site |
+| [workers/api/src/index.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/workers/api/src/index.js) [MODIFY] | Add D1-backed first-login admin bootstrap, role/isAdmin session fields, and `POST /api/drafts/test-direct-publish` | Support test-only first article publish without production writes |
+| [workers/api/migrations/0006_create_admin_users.sql](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/workers/api/migrations/0006_create_admin_users.sql) [NEW] | Create `admin_users` table and role index | Persist admin identity |
+| [packages/core/src/index.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/packages/core/src/index.js) [MODIFY] | Add first test article template and test_direct readiness fields | Share Phase 097 constants and UI gate state |
+| [apps/admin/src/modules/editor.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/modules/editor.js) [MODIFY] | Add default first article template and `Publish to Test` button | Expose test-only publish flow in Admin |
+| [apps/admin/src/modules/dashboard.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/modules/dashboard.js) [MODIFY] | Show test_direct gate and target state | Improve CI/live visibility |
+| [apps/admin/src/modules/settings.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/modules/settings.js) [MODIFY] | Show Pages build and safe target boundary | Keep settings aligned with Phase 097 |
+| [docs/phase097a-pages-full-blog-admin-compose-evidence.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/phase097a-pages-full-blog-admin-compose-evidence.md) [NEW] | Record Pages full site and R2 boundary evidence | Reviewer-facing source of truth |
+| [docs/phase097b-first-test-article-direct-publish-evidence.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/phase097b-first-test-article-direct-publish-evidence.md) [NEW] | Record first article, first-login admin, and test_direct gates | Reviewer-facing source of truth |
+| [.github/workflows/check.yml](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/.github/workflows/check.yml) [MODIFY] | Add `npm run build:test-pages` validation | Keep single CI workflow visible |
+
+### Gate Decision
+Phase 097 remains test-only. `ranbeioc/hexo-blog@main` is explicitly forbidden, production writes are not approved, and `v0.1.0-alpha.1` may only be deleted/recreated after the PR is merged and the final `origin/main` commit is validated.
+
+
 
 
 

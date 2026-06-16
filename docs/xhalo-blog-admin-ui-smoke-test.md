@@ -27,6 +27,7 @@ Owner-reported verification status:
 - [ ] Authorization returns to `/admin`
 - [ ] Topbar shows the authenticated GitHub login and avatar
 - [ ] `/api/auth/session` returns `authenticated=true`
+- [ ] `/api/auth/session` returns `user.role=admin` and `user.isAdmin=true` after first-login bootstrap in test
 - [ ] Clicking **Logout** returns `/api/auth/session` to `authenticated=false`
 
 ### Sidebar and routing
@@ -46,6 +47,7 @@ Owner-reported verification status:
 - [ ] Posts shows a list or empty state
 - [ ] Editor shows Edit, Preview, Diff, and Plan tabs
 - [ ] Editor primary action is disabled when `LIVE_WRITES_ENABLED=false`
+- [ ] Editor shows **Publish to Test** enabled only when `DEPLOYMENT_ENV=test`, `PUBLISH_MODE=test_direct`, `TEST_DIRECT_PUBLISH_ENABLED=true`, and target safety is true
 - [ ] Media remains dry-run only
 - [ ] Menus remains preview-only
 - [ ] Publishing shows locked safety gates
@@ -58,6 +60,8 @@ Owner-reported verification status:
 - [ ] Direct update stays disabled
 - [ ] Direct config update stays disabled
 - [ ] Live R2 upload stays disabled
+- [ ] `POST /api/drafts/test-direct-publish` refuses `ranbeioc/hexo-blog@main`
+- [ ] Test direct publish target is `ranbeioc/xhalo-blog-test@main` or `ranbeioc/hexo-blog@xhalo-blog-test-content`
 - [ ] Clicking disabled controls does not send a write request
 
 ### Error-free operation

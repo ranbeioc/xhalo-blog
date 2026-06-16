@@ -30,15 +30,16 @@ Owner-reported result:
 | Property | Value |
 | --- | --- |
 | Pages project name | `xhalo-blog-test` |
-| Build command | `node apps/admin/scripts/build.mjs` |
-| Output directory | `apps/admin/dist` |
-| Public route path | `/admin` |
+| Build command | `npm run build:test-pages` |
+| Output directory | `dist/pages` |
+| Public route paths | `/`, `/posts/xhalo-blog-first-test-post/`, `/admin` |
 
 > [!IMPORTANT]
 > The Admin UI is built from `apps/admin` and served as part of the `xhalo-blog` project boundary.
 > No separate Cloudflare Pages project is required for the blog admin.
 > `xhalo-blog-admin` does not exist and is not needed.
 > `xhalo-admin` is not the blog admin target.
+> R2 is not the whole-site hosting layer for `xhalo-blog-test`; it remains media/attachment assets only.
 
 ## Cloudflare deployment map
 
@@ -57,6 +58,18 @@ The real test deployment is expected to use:
 - `ADMIN_FRONTEND_BASE_URL=https://xhalo-blog-test.pages.dev`
 - `ADMIN_FRONTEND_PATH=/admin`
 - `ADMIN_AUTH_BASE_URL=https://<staging-api-domain>`
+- `DEPLOYMENT_ENV=test`
+- `PUBLISH_MODE=test_direct`
+- `TEST_DIRECT_PUBLISH_ENABLED=true` only during test publish verification
+- `FIRST_GITHUB_LOGIN_ADMIN_ENABLED=true` only for test/staging bootstrap
+
+## Phase 097 test publish boundary
+
+- First successful GitHub OAuth login can bootstrap `admin_users` only in test/staging scope.
+- `POST /api/drafts/test-direct-publish` requires GitHub admin session and the test_direct gate.
+- Preferred target: `ranbeioc/xhalo-blog-test@main`.
+- Fallback target: `ranbeioc/hexo-blog@xhalo-blog-test-content`.
+- Forbidden target: `ranbeioc/hexo-blog@main`.
 
 ## Production preview gate
 

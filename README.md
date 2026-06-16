@@ -4,9 +4,11 @@
 
 It starts as a clean community edition template, not as a copy of any production blog. The repository contains example content, placeholder configuration, and a minimal Cloudflare platform skeleton for Pages, Workers, D1, R2, Queues, Turnstile, Access, and GitHub PR-based publishing workflows.
 
-> Status: `v0.1.0-alpha / Controlled PR-only production pipeline verified`. Core Stage 4 paths and Queue Worker async publishing are implemented for staging evaluation. Production writes require manual owner approval, direct main writes and auto-merge remain prohibited, and `LIVE_WRITES_ENABLED=false` is the default production baseline.
+> Status: `v0.1.0-alpha / Phase 097 test Pages and test-only publish gate`. Core Stage 4 paths and Queue Worker async publishing are implemented for staging evaluation. Production writes require manual owner approval, production direct main writes and auto-merge remain prohibited, and `LIVE_WRITES_ENABLED=false` is the default production baseline.
 
 > Current admin verification status: the real test deployment target is `xhalo-blog-test` with owner-verified links at `https://xhalo-blog-test.pages.dev/` and `https://xhalo-blog-test.pages.dev/admin`. `xhalo-admin` is not used, `xhalo-blog-admin` does not exist, and production preview resources remain approval-gate only.
+
+> Phase 097 update: `xhalo-blog-test` is intended to be a full Cloudflare Pages test site built with `npm run build:test-pages` and output from `dist/pages`. Pages serves blog HTML, `/admin`, and normal static assets. R2 remains a media/attachment asset layer only, not whole-site hosting.
 
 ## Production warning
 
@@ -60,12 +62,15 @@ xhalo-blog/
 - **Async Publishing Alpha**: Queue Worker `draft_publish` execution is implemented in Phase 7.1 for staging-only GitHub PR publishing. It creates or reuses draft branches, commits Markdown, opens or reuses Pull Requests, updates D1 task/post status, and writes audit logs. This path remains alpha and must pass operator staging verification before any production use.
 - **Hexo Compatibility**: Theme adapter with fixture-backed asset rewriting and regression checking.
 - **Admin PR-only Publishing MVP**: Reusable, vanilla HTML/JS workbench (under `apps/admin`) facilitating article creation, frontmatter overrides, safe Markdown previews, and PR status polling. Served directly inside the `xhalo-blog` project under the `/admin` path (no separate `xhalo-blog-admin` Pages project is required, and `xhalo-admin` is not used; real test deployment target is existing `xhalo-blog-test`). All write actions are strictly locked behind owner-reviewed manual Pull Request generation with zero direct main writes, auto-merging, or direct D1 publishing.
+- **Phase 097 test-only publish path**: `POST /api/drafts/test-direct-publish` is separate from production owner-direct publish and only works with `DEPLOYMENT_ENV=test`, `PUBLISH_MODE=test_direct`, `TEST_DIRECT_PUBLISH_ENABLED=true`, an authenticated GitHub admin session, and a safe non-production target. `ranbeioc/hexo-blog@main` is explicitly forbidden.
 
 ## Current admin test boundary
 
 - Real test home: `https://xhalo-blog-test.pages.dev/`
 - Real test admin: `https://xhalo-blog-test.pages.dev/admin`
 - Owner-reported result: GitHub account can authorize and log in successfully
+- First successful GitHub OAuth login can bootstrap the first admin only in `DEPLOYMENT_ENV=test` or with `FIRST_GITHUB_LOGIN_ADMIN_ENABLED=true`; production does not auto-bootstrap by default
+- Test direct publish target: preferred `ranbeioc/xhalo-blog-test@main`, fallback `ranbeioc/hexo-blog@xhalo-blog-test-content`
 - `xhalo-blog-production-api`: approval gate only, read-only preview only
 - `xhalo-blog-production-queue`: approval gate only, no live-write processing
 - No production direct publish, direct update, R2 live upload, menu direct update, or `hexo-blog/main` mutation is approved in Phase 096
@@ -75,6 +80,7 @@ xhalo-blog/
 ```bash
 npm install
 npm run check:all
+npm run build:test-pages
 ```
 
 See [`docs/getting-started.md`](./docs/getting-started.md) for the full Stage 4 setup flow.
@@ -112,8 +118,22 @@ http://localhost:4000
 - [`docs/github-pr-publishing.md`](./docs/github-pr-publishing.md)
 - [`docs/owner-direct-publish-mode.md`](./docs/owner-direct-publish-mode.md)
 - [`docs/owner-direct-existing-article-update-mode.md`](./docs/owner-direct-existing-article-update-mode.md)
+- [`docs/phase097a-pages-full-blog-admin-compose-evidence.md`](./docs/phase097a-pages-full-blog-admin-compose-evidence.md)
+- [`docs/phase097b-first-test-article-direct-publish-evidence.md`](./docs/phase097b-first-test-article-direct-publish-evidence.md)
 
 ## Cloudflare Pages deployment
+
+For the current `xhalo-blog-test` full test site, use:
+
+```text
+Project: xhalo-blog-test
+GitHub source: ranbeioc/xhalo-blog
+Build command: npm run build:test-pages
+Build output directory: dist/pages
+Branch: PR preview branch, then main after merge
+```
+
+The generated Pages `_worker.js` proxies same-origin `/api/*` and `/auth/*` requests to the staging API configured by `XHALO_ADMIN_API_BASE_URL`.
 
 For the minimal static example, use:
 

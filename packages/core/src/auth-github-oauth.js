@@ -65,7 +65,9 @@ export async function verifySessionCookieValue(sessionValue, secret, allowedLogi
 
     if (allowedLoginsString) {
       const allowed = allowedLoginsString.split(',').map(s => s.trim().toLowerCase());
-      if (!payload.login || !allowed.includes(payload.login.toLowerCase())) {
+      const isListed = payload.login && allowed.includes(payload.login.toLowerCase());
+      const isSessionAdmin = payload.isAdmin === true || payload.role === 'admin';
+      if (!isListed && !isSessionAdmin) {
         return null;
       }
     }

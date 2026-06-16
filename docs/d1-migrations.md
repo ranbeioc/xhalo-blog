@@ -11,6 +11,7 @@ This document describes the Cloudflare D1 migration strategy for xhalo-blog.
 | `0003_harden_posts_index_constraints.sql` | Create unique index on slug and performance indexes | Stage 4 hardening |
 | `0004_add_posts_index_preview_url.sql` | Add `preview_url TEXT` column to `posts_index` table | Stage 4 hardening |
 | `0005_create_audit_logs.sql` | Create `audit_logs` table with indexes for observability | Stage 4-C observability |
+| `0006_create_admin_users.sql` | Create `admin_users` table for first-login GitHub admin bootstrap | Phase 097-B |
 
 
 ## New Environment Setup
@@ -98,6 +99,12 @@ If you need to roll back the audit logs table introduced in 0005:
 
 ```sql
 DROP TABLE IF EXISTS audit_logs;
+```
+
+If you need to roll back the admin user table introduced in 0006:
+
+```sql
+DROP TABLE IF EXISTS admin_users;
 ```
 
 ## Local Development

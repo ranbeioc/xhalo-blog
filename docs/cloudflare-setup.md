@@ -8,6 +8,18 @@ This guide walks you through provisioning, configuring, and deploying the Cloudf
 
 Cloudflare Pages hosts the compiled Hexo site (HTML/JS/CSS).
 
+For the current `xhalo-blog-test` full test site, use these Pages settings:
+
+| Setting | Value |
+| --- | --- |
+| Project | `xhalo-blog-test` |
+| GitHub source | `ranbeioc/xhalo-blog` |
+| Build command | `npm run build:test-pages` |
+| Build output directory | `dist/pages` |
+| Branch | PR preview branch, then `main` after merge |
+
+The generated Pages `_worker.js` proxies `/api/*` and `/auth/*` to the staging API configured through `XHALO_ADMIN_API_BASE_URL`. It does not add a deployment step to CI.
+
 1. Go to the Cloudflare Dashboard → **Workers & Pages** → **Pages** → **Create a project**.
 2. Connect your Git repository.
 3. Select your project directory and set the build settings:
@@ -55,6 +67,8 @@ wrangler d1 migrations apply xhalo-blog --remote
 ## 3. Cloudflare R2 Bucket (Media Storage)
 
 R2 stores uploaded images, files, and assets.
+
+In Phase 097, R2 remains an asset/media layer only. Pages serves blog HTML, `/admin`, and normal static assets. Do not configure R2 as whole-site hosting for `xhalo-blog-test`.
 
 1. Go to **Workers & Pages** → **R2** → **Create bucket**.
 2. Name it `xhalo-blog-assets` (or a name of your choice).
