@@ -8,6 +8,7 @@ The admin UI is deployed as part of the `xhalo-blog` Cloudflare Pages project. S
 
 > [!IMPORTANT]
 > Admin is served inside xhalo-blog project under `/admin`. No separate `xhalo-blog-admin` project is required. `xhalo-admin` is not the blog admin target.
+> Test deployment belongs to xhalo-blog.
 
 1. Open the [Cloudflare Dashboard → Pages](https://dash.cloudflare.com/?to=/:account/pages).
 2. Click on your `xhalo-blog` project.

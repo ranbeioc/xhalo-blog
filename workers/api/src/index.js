@@ -495,9 +495,9 @@ function isLiveWritesEnabled(env) {
 
 function rejectLiveWriteDisabled() {
   return createJsonResponse({
-    error: 'Live writes are disabled by default.',
-    required_env: 'LIVE_WRITES_ENABLED=true',
-    note: 'Enable only behind Cloudflare Access and application-level request verification.'
+    error: 'Live writes are disabled.',
+    code: 'LIVE_WRITES_DISABLED',
+    required_env: 'LIVE_WRITES_ENABLED=true'
   }, { status: 403 });
 }
 

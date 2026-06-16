@@ -25,6 +25,7 @@ https://<hash>.xhalo-blog.pages.dev/admin
 > The Admin UI is built from `apps/admin` and served as part of the `xhalo-blog` project, preferably under `/admin`.
 > No separate Cloudflare Pages project is required for the blog admin.
 > It is **NOT** part of the global `xhalo-admin` project. The two are entirely separate deployment targets with independent configuration, environment variables, and domains.
+> Test deployment belongs to xhalo-blog.
 
 ## Environment Variables
 

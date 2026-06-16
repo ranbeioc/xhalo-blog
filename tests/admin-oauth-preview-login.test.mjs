@@ -31,6 +31,11 @@ describe('Admin GitHub OAuth Preview Login tests', () => {
     assert.ok(envExample.includes('ADMIN_FRONTEND_PATH'), '.env.example must define ADMIN_FRONTEND_PATH');
   });
 
+  it('ADMIN_FRONTEND_PATH defaults to /admin in worker if env is not provided', () => {
+    const workerIndex = fs.readFileSync(path.join(WORKER_SRC_DIR, 'index.js'), 'utf8');
+    assert.ok(workerIndex.includes("env.ADMIN_FRONTEND_PATH || '/admin'"), 'Worker must default ADMIN_FRONTEND_PATH to /admin');
+  });
+
   it('OAuth callback logic redirects to frontend base URL plus path', () => {
     const workerIndex = fs.readFileSync(path.join(WORKER_SRC_DIR, 'index.js'), 'utf8');
     assert.ok(workerIndex.includes('ADMIN_FRONTEND_BASE_URL') || workerIndex.includes('frontendBaseUrl'), 'Worker auth handler must use frontend base URL redirect config');
