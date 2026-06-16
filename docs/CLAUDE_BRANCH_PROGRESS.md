@@ -3464,6 +3464,41 @@ Audit style.css and modules to resolve undefined style variables, upgrade layout
 Phase 094 completed successfully. The Admin UI is polished into a production preview candidate with high aesthetics, responsive styling, and dynamic hover indicators. All write gates remain locked. No production writes, R2 writes, or main branch mutations occurred.
 
 
+## Phase 094 - xhalo-blog Test Deployment and Admin Login Verification
+
+### Executed by Model
+Antigravity
+
+### Type
+Deployment Verification / Staging Login Validation / Security Hardening
+
+### Goal
+Deploy a test version of the in-project xhalo-blog Admin under `/admin`, verify GitHub OAuth login, validate all admin panels, and harden write-gate semantics for live upload requests.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [workers/api/src/index.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/workers/api/src/index.js) [MODIFY] | Standardize error response in `rejectLiveWriteDisabled()` for `mode=live` requests to return 403 Forbidden with standard code | Prevent calling clients from misinterpreting write outcomes |
+| [tests/r2-live-gate-semantics.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/r2-live-gate-semantics.test.mjs) [NEW] | Add automated check validating the new 403 response structure and ensure no successful upload tokens exist | Prevent regressions on gate semantics |
+| [tests/admin-test-deployment.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/admin-test-deployment.test.mjs) [NEW] | Add automated checks for admin route mapping and deployment boundaries | Ensure project isolation constraints are tested |
+| [tests/admin-oauth-preview-login.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/admin-oauth-preview-login.test.mjs) [MODIFY] | Add check for `ADMIN_FRONTEND_PATH` default value | Prevent regression on routing config fallbacks |
+| [docs/xhalo-blog-test-deployment-admin-login-20260616.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/xhalo-blog-test-deployment-admin-login-20260616.md) [NEW] | Document staging URLs, deployment methods, login verification results, and gate checks | Maintain complete browser smoke verification history |
+| [README.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/README.md) [MODIFY] | Document test deployment ownership and boundary | Align documentation with correct target pages project |
+| [docs/xhalo-blog-admin-staging-preview-runbook.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/xhalo-blog-admin-staging-preview-runbook.md) [MODIFY] | Clarify test deployment belongs to xhalo-blog | Correct staging deployment boundaries |
+| [docs/xhalo-blog-admin-ui-smoke-test.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/xhalo-blog-admin-ui-smoke-test.md) [MODIFY] | Clarify test deployment belongs to xhalo-blog | Prevent confusion on staging project ownership |
+| [docs/xhalo-blog-admin-deployment-boundary.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/xhalo-blog-admin-deployment-boundary.md) [MODIFY] | Clarify test deployment belongs to xhalo-blog | Keep deployment guidelines consistent |
+| [docs/admin-github-oauth-login.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/admin-github-oauth-login.md) [MODIFY] | Clarify test deployment belongs to xhalo-blog | Establish uniform project targets |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm run check:all` | Passed | 208 tests, syntax checks, compat fixtures, and secrets scanning passed cleanly |
+| `npm run check:secrets` | Passed | No secrets or markers found |
+
+### Final Gate Decision
+Phase 094 completed successfully. Test deployment verification report added, live upload gate semantics hardened, and 208 tests validated. No production writes, R2 writes, or main branch mutations occurred.
+
+
 
 
 

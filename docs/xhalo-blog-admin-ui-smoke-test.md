@@ -8,6 +8,7 @@
 - A deployed instance of the `xhalo-blog` project with the admin UI accessible (e.g., under `/admin`).
   > [!IMPORTANT]
   > Admin is served inside xhalo-blog project under `/admin`. No separate `xhalo-blog-admin` project is required. `xhalo-admin` is not the blog admin target.
+  > Test deployment belongs to xhalo-blog.
 - A modern browser with DevTools available (for console and network inspection).
 - GitHub OAuth credentials configured for the target domain.
 

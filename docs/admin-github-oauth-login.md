@@ -8,6 +8,7 @@ The GitHub OAuth Login module provides an optional preview-only authentication p
 
 > [!IMPORTANT]
 > Admin is served inside xhalo-blog project under `/admin`. No separate `xhalo-blog-admin` project is required. `xhalo-admin` is not the blog admin target.
+> Test deployment belongs to xhalo-blog.
 
 > [!NOTE]
 > In the current phase, OAuth login does not replace the outer Cloudflare Access verification or the fallback `x-xhalo-admin-secret` authentication headers. It acts as an integration preview.
