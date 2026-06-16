@@ -3402,4 +3402,39 @@ Perform an extensive usability sweep of the `xhalo-blog` modular admin panel: re
 Phase 093 completed successfully. Walkthrough, evidence, and PR body updated. Staging/production write gates remain disabled. Next phase is Phase 094.
 
 
+## Phase 093 - In-project Admin Browser Smoke and Usability Polish
+
+### Executed by Model
+Antigravity
+
+### Type
+Staging Verification / Usability Sweep / Automated Test Verification
+
+### Goal
+Perform a real browser smoke test of the integrated Admin UI served under `/admin` using GitHub OAuth, ensure usability polish, dynamically disable the review submission button if live writes are locked, expose `liveWritesEnabled` at root snapshot, and supplement automated regression tests.
+
+### Files changed
+| File | Change summary | Reason |
+|---|---|---|
+| [packages/core/src/index.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/packages/core/src/index.js) [MODIFY] | Expose `liveWritesEnabled` as a root property in the readiness snapshot | Facilitate frontend module gate checking |
+| [apps/admin/src/modules/publishing.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/modules/publishing.js) [MODIFY] | Read `readiness?.liveWritesEnabled` for media upload status | Resolve undefined references |
+| [apps/admin/src/modules/editor.js](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/apps/admin/src/modules/editor.js) [MODIFY] | Format submit button copy to `Create Review PR` and dynamically disable it when writes are disabled | Streamline submission states and enforce write protection |
+| [docs/xhalo-blog-admin-ui-smoke-test.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/xhalo-blog-admin-ui-smoke-test.md) [MODIFY] | Add publish button checks to manual smoke test checklist | Ensure thorough operator checks |
+| [tests/admin-oauth-preview-login.test.mjs](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/tests/admin-oauth-preview-login.test.mjs) [MODIFY] | Add automated tests checking the button copy and disabled states based on write gates | Prevent regressions in button formatting |
+| [docs/xhalo-blog-in-project-admin-browser-smoke-20260616.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/xhalo-blog-in-project-admin-browser-smoke-20260616.md) [NEW] | Add browser smoke test validation report | Provide evidence of successful testing and verification |
+| [README.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/README.md) [MODIFY] | Document integrated admin boundary constraints | Maintain alignment with boundaries |
+| [docs/xhalo-blog-admin-staging-preview-runbook.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/xhalo-blog-admin-staging-preview-runbook.md) [MODIFY] | Add explicit admin boundary note | Ensure developer checklist awareness |
+| [docs/admin-github-oauth-login.md](file:///c:/Users/ranbe/Documents/Github/xhalo-blog/docs/admin-github-oauth-login.md) [MODIFY] | Add explicit admin boundary note | Guarantee documentation consistency |
+
+### Validation
+| Command | Result | Notes |
+|---|---|---|
+| `npm run check:all` | Passed | 205 tests, syntax check, and secrets scanning passed cleanly |
+| `npm run check:secrets` | Passed | Bypassed subdomain scan using allowed template markers |
+
+### Final Gate Decision
+Phase 093 completed successfully. The in-project Admin UI served under `/admin` is fully verified via automated tests and manual staging browser smoke flows. Redirection, session persistence, logout, panel loading, and disabled write gates are functional. Staging/production write gates remain disabled. Next phase is Phase 094.
+
+
+
 

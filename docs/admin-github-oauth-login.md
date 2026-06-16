@@ -6,6 +6,9 @@ This document details the configuration, security boundaries, and staging verifi
 
 The GitHub OAuth Login module provides an optional preview-only authentication path for administrative routes. It allows designated users to sign in with GitHub, creating an HTTP-only cookie session.
 
+> [!IMPORTANT]
+> Admin is served inside xhalo-blog project under `/admin`. No separate `xhalo-blog-admin` project is required. `xhalo-admin` is not the blog admin target.
+
 > [!NOTE]
 > In the current phase, OAuth login does not replace the outer Cloudflare Access verification or the fallback `x-xhalo-admin-secret` authentication headers. It acts as an integration preview.
 

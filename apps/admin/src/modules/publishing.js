@@ -46,7 +46,7 @@ export function renderPublishingSafetyCenter(container, { dashboardData }) {
                 <tr>
                   <td><strong>Media Uploads (R2)</strong></td>
                   <td>Dry-run index calculation</td>
-                  <td>${getGateStatusBadge(readiness?.LIVE_WRITES_ENABLED)}</td>
+                  <td>${getGateStatusBadge(readiness?.liveWritesEnabled)}</td>
                   <td><code>Dry-run Only</code></td>
                 </tr>
                 <tr>
