@@ -19,7 +19,8 @@
     "build:next-example": "npm --prefix examples/next-theme-blog install --no-package-lock && npm --prefix examples/next-theme-blog run build",
     "build:next-template": "npm --prefix templates/hexo-next install --no-package-lock && npm --prefix templates/hexo-next run build",
     "test": "node --test tests/*.test.mjs",
-    "check:all": "npm run check && npm run build:admin && npm run build:landing && npm run build:basic && npm run build:next-example && npm run build:next-template && npm run check:compat && npm run check:migrations && npm test && npm run test:secrets-fixture && npm run check:syntax && npm run check:secrets"
+    "check:deploy-boundary": "node scripts/check-deploy-boundary.mjs",
+    "check:all": "npm run check && npm run build:admin && npm run build:landing && npm run build:basic && npm run build:next-example && npm run build:next-template && npm run check:compat && npm run check:migrations && npm test && npm run test:secrets-fixture && npm run check:syntax && npm run check:secrets && npm run check:deploy-boundary"
   },
   "workspaces": [
     "apps/*",
