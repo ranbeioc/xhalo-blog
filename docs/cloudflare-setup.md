@@ -13,12 +13,12 @@ For the current `xhalo-blog-test` full test site, use these Pages settings:
 | Setting | Value |
 | --- | --- |
 | Project | `xhalo-blog-test` |
-| GitHub source | `ranbeioc/xhalo-blog` |
-| Build command | `npm run build:test-pages` |
-| Build output directory | `dist/pages` |
-| Branch | PR preview branch, then `main` after merge |
+| GitHub source | `ranbeioc/xhalo-blog-test` |
+| Build command | `npm ci && npm run build` |
+| Build output directory | `public` |
+| Branch | `main` |
 
-The generated Pages `_worker.js` proxies `/api/*` and `/auth/*` to the staging API configured through `XHALO_ADMIN_API_BASE_URL`. It does not add a deployment step to CI.
+The private test-site Pages `_worker.js` proxies `/api/*` and `/auth/*` to the staging API configured through `XHALO_ADMIN_API_BASE_URL`. It does not add a deployment step to CI. The framework repository's `npm run build:test-pages` command is retained only as a local validation fixture.
 
 1. Go to the Cloudflare Dashboard → **Workers & Pages** → **Pages** → **Create a project**.
 2. Connect your Git repository.
