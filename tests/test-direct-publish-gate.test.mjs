@@ -6,13 +6,14 @@ import { signSessionPayload } from '../packages/core/src/auth-github-oauth.js';
 
 const adminSecret = 'session-secret-test-32-chars-long-secret-key-1234';
 
-async function adminCookie() {
+async function sessionCookie(payload = {}) {
   const token = await signSessionPayload({
     login: 'first-admin',
     id: 101,
     role: 'admin',
     isAdmin: true,
-    expiresAt: Date.now() + 86400000
+    expiresAt: Date.now() + 86400000,
+    ...payload
   }, adminSecret);
   return `xhalo_admin_session=${encodeURIComponent(token)}`;
 }
@@ -33,12 +34,12 @@ function createDbMock() {
   };
 }
 
-async function requestJson(pathname, body, env = {}) {
+async function requestJson(pathname, body, env = {}, session = {}) {
   const request = new Request(`https://example.com${pathname}`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
-      Cookie: await adminCookie()
+      Cookie: await sessionCookie(session)
     },
     body: JSON.stringify(body)
   });
@@ -69,6 +70,22 @@ test('test-direct publish rejects when TEST_DIRECT_PUBLISH_ENABLED=false', async
 
   assert.equal(response.status, 403);
   assert.equal(json.code, 'TEST_DIRECT_PUBLISH_DISABLED');
+});
+
+test('test-direct publish rejects non-admin session', async () => {
+  const { response, json } = await requestJson('/api/drafts/test-direct-publish', validPost, {
+    DEPLOYMENT_ENV: 'test',
+    PUBLISH_MODE: 'test_direct',
+    TEST_DIRECT_PUBLISH_ENABLED: 'true'
+  }, {
+    login: 'viewer',
+    id: 202,
+    role: 'viewer',
+    isAdmin: false
+  });
+
+  assert.equal(response.status, 401);
+  assert.equal(json.code, 'ADMIN_SESSION_REQUIRED');
 });
 
 test('test-direct publish rejects when DEPLOYMENT_ENV is not test', async () => {

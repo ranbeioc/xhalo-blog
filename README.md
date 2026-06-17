@@ -139,6 +139,7 @@ http://localhost:4000
 - [`docs/phase097a-pages-full-blog-admin-compose-evidence.md`](./docs/phase097a-pages-full-blog-admin-compose-evidence.md)
 - [`docs/phase097b-first-test-article-direct-publish-evidence.md`](./docs/phase097b-first-test-article-direct-publish-evidence.md)
 - [`docs/phase100-private-test-site-pages-verification.md`](./docs/phase100-private-test-site-pages-verification.md)
+- [`docs/phase101-test-direct-publish-e2e-evidence.md`](./docs/phase101-test-direct-publish-e2e-evidence.md)
 
 ## Cloudflare Pages deployment
 
