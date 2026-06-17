@@ -254,10 +254,10 @@ npx wrangler r2 bucket create xhalo-blog-assets</code></pre>
         <div class="setup-step">
           <div class="step-num">4</div>
           <div class="step-info">
-            <h3>Deploy to Production</h3>
-            <p>Build and push your configuration to the live Cloudflare network.</p>
+            <h3>Connect Cloudflare Pages</h3>
+            <p>Validate locally, push through GitHub review, then connect your selected site repository to Cloudflare Pages.</p>
             <pre class="terminal-inline"><code>npm run check:all
-npx wrangler deploy --all</code></pre>
+git push origin main</code></pre>
           </div>
         </div>
       </div>
@@ -267,6 +267,11 @@ npx wrangler deploy --all</code></pre>
   <!-- Footer -->
   <footer id="main-footer">
     <div class="container footer-container">
+      <div class="footer-migration-note">
+        <h3>Hexo/NexT Migration</h3>
+        <p>Initialize a private test site from the default NexT starter or import an existing Hexo/NexT blog with posts, uploads, menus, theme files, plugin config, and an audit report.</p>
+        <a href="https://github.com/ranbeioc/xhalo-blog/blob/main/docs/hexo-next-initialization-and-import.md">Read the migration guide</a>
+      </div>
       <p>&copy; 2026 xhalo-blog scaffold. Released under the MIT License.</p>
       <ul class="footer-links">
         <li><a href="https://github.com/ranbeioc/xhalo-blog/blob/main/LICENSE">License</a></li>

@@ -593,6 +593,30 @@ function isLiveWritesEnabled(env) {
   return String(env.LIVE_WRITES_ENABLED || '').toLowerCase() === 'true';
 }
 
+function isTestMediaUploadEnabled(env) {
+  return env.DEPLOYMENT_ENV === 'test' &&
+    String(env.TEST_MEDIA_UPLOAD_ENABLED || '').toLowerCase() === 'true';
+}
+
+function getTestMediaUploadPrefix(env) {
+  const rawPrefix = String(env.TEST_MEDIA_UPLOAD_PREFIX || 'xhalo-blog-test/').trim();
+  const safePrefix = rawPrefix.replace(/^\/+/, '').replace(/\.\./g, '').replace(/\/+$/, '');
+  return safePrefix ? `${safePrefix}/` : 'xhalo-blog-test/';
+}
+
+function applyTestMediaUploadPrefix(preview, env) {
+  const prefix = getTestMediaUploadPrefix(env);
+  if (preview.objectKey.startsWith(prefix)) return preview;
+  const objectKey = `${prefix}${preview.objectKey}`;
+  const publicBaseUrl = String(env.ASSETS_PUBLIC_BASE_URL || defaultR2UploadTemplate.publicBaseUrl).replace(/\/$/, '');
+  return {
+    ...preview,
+    objectKey,
+    publicUrl: `${publicBaseUrl}/${objectKey}`,
+    testMediaUploadPrefix: prefix
+  };
+}
+
 function rejectLiveWriteDisabled() {
   return createJsonResponse({
     error: 'Live writes are disabled.',
@@ -788,7 +812,7 @@ function rejectUnauthorized() {
 }
 
 function isProtectedAdminRoute(pathname) {
-  if (pathname.startsWith('/api/posts') || pathname === '/api/readiness' || pathname === '/api/tasks' || pathname === '/api/tasks/example' || pathname === '/api/audit-logs' || pathname.startsWith('/api/tasks/')) {
+  if (pathname.startsWith('/api/posts') || pathname === '/api/readiness' || pathname === '/api/tasks' || pathname === '/api/tasks/example' || pathname === '/api/audit-logs' || pathname === '/api/audit-logs/summary' || pathname === '/api/blog/stats' || pathname.startsWith('/api/tasks/')) {
     return true;
   }
 
@@ -1576,6 +1600,59 @@ async function handleRequest(request, env, requestStart) {
       });
     }
 
+    if (url.pathname === '/api/audit-logs/summary') {
+      const rows = await selectRows(
+        env,
+        'SELECT action, status_code FROM audit_logs ORDER BY timestamp DESC LIMIT 500'
+      );
+      const items = rows || [];
+      const byAction = {};
+      let failed = 0;
+      for (const item of items) {
+        const action = item.action || 'unknown';
+        byAction[action] = (byAction[action] || 0) + 1;
+        const statusCode = Number(item.status_code || 0);
+        if (statusCode >= 400 || item.error) failed += 1;
+      }
+
+      return createJsonResponse({
+        ok: true,
+        total: items.length,
+        failed,
+        byAction,
+        backend: rows ? 'd1' : 'unavailable',
+        note: 'Read-only audit summary.'
+      });
+    }
+
+    if (url.pathname === '/api/blog/stats') {
+      const fallbackPosts = createFallbackPosts();
+      const postsRows = await selectRows(env, 'SELECT status FROM posts_index LIMIT 10000');
+      const taskRows = await selectRows(env, 'SELECT status, type FROM tasks LIMIT 10000');
+      const auditRows = await selectRows(env, 'SELECT status_code, resource FROM audit_logs LIMIT 10000');
+      const posts = postsRows || fallbackPosts;
+      const tasks = taskRows || [];
+      const audit = auditRows || [];
+      const mediaAssets = audit.filter((item) => item.resource === 'asset' || item.resource === 'media').length;
+
+      return createJsonResponse({
+        ok: true,
+        backend: postsRows ? 'd1' : 'fallback',
+        sourceOfTruth: 'git',
+        generatedAt: nowIso(),
+        target: getGitHubRepository(env),
+        counts: {
+          posts: posts.length,
+          publishedPosts: posts.filter((item) => item.status === 'published').length,
+          draftPosts: posts.filter((item) => item.status === 'draft').length,
+          tasks: tasks.length,
+          mediaAssets,
+          auditEvents: audit.length
+        },
+        note: 'Read-only blog statistics summary.'
+      });
+    }
+
     if (url.pathname === '/api/drafts/template') {
       return createJsonResponse({
         template: defaultDraftTemplate,
@@ -2109,11 +2186,15 @@ async function handleRequest(request, env, requestStart) {
         return createJsonResponse({ error: validationError }, { status: 400 });
       }
       const mode = input.mode === 'live' ? 'live' : 'dry-run';
-      const preview = buildR2UploadPreview(input, {
+      let preview = buildR2UploadPreview(input, {
         bucketBinding: 'ASSETS',
         bucketName: 'xhalo-blog-assets',
         publicBaseUrl: env.ASSETS_PUBLIC_BASE_URL || defaultR2UploadTemplate.publicBaseUrl
       });
+      const testMediaUpload = mode === 'live' && !isLiveWritesEnabled(env) && isTestMediaUploadEnabled(env);
+      if (testMediaUpload) {
+        preview = applyTestMediaUploadPrefix(preview, env);
+      }
       const ttlSeconds = Number(input.ttlSeconds || defaultR2UploadTemplate.defaults.uploadUrlTtlSeconds) || defaultR2UploadTemplate.defaults.uploadUrlTtlSeconds;
       const plan = buildR2SignedUploadPlan(input, {
         bucketBinding: 'ASSETS',
@@ -2131,7 +2212,7 @@ async function handleRequest(request, env, requestStart) {
         });
       }
 
-      if (!isLiveWritesEnabled(env)) {
+      if (!isLiveWritesEnabled(env) && !testMediaUpload) {
         return rejectLiveWriteDisabled();
       }
 
@@ -2175,6 +2256,8 @@ async function handleRequest(request, env, requestStart) {
         scope: preview.scope,
         postSlug: preview.postSlug,
         publicUrl: preview.publicUrl,
+        testMediaUpload,
+        testMediaUploadPrefix: testMediaUpload ? getTestMediaUploadPrefix(env) : null,
         exp: expiresAt
       });
       const uploadUrl = buildSignedUploadUrl(request.url, token);
@@ -2192,16 +2275,14 @@ async function handleRequest(request, env, requestStart) {
         },
         expires_at: new Date(expiresAt).toISOString(),
         uploaded_bytes: uploadBody.byteLength,
-        note: 'Short-lived signed worker upload URL issued. Send x-xhalo-admin-secret with the PUT request. It is not one-time unless a nonce store is added.'
+        note: testMediaUpload
+          ? 'Short-lived test-only signed worker upload URL issued under TEST_MEDIA_UPLOAD_PREFIX. Production R2 live upload remains disabled.'
+          : 'Short-lived signed worker upload URL issued. Send x-xhalo-admin-secret with the PUT request. It is not one-time unless a nonce store is added.'
       });
     }
 
     if (url.pathname.startsWith('/api/assets/r2-upload/') && request.method === 'PUT') {
       const token = decodeURIComponent(url.pathname.slice('/api/assets/r2-upload/'.length));
-
-      if (!isLiveWritesEnabled(env)) {
-        return rejectLiveWriteDisabled();
-      }
 
       if (!env.ASSETS || typeof env.ASSETS.put !== 'function') {
         return createJsonResponse({ error: 'ASSETS binding is required for signed uploads.' }, { status: 503 });
@@ -2216,6 +2297,20 @@ async function handleRequest(request, env, requestStart) {
         signedPayload = await verifyUploadToken(env, token);
       } catch (error) {
         return createJsonResponse({ error: error.message || 'Invalid upload token.' }, { status: 403 });
+      }
+
+      const signedTestMediaUpload = signedPayload.testMediaUpload === true;
+      if (!isLiveWritesEnabled(env)) {
+        if (!signedTestMediaUpload || !isTestMediaUploadEnabled(env)) {
+          return rejectLiveWriteDisabled();
+        }
+        const requiredPrefix = getTestMediaUploadPrefix(env);
+        if (!String(signedPayload.objectKey || '').startsWith(requiredPrefix)) {
+          return createJsonResponse({
+            error: 'Signed upload object key is outside TEST_MEDIA_UPLOAD_PREFIX.',
+            code: 'TEST_MEDIA_UPLOAD_PREFIX_VIOLATION'
+          }, { status: 403 });
+        }
       }
 
       if (Date.now() > Number(signedPayload.exp || 0)) {
@@ -2663,6 +2758,118 @@ async function handleRequest(request, env, requestStart) {
         mode: 'dry-run',
         message: 'Direct menu config update is reserved for a future phase.'
       });
+    }
+
+    if (url.pathname === '/api/site/menu/test-direct-update' && request.method === 'POST') {
+      const session = await verifySessionCookie(request, env);
+      const legacySecretOk = hasAdminRequestSecret(env) &&
+        request.headers.get('x-xhalo-admin-secret') === env.ADMIN_API_SHARED_SECRET;
+      if (!legacySecretOk && (!session || !(session.isAdmin === true || session.role === 'admin'))) {
+        await insertAuditLog(env, {
+          action: 'test_menu_update_failed',
+          ...extractRequestMeta(request),
+          status_code: 401,
+          duration_ms: Date.now() - requestStart,
+          error: 'GitHub admin session is required.',
+          detail: { code: 'ADMIN_SESSION_REQUIRED' }
+        });
+        return createJsonResponse({
+          error: 'GitHub admin session is required.',
+          code: 'ADMIN_SESSION_REQUIRED'
+        }, { status: 401 });
+      }
+
+      if (!isTestDirectPublishEnabled(env)) {
+        await insertAuditLog(env, {
+          action: 'test_menu_update_failed',
+          ...extractRequestMeta(request),
+          actor: session?.login || 'legacy-admin-secret',
+          status_code: 403,
+          duration_ms: Date.now() - requestStart,
+          error: 'Test direct menu update is disabled.',
+          detail: { code: 'TEST_DIRECT_MENU_UPDATE_DISABLED' }
+        });
+        return createJsonResponse({
+          error: 'Test direct menu update is disabled.',
+          code: 'TEST_DIRECT_MENU_UPDATE_DISABLED',
+          required_env: [
+            'DEPLOYMENT_ENV=test',
+            'PUBLISH_MODE=test_direct',
+            'TEST_DIRECT_PUBLISH_ENABLED=true'
+          ]
+        }, { status: 403 });
+      }
+
+      const repository = getGitHubRepository(env);
+      if (isForbiddenProductionContentTarget(repository)) {
+        return createJsonResponse({
+          error: 'Refusing to write to production content branch from test menu update.',
+          code: 'PRODUCTION_BRANCH_FORBIDDEN'
+        }, { status: 403 });
+      }
+
+      const { input, error: parseError } = await readJsonBody(request);
+      if (parseError) return createJsonResponse({ error: parseError }, { status: 400 });
+      if (!Array.isArray(input.menu)) {
+        return createJsonResponse({ error: 'Request body must include a menu array.' }, { status: 400 });
+      }
+
+      const menuError = validateMenuList(input.menu);
+      if (menuError) {
+        return createJsonResponse({ error: menuError }, { status: 400 });
+      }
+
+      try {
+        const configData = await getConfigFromMain(env);
+        const oldConfig = JSON.parse(configData.raw);
+        const newConfig = updateConfigWithMenu(oldConfig, input.menu);
+        const content = `${JSON.stringify(newConfig, null, 2)}\n`;
+        const commitResult = await createDirectMainUpdateCommit(env, {
+          branch: repository.baseBranch,
+          filePath: configData.filename,
+          content,
+          baseSha: input.baseSha || configData.sha,
+          commitMessage: '[test-menu-update] update site menu'
+        });
+
+        await insertAuditLog(env, {
+          action: 'test_menu_update',
+          ...extractRequestMeta(request),
+          actor: session?.login || 'legacy-admin-secret',
+          resource: 'site_menu',
+          resource_id: configData.filename,
+          status_code: 200,
+          duration_ms: Date.now() - requestStart,
+          detail: {
+            target_repo: `${repository.owner}/${repository.repo}`,
+            target_branch: repository.baseBranch,
+            commitSha: commitResult.commitSha
+          }
+        });
+
+        return createJsonResponse({
+          ok: true,
+          mode: 'test-direct',
+          targetRepo: `${repository.owner}/${repository.repo}`,
+          targetBranch: repository.baseBranch,
+          targetPath: configData.filename,
+          commitSha: commitResult.commitSha,
+          commitUrl: commitResult.commitUrl
+        });
+      } catch (err) {
+        await insertAuditLog(env, {
+          action: 'test_menu_update_failed',
+          ...extractRequestMeta(request),
+          actor: session?.login || 'legacy-admin-secret',
+          status_code: err.status || 500,
+          duration_ms: Date.now() - requestStart,
+          error: err.message
+        });
+        return createJsonResponse({
+          error: `Failed to update test menu: ${err.message}`,
+          code: err.code || 'TEST_MENU_UPDATE_FAILED'
+        }, { status: err.status || 500 });
+      }
     }
 
     return createJsonResponse({ error: 'Not found' }, { status: 404 });

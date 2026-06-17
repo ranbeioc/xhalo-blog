@@ -1,5 +1,5 @@
 import { apiFetch } from './api-client.js';
-import { showToast } from './ui.js';
+import { escapeHtml, showToast } from './ui.js';
 
 export const FIRST_TEST_ARTICLE_TEMPLATE = {
   title: 'xHalo Blog 测试文章',
@@ -9,7 +9,7 @@ export const FIRST_TEST_ARTICLE_TEMPLATE = {
   body: [
     '# xHalo Blog 测试文章',
     '',
-    '这是一篇用于验证 xhalo-blog-test Cloudflare Pages 完整测试站、GitHub OAuth 管理员登录和 test-only direct publish 流程的文章。',
+    '这是一篇用于验证 xhalo-blog-test Cloudflare Pages、GitHub OAuth 管理员登录和 test-only direct publish 流程的文章。',
     '',
     '- Pages 承载博客 HTML、Admin 前端和普通静态资源。',
     '- R2 仅作为媒体和附件资产层，不作为整站托管层。',
@@ -17,33 +17,42 @@ export const FIRST_TEST_ARTICLE_TEMPLATE = {
   ].join('\n')
 };
 
+const EMPTY_POST = {
+  title: '',
+  slug: '',
+  category: '',
+  tags: '',
+  body: '',
+  sha: ''
+};
+
 export async function fetchPostSource(slug) {
-  try {
-    const res = await apiFetch(`/api/posts/source?slug=${slug}`);
-    if (!res.ok) throw new Error(`Source API returned status ${res.status}`);
-    return await res.json();
-  } catch (err) {
-    console.error('Failed to load post source:', err);
-    throw err;
-  }
+  const res = await apiFetch(`/api/posts/source?slug=${encodeURIComponent(slug)}`);
+  if (!res.ok) throw new Error(`Source API returned status ${res.status}`);
+  return await res.json();
 }
 
-export function renderEditor(container, { initialPost, onSaveSuccess, dashboardData }) {
+export function renderEditor(container, { initialPost, dashboardData }) {
   let post = initialPost || { ...FIRST_TEST_ARTICLE_TEMPLATE, sha: '' };
-  let activeTab = 'edit'; // edit, preview, diff, plan
+  let activeTab = 'edit';
   let diffHtml = '';
   let planHtml = '';
   let actionResultHtml = '';
   let loadingState = false;
 
+  const readiness = dashboardData?.readiness || {};
   const isDirectPublishEnabled = dashboardData?.readiness?.ownerDirectPublishEnabled === true;
   const isDirectUpdateEnabled = dashboardData?.readiness?.ownerDirectUpdateEnabled === true;
   const isLiveWritesEnabled = dashboardData?.readiness?.liveWritesEnabled === true;
-  const readiness = dashboardData?.readiness || {};
+  void isDirectPublishEnabled;
+  void isDirectUpdateEnabled;
+  void isLiveWritesEnabled;
+
   const isTestDirectPublishEnabled = readiness.deploymentEnv === 'test' &&
     readiness.publishMode === 'test_direct' &&
     readiness.testDirectPublishEnabled === true &&
     readiness.testDirectTargetSafe === true;
+
   const testPublishDisabledReason = readiness.deploymentEnv !== 'test'
     ? 'DEPLOYMENT_ENV must be test'
     : readiness.publishMode !== 'test_direct'
@@ -53,6 +62,18 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
         : readiness.testDirectTargetSafe !== true
           ? 'Target repository/branch is not test-safe'
           : '';
+
+  function syncFromForm() {
+    const getValue = (id) => container.querySelector(id)?.value || '';
+    post = {
+      ...post,
+      title: getValue('#edit-title'),
+      slug: getValue('#edit-slug'),
+      category: getValue('#edit-category'),
+      tags: getValue('#edit-tags'),
+      body: getValue('#edit-body')
+    };
+  }
 
   async function loadExistingSource() {
     if (!post.slug) return;
@@ -68,10 +89,10 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
         body: data.body || '',
         sha: data.sha || ''
       };
-      actionResultHtml = `<div class="alert alert-success">Source loaded successfully (SHA: <code>${post.sha.substring(0, 7)}</code>)</div>`;
+      actionResultHtml = `<div class="alert alert-success">Source loaded successfully (SHA: <code>${escapeHtml(post.sha.substring(0, 7))}</code>)</div>`;
       showToast('Source loaded successfully', 'success');
     } catch (err) {
-      actionResultHtml = `<div class="alert alert-error">Failed to load source: ${err.message}</div>`;
+      actionResultHtml = `<div class="alert alert-error">Failed to load source: ${escapeHtml(err.message)}</div>`;
       showToast(`Failed to load source: ${err.message}`, 'error');
     } finally {
       loadingState = false;
@@ -80,6 +101,7 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
   }
 
   async function fetchDiffPreview() {
+    syncFromForm();
     if (!post.slug) {
       showToast('Please fill out the Slug field before requesting a diff.', 'warning');
       return;
@@ -91,24 +113,17 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
       const res = await apiFetch('/api/drafts/direct-update-preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: post.title,
-          slug: post.slug,
-          category: post.category,
-          tags: post.tags ? post.tags.split(',').map(t => t.trim()) : [],
-          body: post.body
-        })
+        body: JSON.stringify(buildPayload())
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Diff failed');
-      
       const diff = data.diff || {};
       diffHtml = `
         <div class="diff-container">
-          <p>Comparing local draft changes against main source file <code>${diff.filePath || ''}</code>.</p>
+          <p>Comparing local draft changes against main source file <code>${escapeHtml(diff.filePath || '')}</code>.</p>
           <div class="diff-meta">
-            <span>Base SHA: <code>${diff.baseSha ? diff.baseSha.substring(0, 7) : 'None'}</code></span>
-            <span>Status: <strong>${diff.status || 'modified'}</strong></span>
+            <span>Base SHA: <code>${escapeHtml(diff.baseSha ? diff.baseSha.substring(0, 7) : 'None')}</code></span>
+            <span>Status: <strong>${escapeHtml(diff.status || 'modified')}</strong></span>
           </div>
           <div class="diff-code-view">
             <pre class="diff-diff">${escapeHtml(diff.diffText || 'No modifications detected.')}</pre>
@@ -117,7 +132,7 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
       `;
       showToast('Diff generated successfully', 'success');
     } catch (err) {
-      diffHtml = `<div class="alert alert-error">Failed to generate diff: ${err.message}</div>`;
+      diffHtml = `<div class="alert alert-error">Failed to generate diff: ${escapeHtml(err.message)}</div>`;
       showToast(`Failed to generate diff: ${err.message}`, 'error');
     } finally {
       loadingState = false;
@@ -126,6 +141,7 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
   }
 
   async function fetchPublishPlan() {
+    syncFromForm();
     loadingState = true;
     activeTab = 'plan';
     draw();
@@ -133,21 +149,11 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
       const res = await apiFetch('/api/drafts/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: post.title,
-          slug: post.slug,
-          category: post.category,
-          tags: post.tags ? post.tags.split(',').map(t => t.trim()) : [],
-          body: post.body,
-          mode: 'dry-run',
-          publish_target: 'github'
-        })
+        body: JSON.stringify({ ...buildPayload(), mode: 'dry-run', publish_target: 'github' })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Plan failed');
-      
-      const plan = data.plan || {};
-      const actions = plan.actions || plan.ops || [];
+      const actions = data.plan?.actions || data.plan?.ops || [];
       planHtml = `
         <div class="plan-container">
           <p><strong>Dry-run Plan Summary:</strong> No remote changes have been created.</p>
@@ -156,8 +162,8 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
               <div class="plan-step">
                 <span class="step-num">Step ${index + 1}</span>
                 <div class="step-details">
-                  <strong>${act.op || act.action}</strong>
-                  <span>${act.branch || act.path || act.title || ''}</span>
+                  <strong>${escapeHtml(act.op || act.action || 'operation')}</strong>
+                  <span>${escapeHtml(act.branch || act.path || act.title || '')}</span>
                 </div>
               </div>
             `).join('')}
@@ -166,7 +172,7 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
       `;
       showToast('Publish plan computed', 'success');
     } catch (err) {
-      planHtml = `<div class="alert alert-error">Failed to retrieve plan: ${err.message}</div>`;
+      planHtml = `<div class="alert alert-error">Failed to retrieve plan: ${escapeHtml(err.message)}</div>`;
       showToast(`Failed to retrieve plan: ${err.message}`, 'error');
     } finally {
       loadingState = false;
@@ -175,43 +181,27 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
   }
 
   async function handleCreatePR() {
+    syncFromForm();
     loadingState = true;
     draw();
     try {
       const res = await apiFetch('/api/drafts/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: post.title,
-          slug: post.slug,
-          category: post.category,
-          tags: post.tags ? post.tags.split(',').map(t => t.trim()) : [],
-          body: post.body,
-          mode: 'live',
-          publish_target: 'github'
-        })
+        body: JSON.stringify({ ...buildPayload(), mode: 'live', publish_target: 'github' })
       });
       const data = await res.json();
       if (res.status === 403) {
-        actionResultHtml = `
-          <div class="alert alert-warning">
-            <strong>Action Blocked:</strong> Staging write is disabled. Rejections occurred as expected.<br/>
-            <code>${data.error || 'Live writes are disabled'}</code>
-          </div>
-        `;
-        showToast('Action Blocked: Staging write is disabled', 'warning');
+        actionResultHtml = `<div class="alert alert-warning"><strong>Action Blocked:</strong> <code>${escapeHtml(data.error || 'Live writes are disabled')}</code></div>`;
+        showToast('Action blocked by write gate', 'warning');
       } else if (res.ok) {
-        actionResultHtml = `
-          <div class="alert alert-success">
-            <strong>Task Dispatched:</strong> PR request queued successfully. Task ID: <code>${data.task_id || ''}</code>
-          </div>
-        `;
+        actionResultHtml = `<div class="alert alert-success"><strong>Task Dispatched:</strong> Task ID: <code>${escapeHtml(data.task_id || '')}</code></div>`;
         showToast('PR creation task dispatched', 'success');
       } else {
         throw new Error(data.error || 'Unexpected error');
       }
     } catch (err) {
-      actionResultHtml = `<div class="alert alert-error">Operation failed: ${err.message}</div>`;
+      actionResultHtml = `<div class="alert alert-error">Operation failed: ${escapeHtml(err.message)}</div>`;
       showToast(`Operation failed: ${err.message}`, 'error');
     } finally {
       loadingState = false;
@@ -220,36 +210,29 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
   }
 
   async function handlePublishToTest() {
+    syncFromForm();
     loadingState = true;
     draw();
     try {
       const res = await apiFetch('/api/drafts/test-direct-publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: post.title,
-          slug: post.slug,
-          category: post.category,
-          tags: post.tags ? post.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
-          body: post.body
-        })
+        body: JSON.stringify(buildPayload())
       });
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || data.code || 'Test publish failed');
-      }
+      if (!res.ok) throw new Error(data.error || data.code || 'Test publish failed');
       actionResultHtml = `
         <div class="alert alert-success">
           <strong>Published to test target:</strong>
-          <code>${escapeHtml(data.targetRepo || '')}@${escapeHtml(data.targetBranch || '')}</code>
-          <br/>
+          <code>${escapeHtml(data.targetRepo || '')}@${escapeHtml(data.targetBranch || '')}</code><br/>
           Path: <code>${escapeHtml(data.targetPath || '')}</code>
           ${data.commitSha ? `<br/>Commit: <code>${escapeHtml(data.commitSha.substring(0, 12))}</code>` : ''}
+          ${data.postUrl ? `<br/>Post URL: <a href="${escapeHtml(data.postUrl)}" target="_blank" rel="noreferrer">${escapeHtml(data.postUrl)}</a>` : ''}
         </div>
       `;
       showToast('Test publish request completed', 'success');
     } catch (err) {
-      actionResultHtml = `<div class="alert alert-error">Test publish failed: ${err.message}</div>`;
+      actionResultHtml = `<div class="alert alert-error">Test publish failed: ${escapeHtml(err.message)}</div>`;
       showToast(`Test publish failed: ${err.message}`, 'error');
     } finally {
       loadingState = false;
@@ -257,42 +240,72 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
     }
   }
 
-  function draw() {
-    const editActive = activeTab === 'edit' ? 'active' : '';
-    const previewActive = activeTab === 'preview' ? 'active' : '';
-    const diffActive = activeTab === 'diff' ? 'active' : '';
-    const planActive = activeTab === 'plan' ? 'active' : '';
+  function buildPayload() {
+    return {
+      title: post.title,
+      slug: post.slug,
+      category: post.category,
+      tags: post.tags ? post.tags.split(',').map((tag) => tag.trim()).filter(Boolean) : [],
+      body: post.body
+    };
+  }
 
-    let tabContent = '';
-    if (activeTab === 'edit') {
-      tabContent = `
-        <div class="editor-fields-grid">
-          <label>
-            <span>Article Title</span>
-            <input type="text" id="edit-title" value="${escapeHtml(post.title)}" placeholder="e.g. Hello World" />
-          </label>
-          <label>
-            <span>Article Slug</span>
-            <input type="text" id="edit-slug" value="${escapeHtml(post.slug)}" placeholder="e.g. hello-world" />
-          </label>
-          <label>
-            <span>Category</span>
-            <input type="text" id="edit-category" value="${escapeHtml(post.category)}" placeholder="e.g. Life" />
-          </label>
-          <label>
-            <span>Tags (comma separated)</span>
-            <input type="text" id="edit-tags" value="${escapeHtml(post.tags)}" placeholder="e.g. personal, welcome" />
-          </label>
-          
-          <label class="field-span-2">
-            <span>Body Content (Markdown)</span>
-            <textarea id="edit-body" rows="15" placeholder="Write markdown content here...">${escapeHtml(post.body)}</textarea>
-          </label>
+  function useTemplate(templateName) {
+    post = templateName === 'first-test'
+      ? { ...FIRST_TEST_ARTICLE_TEMPLATE, sha: '' }
+      : { ...EMPTY_POST };
+    activeTab = 'edit';
+    actionResultHtml = '';
+    draw();
+  }
+
+  function draw() {
+    const tabContent = renderTabContent();
+    container.innerHTML = `
+      <div class="editor-workspace">
+        <div class="editor-top-actions">
+          <h2>Article Editor</h2>
+          <div class="source-loader-block">
+            <button class="button-small button-secondary" id="btn-template-first">Use Test Template</button>
+            <button class="button-small button-secondary" id="btn-template-empty">Blank Draft</button>
+            <button class="button-small button-secondary" id="btn-load-source" ${post.slug ? '' : 'disabled'}>Load Main Source</button>
+          </div>
         </div>
-      `;
-    } else if (activeTab === 'preview') {
-      tabContent = `
-        <div class="markdown-preview-container card">
+
+        <div class="alert alert-info">
+          <strong>Test publishing:</strong> Publish to Test is available only when DEPLOYMENT_ENV is test, PUBLISH_MODE is test_direct, TEST_DIRECT_PUBLISH_ENABLED is true, and the target is safe.
+        </div>
+
+        <div class="editor-tabs">
+          <button class="tab-btn ${activeTab === 'edit' ? 'active' : ''}" data-tab="edit">Edit</button>
+          <button class="tab-btn ${activeTab === 'preview' ? 'active' : ''}" data-tab="preview">Markdown Preview</button>
+          <button class="tab-btn ${activeTab === 'diff' ? 'active' : ''}" data-tab="diff">Diff</button>
+          <button class="tab-btn ${activeTab === 'plan' ? 'active' : ''}" data-tab="plan">PR Plan</button>
+        </div>
+
+        <div class="editor-tab-content card">${tabContent}</div>
+
+        <div class="editor-actions">
+          <button class="button-secondary" id="btn-diff">Preview Diff</button>
+          <button class="button-secondary" id="btn-plan">Dry-run PR Plan</button>
+          <button class="button-secondary" id="btn-create-pr" ${readiness.liveWritesEnabled === true ? '' : 'disabled'} title="${readiness.liveWritesEnabled === true ? 'Ready' : 'Create Review PR unavailable: LIVE_WRITES_ENABLED=false'}">Create Review PR</button>
+          <button class="button-primary" id="btn-publish-test" ${isTestDirectPublishEnabled ? '' : 'disabled'} title="${escapeHtml(testPublishDisabledReason || 'Ready')}">Publish to Test</button>
+        </div>
+
+        ${readiness.liveWritesEnabled === true ? '' : '<p class="help-text">Create Review PR unavailable: LIVE_WRITES_ENABLED=false</p>'}
+        ${!isTestDirectPublishEnabled ? `<p class="help-text">Publish to Test unavailable: ${escapeHtml(testPublishDisabledReason)}</p>` : ''}
+        ${loadingState ? '<div class="info-text">Working...</div>' : ''}
+        ${actionResultHtml}
+      </div>
+    `;
+
+    bindEvents();
+  }
+
+  function renderTabContent() {
+    if (activeTab === 'preview') {
+      return `
+        <div class="markdown-preview-container">
           <h2>${escapeHtml(post.title || 'Untitled Post')}</h2>
           <div class="post-meta">
             ${post.category ? `<span>Category: <strong>${escapeHtml(post.category)}</strong></span>` : ''}
@@ -304,216 +317,106 @@ export function renderEditor(container, { initialPost, onSaveSuccess, dashboardD
           </div>
         </div>
       `;
-    } else if (activeTab === 'diff') {
-      tabContent = diffHtml || '<p class="info-text">Load diff status to inspect change details.</p>';
-    } else if (activeTab === 'plan') {
-      tabContent = planHtml || '<p class="info-text">Generate a publish plan to preview operations.</p>';
     }
+    if (activeTab === 'diff') return diffHtml || '<p class="info-text">Load diff status to inspect change details.</p>';
+    if (activeTab === 'plan') return planHtml || '<p class="info-text">Generate a publish plan to preview operations.</p>';
 
-    container.innerHTML = `
-      <div class="editor-workspace">
-        <div class="editor-top-actions">
-          <h2>Article Editor</h2>
-          <div class="source-loader-block">
-            <button class="button-small button-secondary" id="btn-load-source" ${post.slug ? '' : 'disabled'}>Load Main Source</button>
-          </div>
-        </div>
-
-        ${actionResultHtml}
-
-        <div class="tab-header-nav" style="margin-bottom: 20px;">
-          <button class="tab-btn ${editActive}" data-tab="edit">Edit</button>
-          <button class="tab-btn ${previewActive}" data-tab="preview">Preview HTML</button>
-          <button class="tab-btn ${diffActive}" data-tab="diff">Diff Preview</button>
-          <button class="tab-btn ${planActive}" data-tab="plan">GitHub Plan</button>
-        </div>
-
-        <div class="editor-tab-content" style="position: relative;">
-          ${loadingState ? '<div class="loading-overlay"><span>Loading...</span></div>' : ''}
-          ${tabContent}
-        </div>
-
-        <div class="editor-bottom-actions card" style="margin-top: 30px;">
-          <h3>Operational Controls</h3>
-          <div class="control-actions-grid">
-            <div class="control-group">
-              <h4>Safe Inspection</h4>
-              <div class="btn-row">
-                <button class="button-secondary" id="btn-inspect-diff">Generate Diff</button>
-                <button class="button-secondary" id="btn-inspect-plan">View Dry-run Plan</button>
-              </div>
-            </div>
-            
-            <div class="control-group">
-              <h4>Controlled PR Publish</h4>
-              ${isLiveWritesEnabled 
-                ? '<button class="button-primary" id="btn-create-pr">Create Review PR</button>'
-                : '<button class="button-primary" id="btn-create-pr" disabled title="Staging write is disabled">Create Review PR unavailable: LIVE_WRITES_ENABLED=false</button>'
-              }
-            </div>
-
-            <div class="control-group">
-              <h4>Test-only Direct Publish</h4>
-              ${isTestDirectPublishEnabled
-                ? '<button class="button-primary" id="btn-publish-to-test">Publish to Test</button>'
-                : `<button class="button-primary" id="btn-publish-to-test" disabled title="${escapeHtml(testPublishDisabledReason)}">Publish to Test unavailable</button>`
-              }
-              <span class="control-help-text">Requires GitHub admin session, <code>DEPLOYMENT_ENV=test</code>, <code>PUBLISH_MODE=test_direct</code>, and a non-production target.</span>
-            </div>
-            
-            <div class="control-group">
-              <h4>Direct Main Write (Disabled)</h4>
-              <div class="btn-row">
-                <button class="button-danger" id="btn-direct-publish" disabled title="OWNER_DIRECT_PUBLISH_ENABLED is false">Direct Publish</button>
-                <button class="button-danger" id="btn-direct-update" disabled title="OWNER_DIRECT_UPDATE_ENABLED is false">Direct Update</button>
-              </div>
-              <span class="control-help-text">Direct main updates are blocked in staging/production by default.</span>
-            </div>
-          </div>
-        </div>
+    return `
+      <div class="editor-fields-grid">
+        <label><span>Article Title</span><input type="text" id="edit-title" value="${escapeHtml(post.title)}" placeholder="e.g. Hello World" /></label>
+        <label><span>Article Slug</span><input type="text" id="edit-slug" value="${escapeHtml(post.slug)}" placeholder="e.g. hello-world" /></label>
+        <label><span>Category</span><input type="text" id="edit-category" value="${escapeHtml(post.category)}" placeholder="e.g. Life" /></label>
+        <label><span>Tags (comma separated)</span><input type="text" id="edit-tags" value="${escapeHtml(post.tags)}" placeholder="e.g. personal, welcome" /></label>
+        <label class="field-span-2"><span>Body Content (Markdown)</span><textarea id="edit-body" rows="15" placeholder="Write markdown content here...">${escapeHtml(post.body)}</textarea></label>
       </div>
     `;
+  }
 
-    // Bind inputs
-    if (activeTab === 'edit') {
-      const editTitle = container.querySelector('#edit-title');
-      const editSlug = container.querySelector('#edit-slug');
-      const editCategory = container.querySelector('#edit-category');
-      const editTags = container.querySelector('#edit-tags');
-      const editBody = container.querySelector('#edit-body');
-
-      const updateState = () => {
-        post.title = editTitle.value;
-        post.slug = editSlug.value;
-        post.category = editCategory.value;
-        post.tags = editTags.value;
-        post.body = editBody.value;
-        
-        const loadBtn = container.querySelector('#btn-load-source');
-        if (loadBtn) {
-          loadBtn.disabled = !post.slug;
-        }
-      };
-
-      [editTitle, editSlug, editCategory, editTags, editBody].forEach(el => {
-        el.addEventListener('input', updateState);
-      });
-    }
-
-    // Bind tabs
-    container.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        activeTab = e.target.getAttribute('data-tab');
+  function bindEvents() {
+    container.querySelectorAll('.tab-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        syncFromForm();
+        activeTab = btn.getAttribute('data-tab') || 'edit';
         draw();
       });
     });
-
-    // Bind action buttons
-    const loadSourceBtn = container.querySelector('#btn-load-source');
-    if (loadSourceBtn) loadSourceBtn.addEventListener('click', loadExistingSource);
-
-    const inspectDiffBtn = container.querySelector('#btn-inspect-diff');
-    if (inspectDiffBtn) inspectDiffBtn.addEventListener('click', fetchDiffPreview);
-
-    const inspectPlanBtn = container.querySelector('#btn-inspect-plan');
-    if (inspectPlanBtn) inspectPlanBtn.addEventListener('click', fetchPublishPlan);
-
-    const createPrBtn = container.querySelector('#btn-create-pr');
-    if (createPrBtn) createPrBtn.addEventListener('click', handleCreatePR);
-
-    const publishToTestBtn = container.querySelector('#btn-publish-to-test');
-    if (publishToTestBtn && !publishToTestBtn.disabled) publishToTestBtn.addEventListener('click', handlePublishToTest);
-  }
-
-  function renderSimpleMarkdown(md) {
-    if (!md) return '';
-    let escaped = md
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
-
-    const blocks = escaped.split(/\n\n+/);
-    let htmlBlocks = [];
-
-    for (let block of blocks) {
-      block = block.trim();
-      if (!block) continue;
-
-      if (block.startsWith('```')) {
-        const lines = block.split('\n');
-        const firstLine = lines[0];
-        const lang = firstLine.substring(3).trim();
-        const codeLines = lines.slice(1, lines[lines.length - 1] === '```' ? -1 : undefined);
-        const code = codeLines.join('\n');
-        htmlBlocks.push(`<pre><code class="language-${lang}">${code}</code></pre>`);
-        continue;
-      }
-
-      if (block.startsWith('#')) {
-        const match = block.match(/^(#{1,6})\s+(.*)$/);
-        if (match) {
-          const level = match[1].length;
-          const text = parseInlineMarkdown(match[2]);
-          htmlBlocks.push(`<h${level}>${text}</h${level}>`);
-          continue;
-        }
-      }
-
-      if (block.startsWith('>')) {
-        const lines = block.split('\n').map(line => line.replace(/^>\s?/, ''));
-        const text = parseInlineMarkdown(lines.join('\n'));
-        htmlBlocks.push(`<blockquote><p>${text}</p></blockquote>`);
-        continue;
-      }
-
-      if (block.startsWith('* ') || block.startsWith('- ')) {
-        const lines = block.split('\n');
-        let listHtml = '<ul>';
-        for (const line of lines) {
-          const itemText = line.replace(/^[\*\-]\s+/, '');
-          listHtml += `<li>${parseInlineMarkdown(itemText)}</li>`;
-        }
-        listHtml += '</ul>';
-        htmlBlocks.push(listHtml);
-        continue;
-      }
-
-      if (/^\d+\.\s+/.test(block)) {
-        const lines = block.split('\n');
-        let listHtml = '<ol>';
-        for (const line of lines) {
-          const itemText = line.replace(/^\d+\.\s+/, '');
-          listHtml += `<li>${parseInlineMarkdown(itemText)}</li>`;
-        }
-        listHtml += '</ol>';
-        htmlBlocks.push(listHtml);
-        continue;
-      }
-
-      const text = parseInlineMarkdown(block.split('\n').join('<br/>'));
-      htmlBlocks.push(`<p>${text}</p>`);
-    }
-
-    return htmlBlocks.join('\n');
-  }
-
-  function parseInlineMarkdown(text) {
-    return text
-      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
-  }
-
-  function escapeHtml(str) {
-    if (!str) return '';
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
+    container.querySelector('#btn-template-first')?.addEventListener('click', () => useTemplate('first-test'));
+    container.querySelector('#btn-template-empty')?.addEventListener('click', () => useTemplate('empty'));
+    container.querySelector('#btn-load-source')?.addEventListener('click', () => {
+      syncFromForm();
+      loadExistingSource();
+    });
+    container.querySelector('#btn-diff')?.addEventListener('click', fetchDiffPreview);
+    container.querySelector('#btn-plan')?.addEventListener('click', fetchPublishPlan);
+    container.querySelector('#btn-create-pr')?.addEventListener('click', handleCreatePR);
+    container.querySelector('#btn-publish-test')?.addEventListener('click', handlePublishToTest);
   }
 
   draw();
+}
+
+function renderSimpleMarkdown(markdown) {
+  const htmlBlocks = [];
+  let listType = null;
+
+  function closeList() {
+    if (listType) {
+      htmlBlocks.push(`</${listType}>`);
+      listType = null;
+    }
+  }
+
+  const lines = String(markdown || '').split(/\r?\n/);
+  for (const line of lines) {
+    const heading = line.match(/^(#{1,6})\s+(.*)$/);
+    if (heading) {
+      closeList();
+      const level = heading[1].length;
+      htmlBlocks.push(`<h${level}>${renderInlineMarkdown(heading[2])}</h${level}>`);
+      continue;
+    }
+
+    const quote = line.match(/^>\s?(.*)$/);
+    if (quote) {
+      closeList();
+      htmlBlocks.push(`<blockquote>${renderInlineMarkdown(quote[1])}</blockquote>`);
+      continue;
+    }
+
+    const unordered = line.match(/^[-*]\s+(.*)$/);
+    if (unordered) {
+      if (listType !== 'ul') {
+        closeList();
+        listType = 'ul';
+        htmlBlocks.push('<ul>');
+      }
+      htmlBlocks.push(`<li>${renderInlineMarkdown(unordered[1])}</li>`);
+      continue;
+    }
+
+    const ordered = line.match(/^\d+\.\s+(.*)$/);
+    if (ordered) {
+      if (listType !== 'ol') {
+        closeList();
+        listType = 'ol';
+        htmlBlocks.push('<ol>');
+      }
+      htmlBlocks.push(`<li>${renderInlineMarkdown(ordered[1])}</li>`);
+      continue;
+    }
+
+    closeList();
+    if (line.trim()) {
+      htmlBlocks.push(`<p>${renderInlineMarkdown(line)}</p>`);
+    }
+  }
+
+  closeList();
+  return htmlBlocks.join('');
+}
+
+function renderInlineMarkdown(input) {
+  return escapeHtml(input)
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\[(.*?)\]\((https?:\/\/[^)\s]+|mailto:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
 }
