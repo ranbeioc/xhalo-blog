@@ -59,6 +59,8 @@ The importer only rewrites environment-bound fields:
   are rewritten from the historical site URL to `--site-url`.
 - `skip_render` is merged with `_headers`, `_worker.js`, `admin/**`, and
   `landing/**`.
+- NexT theme menu entries for `Landing: /landing/` and `Admin: /admin/` are
+  ensured when `themes/next/_config.yml` is present.
 
 The importer excludes unsafe project artifacts:
 

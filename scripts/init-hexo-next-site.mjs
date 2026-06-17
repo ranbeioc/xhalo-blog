@@ -38,6 +38,7 @@ if (fs.existsSync(configPath)) {
   });
 }
 sanitizePackageJson(targetDir, plan);
+ensureNextMenuMounts(targetDir, plan);
 
 plan.counts.posts = countMarkdownFiles(path.join(targetDir, 'source', '_posts'));
 plan.counts.uploads = countFiles(path.join(targetDir, 'source', 'upload'));
@@ -290,6 +291,37 @@ function sanitizePackageJson(target, plan) {
     fs.writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8');
     plan.disabled.push({ path: 'package.json', field: 'scripts.deploy', reason: 'hexo deploy script disabled for Pages-only generated test sites' });
   }
+}
+
+function ensureNextMenuMounts(target, plan) {
+  const nextConfigPath = path.join(target, 'themes', 'next', '_config.yml');
+  if (!fs.existsSync(nextConfigPath)) return;
+
+  let text = fs.readFileSync(nextConfigPath, 'utf8');
+  const required = [
+    ['landing', '/landing/ || fa fa-rocket'],
+    ['admin', '/admin/ || fa fa-lock']
+  ];
+  const missing = required.filter(([key]) => !new RegExp(`^\\s{2}${key}:`, 'm').test(text));
+  if (missing.length === 0) return;
+
+  const lines = text.split(/\r?\n/);
+  const menuIndex = lines.findIndex((line) => line === 'menu:');
+  const insertLines = missing.map(([key, value]) => `  ${key}: ${value}`);
+
+  if (menuIndex < 0) {
+    text = `${text.trimEnd()}\n\nmenu:\n${insertLines.join('\n')}\n`;
+  } else {
+    let insertAt = menuIndex + 1;
+    while (insertAt < lines.length && (/^\s/.test(lines[insertAt]) || lines[insertAt].trim() === '')) {
+      insertAt += 1;
+    }
+    lines.splice(insertAt, 0, ...insertLines);
+    text = lines.join('\n');
+  }
+
+  fs.writeFileSync(nextConfigPath, text, 'utf8');
+  plan.rewritten.push({ path: 'themes/next/_config.yml', field: 'menu', value: missing.map(([key]) => key).join(', ') });
 }
 
 function replaceOrAppendTopLevel(text, key, value) {

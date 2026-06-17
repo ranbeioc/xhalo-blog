@@ -98,7 +98,7 @@ test('init:hexo-next imports full safe Hexo NexT project and reports rewrites', 
   writeFile(path.join(source, 'scaffolds', 'post.md'), '---\ntitle: {{ title }}\n---\n');
   writeFile(path.join(source, 'scripts', 'custom-helper.js'), 'hexo.extend.filter.register("before_post_render", data => data);\n');
   writeFile(path.join(source, 'scripts', 'check-rb-blog-config.js'), "const expected = 'https://production.example.com';\n");
-  writeFile(path.join(source, 'themes', 'next', '_config.yml'), 'scheme: Muse\n');
+  writeFile(path.join(source, 'themes', 'next', '_config.yml'), 'scheme: Muse\nmenu:\n  home: / || fa fa-home\n');
   writeFile(path.join(source, 'themes', 'next', 'source', 'css', 'main.styl'), 'body\n  color #333\n');
   writeFile(path.join(source, 'CNAME'), 'prod.example.com\n');
   writeFile(path.join(source, '.github', 'workflows', 'deploy.yml'), 'deploy\n');
@@ -159,6 +159,10 @@ test('init:hexo-next imports full safe Hexo NexT project and reports rewrites', 
   assert.match(nextConfig, /archives: \/archives\/ \|\| fa fa-archive/);
   assert.match(nextConfig, /waline:/);
 
+  const themeConfig = fs.readFileSync(path.join(target, 'themes', 'next', '_config.yml'), 'utf8');
+  assert.match(themeConfig, /landing: \/landing\/ \|\| fa fa-rocket/);
+  assert.match(themeConfig, /admin: \/admin\/ \|\| fa fa-lock/);
+
   const pkg = fs.readFileSync(path.join(target, 'package.json'), 'utf8');
   assert.match(pkg, /@waline\/hexo-next/);
   assert.match(pkg, /hexo-generator-searchdb/);
@@ -187,6 +191,7 @@ test('init:hexo-next imports full safe Hexo NexT project and reports rewrites', 
   assert.ok(manifest.rewritten.some((entry) => entry.field === 'url'));
   assert.ok(manifest.rewritten.some((entry) => entry.path === 'source/robots.txt'));
   assert.ok(manifest.rewritten.some((entry) => entry.path === 'scripts/check-rb-blog-config.js'));
+  assert.ok(manifest.rewritten.some((entry) => entry.path === 'themes/next/_config.yml' && entry.field === 'menu'));
   assert.ok(manifest.disabled.some((entry) => entry.field === 'deploy'));
   assert.ok(manifest.disabled.some((entry) => entry.field === 'scripts.deploy'));
   assert.ok(manifest.needsReview.some((entry) => /waline/i.test(entry.reason)));
