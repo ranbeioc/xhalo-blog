@@ -4,7 +4,7 @@
 
 It starts as a clean community edition template, not as a copy of any production blog. The repository contains example content, placeholder configuration, and a minimal Cloudflare platform skeleton for Pages, Workers, D1, R2, Queues, Turnstile, Access, and GitHub PR-based publishing workflows.
 
-> Status: `v0.1.0-alpha / Phase 098 test-site boundary correction`. Core Stage 4 paths and Queue Worker async publishing are implemented for staging evaluation. Production writes require manual owner approval, production direct main writes and auto-merge remain prohibited, and `LIVE_WRITES_ENABLED=false` is the default production baseline.
+> Status: `v0.1.0-alpha / Phase 102 Hexo NexT full import pipeline`. Core Stage 4 paths and Queue Worker async publishing are implemented for staging evaluation. Production writes require manual owner approval, production direct main writes and auto-merge remain prohibited, and `LIVE_WRITES_ENABLED=false` is the default production baseline.
 
 > Current admin verification status: the real test deployment target is Cloudflare Pages project `xhalo-blog-test` with owner-verified links at `https://xhalo-blog-test.pages.dev/` and `https://xhalo-blog-test.pages.dev/admin`. `xhalo-admin` is not used, `xhalo-blog-admin` does not exist, and production preview resources remain approval-gate only.
 
@@ -64,6 +64,7 @@ xhalo-blog/
 - **Admin PR-only Publishing MVP**: Reusable, vanilla HTML/JS workbench (under `apps/admin`) facilitating article creation, frontmatter overrides, safe Markdown previews, and PR status polling. Served directly inside the `xhalo-blog` project under the `/admin` path (no separate `xhalo-blog-admin` Pages project is required, and `xhalo-admin` is not used; real test deployment target is existing `xhalo-blog-test`). All write actions are strictly locked behind owner-reviewed manual Pull Request generation with zero direct main writes, auto-merging, or direct D1 publishing.
 - **Phase 097 test-only publish path**: `POST /api/drafts/test-direct-publish` is separate from production owner-direct publish and only works with `DEPLOYMENT_ENV=test`, `PUBLISH_MODE=test_direct`, `TEST_DIRECT_PUBLISH_ENABLED=true`, an authenticated GitHub admin session, and a safe non-production target. `ranbeioc/hexo-blog@main` is explicitly forbidden.
 - **Phase 098 test-site source boundary**: `ranbeioc/xhalo-blog-test@main` is the private real-content Hexo/NexT test site. It imports real content from `ranbeioc/hexo-blog` as a read-only source, keeps the legacy landing page at `/landing/`, keeps Admin at `/admin`, and uses Pages `_worker.js` only for `/api/*` and `/auth/*` staging proxying.
+- **Phase 102 full Hexo/NexT import pipeline**: `npm run init:hexo-next` now has explicit `starter` and `import` modes. Import mode preserves historical Hexo/NexT content, pages, theme, scripts, plugin configuration, package metadata, and lockfiles while disabling deploy targets and producing `.xhalo-import-manifest.json` plus `.xhalo-import-report.md`.
 
 ## Current admin test boundary
 
@@ -90,15 +91,17 @@ Create a default Hexo/NexT starter site with a welcome test article:
 
 ```bash
 npm run init:hexo-next -- --target ../my-blog-test
+npm run init:hexo-next -- --target ../my-blog-test --mode starter
 ```
 
 Seed a private test site from an existing local Hexo blog:
 
 ```bash
 npm run init:hexo-next -- --target ../my-blog-test --source ../hexo-blog --site-url https://my-blog-test.pages.dev
+npm run init:hexo-next -- --target ../my-blog-test --mode import --source ../hexo-blog --site-url https://my-blog-test.pages.dev --site-title "My Blog"
 ```
 
-The importer is an early standard flow for historical Hexo migration. It copies only safe Hexo/NexT content, disables deploy targets, and must be used with a private site repository when importing real posts or upload assets.
+The importer is the standard flow for historical Hexo migration. It preserves safe Hexo/NexT content, theme, scripts, plugin configuration, package metadata, and lockfiles; disables deploy targets; merges Pages `skip_render` entries for `/admin/` and `/landing/`; and must be used with a private site repository when importing real posts or upload assets.
 
 See [`docs/getting-started.md`](./docs/getting-started.md) for the full Stage 4 setup flow.
 
@@ -140,6 +143,7 @@ http://localhost:4000
 - [`docs/phase097b-first-test-article-direct-publish-evidence.md`](./docs/phase097b-first-test-article-direct-publish-evidence.md)
 - [`docs/phase100-private-test-site-pages-verification.md`](./docs/phase100-private-test-site-pages-verification.md)
 - [`docs/phase101-test-direct-publish-e2e-evidence.md`](./docs/phase101-test-direct-publish-e2e-evidence.md)
+- [`docs/phase102-hexo-next-full-import-pipeline.md`](./docs/phase102-hexo-next-full-import-pipeline.md)
 
 ## Cloudflare Pages deployment
 

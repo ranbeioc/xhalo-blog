@@ -33,6 +33,7 @@ const required = [
   'docs/hexo-blog-extraction-manifest.md',
   'docs/phase100-private-test-site-pages-verification.md',
   'docs/phase101-test-direct-publish-e2e-evidence.md',
+  'docs/phase102-hexo-next-full-import-pipeline.md',
   'docs/public-config-contract.md',
   'docs/stable-deployment-guide.md',
   'docs/stable-template-layout.md',
@@ -45,6 +46,7 @@ const required = [
   'tests/hexo-next-init-import.test.mjs',
   'tests/phase100-private-test-site-boundary.test.mjs',
   'tests/phase101-test-direct-publish-e2e.test.mjs',
+  'tests/phase102-hexo-next-import-pipeline.test.mjs',
   'tests/theme-adapter-compatibility.test.mjs'
 ];
 
