@@ -76,6 +76,8 @@ The importer only rewrites environment-bound fields:
 - `url`, when `--site-url` is provided
 - `title`, when `--site-title` is provided
 - top-level `deploy`, which is disabled
+- `package.json` `scripts.deploy`, which is removed for Pages-only generated sites
+- operational URL references in `source/robots.txt` and `scripts/check-rb-blog-config.js`
 - `skip_render`, which is merged with `_headers`, `_worker.js`, `admin/**`, and `landing/**`
 
 NexT menus, plugin settings, feed/search/sitemap/media configuration, and optional dependencies are preserved for owner review.
