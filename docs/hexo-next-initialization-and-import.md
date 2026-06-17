@@ -79,6 +79,7 @@ The importer only rewrites environment-bound fields:
 - `package.json` `scripts.deploy`, which is removed for Pages-only generated sites
 - operational URL references in `source/robots.txt` and `scripts/check-rb-blog-config.js`
 - `skip_render`, which is merged with `_headers`, `_worker.js`, `admin/**`, and `landing/**`
+- NexT menu entries for `/landing/` and `/admin/`, when `themes/next/_config.yml` is present
 
 NexT menus, plugin settings, feed/search/sitemap/media configuration, and optional dependencies are preserved for owner review.
 
