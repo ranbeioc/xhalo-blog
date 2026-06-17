@@ -54,6 +54,9 @@ The importer only rewrites environment-bound fields:
 - `url` may be replaced by `--site-url`.
 - `title` may be replaced by `--site-title`.
 - top-level `deploy` is removed and re-added as an intentionally empty block.
+- `package.json` `scripts.deploy` is removed for generated Pages-only test sites.
+- operational URL references in `source/robots.txt` and `scripts/check-rb-blog-config.js`
+  are rewritten from the historical site URL to `--site-url`.
 - `skip_render` is merged with `_headers`, `_worker.js`, `admin/**`, and
   `landing/**`.
 

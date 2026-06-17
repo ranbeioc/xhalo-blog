@@ -37,6 +37,7 @@ if (fs.existsSync(configPath)) {
     plan
   });
 }
+sanitizePackageJson(targetDir, plan);
 
 plan.counts.posts = countMarkdownFiles(path.join(targetDir, 'source', '_posts'));
 plan.counts.uploads = countFiles(path.join(targetDir, 'source', 'upload'));
@@ -233,9 +234,13 @@ function removeDangerousDeploymentFiles(target, plan) {
 
 function sanitizeConfig(configPath, options) {
   let text = fs.readFileSync(configPath, 'utf8');
+  const previousSiteUrl = readTopLevelScalar(text, 'url');
   if (options.siteUrl) {
     text = replaceOrAppendTopLevel(text, 'url', options.siteUrl);
     options.plan.rewritten.push({ path: '_config.yml', field: 'url', value: options.siteUrl });
+    if (previousSiteUrl && previousSiteUrl !== options.siteUrl) {
+      rewriteSiteUrlReferences(path.dirname(configPath), previousSiteUrl, options.siteUrl, options.plan);
+    }
   }
   if (options.siteTitle) {
     text = replaceOrAppendTopLevel(text, 'title', options.siteTitle);
@@ -251,6 +256,40 @@ function sanitizeConfig(configPath, options) {
 deploy:
 `;
   fs.writeFileSync(configPath, text, 'utf8');
+}
+
+function readTopLevelScalar(text, key) {
+  const match = text.match(new RegExp(`^${key}:\\s*(.*?)\\s*$`, 'm'));
+  return match ? unquote(match[1].trim()) : null;
+}
+
+function rewriteSiteUrlReferences(target, fromUrl, toUrl, plan) {
+  for (const rel of ['source/robots.txt', 'scripts/check-rb-blog-config.js']) {
+    const abs = path.join(target, rel);
+    if (!fs.existsSync(abs)) continue;
+    const original = fs.readFileSync(abs, 'utf8');
+    const updated = original.split(fromUrl).join(toUrl);
+    if (updated === original) continue;
+    fs.writeFileSync(abs, updated, 'utf8');
+    plan.rewritten.push({ path: rel, field: 'siteUrl', value: toUrl });
+  }
+}
+
+function sanitizePackageJson(target, plan) {
+  const packagePath = path.join(target, 'package.json');
+  if (!fs.existsSync(packagePath)) return;
+  let pkg;
+  try {
+    pkg = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
+  } catch {
+    plan.needsReview.push({ path: 'package.json', reason: 'Could not parse package.json for deploy script sanitization' });
+    return;
+  }
+  if (pkg.scripts?.deploy) {
+    delete pkg.scripts.deploy;
+    fs.writeFileSync(packagePath, `${JSON.stringify(pkg, null, 2)}\n`, 'utf8');
+    plan.disabled.push({ path: 'package.json', field: 'scripts.deploy', reason: 'hexo deploy script disabled for Pages-only generated test sites' });
+  }
 }
 
 function replaceOrAppendTopLevel(text, key, value) {

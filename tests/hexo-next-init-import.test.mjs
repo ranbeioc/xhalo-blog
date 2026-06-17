@@ -47,7 +47,8 @@ test('init:hexo-next imports full safe Hexo NexT project and reports rewrites', 
   writeFile(path.join(source, 'package.json'), JSON.stringify({
     scripts: {
       build: 'hexo generate',
-      check: 'hexo generate --silent'
+      check: 'hexo generate --silent',
+      deploy: 'hexo deploy'
     },
     dependencies: {
       hexo: '^7.0.0',
@@ -92,9 +93,11 @@ test('init:hexo-next imports full safe Hexo NexT project and reports rewrites', 
   writeFile(path.join(source, 'source', '_data', 'menu.yml'), 'menu: []\n');
   writeFile(path.join(source, 'source', 'about', 'index.md'), '---\ntitle: About\n---\nAbout\n');
   writeFile(path.join(source, 'source', 'project', 'index.md'), '---\ntitle: Project\n---\nProject\n');
+  writeFile(path.join(source, 'source', 'robots.txt'), 'User-agent: *\nAllow: /\nSitemap: https://production.example.com/sitemap.xml\n');
   writeFile(path.join(source, 'source', '_headers'), '/\n  X-Test: ok\n');
   writeFile(path.join(source, 'scaffolds', 'post.md'), '---\ntitle: {{ title }}\n---\n');
   writeFile(path.join(source, 'scripts', 'custom-helper.js'), 'hexo.extend.filter.register("before_post_render", data => data);\n');
+  writeFile(path.join(source, 'scripts', 'check-rb-blog-config.js'), "const expected = 'https://production.example.com';\n");
   writeFile(path.join(source, 'themes', 'next', '_config.yml'), 'scheme: Muse\n');
   writeFile(path.join(source, 'themes', 'next', 'source', 'css', 'main.styl'), 'body\n  color #333\n');
   writeFile(path.join(source, 'CNAME'), 'prod.example.com\n');
@@ -160,6 +163,15 @@ test('init:hexo-next imports full safe Hexo NexT project and reports rewrites', 
   assert.match(pkg, /@waline\/hexo-next/);
   assert.match(pkg, /hexo-generator-searchdb/);
   assert.match(pkg, /hexo-tag-mmedia/);
+  assert.doesNotMatch(pkg, /"deploy"/);
+
+  const robots = fs.readFileSync(path.join(target, 'source', 'robots.txt'), 'utf8');
+  assert.match(robots, /Sitemap: https:\/\/test\.pages\.dev\/sitemap\.xml/);
+  assert.doesNotMatch(robots, /production\.example\.com/);
+
+  const configCheck = fs.readFileSync(path.join(target, 'scripts', 'check-rb-blog-config.js'), 'utf8');
+  assert.match(configCheck, /https:\/\/test\.pages\.dev/);
+  assert.doesNotMatch(configCheck, /production\.example\.com/);
 
   const manifest = JSON.parse(fs.readFileSync(path.join(target, '.xhalo-import-manifest.json'), 'utf8'));
   assert.equal(manifest.version, 2);
@@ -173,7 +185,10 @@ test('init:hexo-next imports full safe Hexo NexT project and reports rewrites', 
   assert.ok(manifest.counts.scripts >= 1);
   assert.ok(manifest.counts.configs >= 3);
   assert.ok(manifest.rewritten.some((entry) => entry.field === 'url'));
+  assert.ok(manifest.rewritten.some((entry) => entry.path === 'source/robots.txt'));
+  assert.ok(manifest.rewritten.some((entry) => entry.path === 'scripts/check-rb-blog-config.js'));
   assert.ok(manifest.disabled.some((entry) => entry.field === 'deploy'));
+  assert.ok(manifest.disabled.some((entry) => entry.field === 'scripts.deploy'));
   assert.ok(manifest.needsReview.some((entry) => /waline/i.test(entry.reason)));
   assert.ok(manifest.blocked.some((entry) => entry.reason.includes('environment file')));
   assert.ok(manifest.blocked.some((entry) => entry.path.includes('CNAME')));
