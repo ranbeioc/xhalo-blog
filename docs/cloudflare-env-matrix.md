@@ -11,6 +11,9 @@ This document maps all configuration environment variables and secrets used by t
 | `DEPLOYMENT_ENV` | **Public** | String | `wrangler.toml` (`[vars]`) | Set to `test` only on the test/staging Worker when first-login admin bootstrap or test direct publish is intended. |
 | `PUBLISH_MODE` | **Public** | String | `wrangler.toml` (`[vars]`) | Default `pr_only`; Phase 097 test direct publish requires `test_direct`. |
 | `TEST_DIRECT_PUBLISH_ENABLED` | **Public** | String (`"true"`/`"false"`) | `wrangler.toml` (`[vars]`) | Enables only `POST /api/drafts/test-direct-publish` when all other test gates pass. Keep `false` in production. |
+| `TEST_TURNSTILE_BYPASS_ENABLED` | **Public** | String (`"true"`/`"false"`) | Test Worker `wrangler.toml` (`[vars]`) | Allows authenticated Admin POST/PUT E2E checks to bypass Turnstile only when `DEPLOYMENT_ENV=test`. Keep `false` in production. |
+| `TEST_MEDIA_UPLOAD_ENABLED` | **Public** | String (`"true"`/`"false"`) | Test Worker `wrangler.toml` (`[vars]`) | Enables test-only signed media upload while production live writes remain disabled. Keep `false` in production. |
+| `TEST_MEDIA_UPLOAD_PREFIX` | **Public** | String | Test Worker `wrangler.toml` (`[vars]`) | Prefix required for all test-only media object keys, for example `xhalo-blog-test/`. |
 | `FIRST_GITHUB_LOGIN_ADMIN_ENABLED` | **Public** | String (`"true"`/`"false"`) | `wrangler.toml` (`[vars]`) | Allows first successful GitHub OAuth login to bootstrap admin outside the `DEPLOYMENT_ENV=test` default. Keep `false` in production. |
 | `TURNSTILE_SECRET_KEY` | **Secret** | String | Cloudflare Secret (`wrangler secret`) | Private Turnstile token used for validation requests to the siteverify challenge API. |
 | `TURNSTILE_SITE_KEY` | **Public** | String | `wrangler.toml` (`[vars]`) | Public Turnstile site key exposed in provider readiness endpoint and loaded by the Admin client. |
