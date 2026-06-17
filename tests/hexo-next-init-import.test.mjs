@@ -153,6 +153,8 @@ test('init:hexo-next imports full safe Hexo NexT project and reports rewrites', 
   assert.match(config, /  - admin\/\*\*/);
   assert.match(config, /  - landing\/\*\*/);
   assert.match(config, /  - custom\/raw\/\*\*/);
+  assert.match(config, /include:\n(?:  - .+\n)*  - _headers/m);
+  assert.match(config, /include:\n(?:  - .+\n)*  - _worker\.js/m);
   assert.doesNotMatch(config, /git@github\.com/);
 
   const nextConfig = fs.readFileSync(path.join(target, '_config.next.yml'), 'utf8');
@@ -189,6 +191,7 @@ test('init:hexo-next imports full safe Hexo NexT project and reports rewrites', 
   assert.ok(manifest.counts.scripts >= 1);
   assert.ok(manifest.counts.configs >= 3);
   assert.ok(manifest.rewritten.some((entry) => entry.field === 'url'));
+  assert.ok(manifest.rewritten.some((entry) => entry.field === 'include'));
   assert.ok(manifest.rewritten.some((entry) => entry.path === 'source/robots.txt'));
   assert.ok(manifest.rewritten.some((entry) => entry.path === 'scripts/check-rb-blog-config.js'));
   assert.ok(manifest.rewritten.some((entry) => entry.path === 'themes/next/_config.yml' && entry.field === 'menu'));

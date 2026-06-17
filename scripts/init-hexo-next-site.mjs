@@ -250,7 +250,8 @@ function sanitizeConfig(configPath, options) {
   const deployRemoved = hasTopLevelKey(text, 'deploy');
   text = removeTopLevelBlock(text, 'deploy');
   if (deployRemoved) options.plan.disabled.push({ path: '_config.yml', field: 'deploy', reason: 'Production deploy targets disabled' });
-  text = ensureSkipRender(text, ['_headers', '_worker.js', 'admin/**', 'landing/**'], options.plan);
+  text = ensureTopLevelList(text, 'skip_render', ['_headers', '_worker.js', 'admin/**', 'landing/**'], options.plan);
+  text = ensureTopLevelList(text, 'include', ['_headers', '_worker.js'], options.plan);
   text = `${text.trimEnd()}
 
 # xhalo-blog safety: deploy targets are intentionally disabled in generated sites.
@@ -334,14 +335,14 @@ function hasTopLevelKey(text, key) {
   return new RegExp(`^${key}:`, 'm').test(text);
 }
 
-function ensureSkipRender(text, requiredItems, plan) {
+function ensureTopLevelList(text, key, requiredItems, plan) {
   const lines = text.split(/\r?\n/);
-  const index = lines.findIndex((line) => line.startsWith('skip_render:'));
+  const index = lines.findIndex((line) => line.startsWith(`${key}:`));
   const existing = [];
   let end = index + 1;
 
   if (index >= 0) {
-    const inline = lines[index].slice('skip_render:'.length).trim();
+    const inline = lines[index].slice(`${key}:`.length).trim();
     if (inline && inline !== '[]') existing.push(...parseInlineList(inline));
     while (end < lines.length && !/^[A-Za-z0-9_-]+:/.test(lines[end])) {
       const match = lines[end].match(/^\s*-\s*(.+?)\s*$/);
@@ -351,8 +352,8 @@ function ensureSkipRender(text, requiredItems, plan) {
   }
 
   const merged = unique([...existing, ...requiredItems]).filter(Boolean);
-  const block = ['skip_render:', ...merged.map((item) => `  - ${item}`)];
-  plan.rewritten.push({ path: '_config.yml', field: 'skip_render', value: merged.join(', ') });
+  const block = [`${key}:`, ...merged.map((item) => `  - ${item}`)];
+  plan.rewritten.push({ path: '_config.yml', field: key, value: merged.join(', ') });
 
   if (index < 0) return `${text.trimEnd()}\n${block.join('\n')}\n`;
   return [...lines.slice(0, index), ...block, ...lines.slice(end)].join('\n');
