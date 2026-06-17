@@ -14,6 +14,23 @@ Phase 103 keeps `xhalo-blog` as the open-source framework repository. It does no
 
 The legacy test-site landing entry remains available from the private test site at `https://xhalo-blog-test.pages.dev/landing/`.
 
+## Cloudflare Landing Setup Status
+
+Created on 2026-06-17:
+
+- Pages project `xhalo-blog-landing`
+- Project id `0053d7cd-8bc5-4142-acb0-e72ca86afc0d`
+- Pages subdomain `xhalo-blog-landing.pages.dev`
+- GitHub source `ranbeioc/xhalo-blog@main`
+- Build command `npm ci && npm run build:landing`
+- Output directory `apps/landing/dist`
+- Custom domain `blog.xhalo.co`
+- Domain id `28f0f194-d14b-4466-ba7a-1a3bd8bf67b2`
+- DNS record `blog.xhalo.co CNAME xhalo-blog-landing.pages.dev`, proxied
+- DNS record id `4ea5771b296189bbf76c87c7a36a73fa`
+
+At setup time, Pages domain validation was still `initializing` / `pending`. The first production deployment with the Phase 103 footer content requires this PR to merge into `main`, because the Pages project is intentionally bound to `ranbeioc/xhalo-blog@main`.
+
 ## Hexo/NexT Initialization Documentation
 
 `README.md` now records the standard initialization flow:
