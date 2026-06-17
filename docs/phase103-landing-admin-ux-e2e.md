@@ -68,6 +68,7 @@ Media signed upload now supports a test-only live path only when all of these ar
 - `DEPLOYMENT_ENV=test`
 - `TEST_MEDIA_UPLOAD_ENABLED=true`
 - Object key is constrained under `TEST_MEDIA_UPLOAD_PREFIX`, default `xhalo-blog-test/`
+- `TEST_TURNSTILE_BYPASS_ENABLED=true` may be used only on the staging/test Worker so authenticated Admin POST/PUT E2E checks are not blocked by a production Turnstile secret. Production must keep this unset or `false`.
 
 Production R2 live upload still requires `LIVE_WRITES_ENABLED=true`.
 

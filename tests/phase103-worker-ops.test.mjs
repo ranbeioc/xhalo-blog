@@ -51,6 +51,46 @@ test('POST /api/site/menu/test-direct-update rejects when test direct gate is di
   assert.equal(json.code, 'TEST_DIRECT_MENU_UPDATE_DISABLED');
 });
 
+test('POST admin mutations require Turnstile unless test bypass is explicitly enabled', async () => {
+  const blocked = await requestJson('/api/site/menu/test-direct-update', {
+    method: 'POST',
+    headers: adminHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ menu: [] })
+  }, {
+    DEPLOYMENT_ENV: 'test',
+    TURNSTILE_SECRET_KEY: 'phase103-turnstile-secret'
+  });
+
+  assert.equal(blocked.response.status, 403);
+  assert.equal(blocked.json.error, 'Turnstile verification failed.');
+
+  const allowedToReachRoute = await requestJson('/api/site/menu/test-direct-update', {
+    method: 'POST',
+    headers: adminHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ menu: [] })
+  }, {
+    DEPLOYMENT_ENV: 'test',
+    TEST_TURNSTILE_BYPASS_ENABLED: 'true',
+    TURNSTILE_SECRET_KEY: 'phase103-turnstile-secret'
+  });
+
+  assert.equal(allowedToReachRoute.response.status, 403);
+  assert.equal(allowedToReachRoute.json.code, 'TEST_DIRECT_MENU_UPDATE_DISABLED');
+
+  const productionStillBlocked = await requestJson('/api/site/menu/test-direct-update', {
+    method: 'POST',
+    headers: adminHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ menu: [] })
+  }, {
+    DEPLOYMENT_ENV: 'production',
+    TEST_TURNSTILE_BYPASS_ENABLED: 'true',
+    TURNSTILE_SECRET_KEY: 'phase103-turnstile-secret'
+  });
+
+  assert.equal(productionStillBlocked.response.status, 403);
+  assert.equal(productionStillBlocked.json.error, 'Turnstile verification failed.');
+});
+
 test('POST /api/site/menu/test-direct-update writes only to configured safe test target', async () => {
   const calls = [];
   const mockGithubFetch = async (url, init = {}) => {
@@ -81,6 +121,8 @@ test('POST /api/site/menu/test-direct-update writes only to configured safe test
     DEPLOYMENT_ENV: 'test',
     PUBLISH_MODE: 'test_direct',
     TEST_DIRECT_PUBLISH_ENABLED: 'true',
+    TEST_TURNSTILE_BYPASS_ENABLED: 'true',
+    TURNSTILE_SECRET_KEY: 'phase103-turnstile-secret',
     GITHUB_OWNER: 'ranbeioc',
     GITHUB_REPO: 'xhalo-blog-test',
     GITHUB_BRANCH: 'main',
@@ -118,8 +160,10 @@ test('test-only signed media upload requires test env and enforces prefix', asyn
   const putCalls = [];
   const env = {
     DEPLOYMENT_ENV: 'test',
+    TEST_TURNSTILE_BYPASS_ENABLED: 'true',
     TEST_MEDIA_UPLOAD_ENABLED: 'true',
     TEST_MEDIA_UPLOAD_PREFIX: 'xhalo-blog-test/',
+    TURNSTILE_SECRET_KEY: 'phase103-turnstile-secret',
     ASSETS_SIGNING_SECRET: 'phase103-signing-secret',
     ASSETS_PUBLIC_BASE_URL: 'https://assets.example.com',
     ASSETS: {

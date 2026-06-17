@@ -598,6 +598,11 @@ function isTestMediaUploadEnabled(env) {
     String(env.TEST_MEDIA_UPLOAD_ENABLED || '').toLowerCase() === 'true';
 }
 
+function isTestTurnstileBypassEnabled(env) {
+  return env.DEPLOYMENT_ENV === 'test' &&
+    String(env.TEST_TURNSTILE_BYPASS_ENABLED || '').toLowerCase() === 'true';
+}
+
 function getTestMediaUploadPrefix(env) {
   const rawPrefix = String(env.TEST_MEDIA_UPLOAD_PREFIX || 'xhalo-blog-test/').trim();
   const safePrefix = rawPrefix.replace(/^\/+/, '').replace(/\.\./g, '').replace(/\/+$/, '');
@@ -1194,7 +1199,7 @@ async function handleRequest(request, env, requestStart) {
         });
         return rejectUnauthorized();
       }
-      if (request.method === 'POST' || request.method === 'PUT') {
+      if ((request.method === 'POST' || request.method === 'PUT') && !isTestTurnstileBypassEnabled(env)) {
         const isTurnstileValid = await verifyTurnstileToken(request, env);
         if (!isTurnstileValid) {
           logSecurity('turnstile_rejected', extractRequestMeta(request));
