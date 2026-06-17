@@ -138,6 +138,7 @@ http://localhost:4000
 - [`docs/owner-direct-existing-article-update-mode.md`](./docs/owner-direct-existing-article-update-mode.md)
 - [`docs/phase097a-pages-full-blog-admin-compose-evidence.md`](./docs/phase097a-pages-full-blog-admin-compose-evidence.md)
 - [`docs/phase097b-first-test-article-direct-publish-evidence.md`](./docs/phase097b-first-test-article-direct-publish-evidence.md)
+- [`docs/phase100-private-test-site-pages-verification.md`](./docs/phase100-private-test-site-pages-verification.md)
 
 ## Cloudflare Pages deployment
 
@@ -145,13 +146,13 @@ For the current `xhalo-blog-test` full test site, use:
 
 ```text
 Project: xhalo-blog-test
-GitHub source: ranbeioc/xhalo-blog
-Build command: npm run build:test-pages
-Build output directory: dist/pages
-Branch: PR preview branch, then main after merge
+GitHub source: ranbeioc/xhalo-blog-test
+Build command: npm ci && npm run build
+Build output directory: public
+Branch: main
 ```
 
-The generated Pages `_worker.js` proxies same-origin `/api/*` and `/auth/*` requests to the staging API configured by `XHALO_ADMIN_API_BASE_URL`.
+The private test-site Pages `_worker.js` proxies same-origin `/api/*` and `/auth/*` requests to the staging API configured by `XHALO_ADMIN_API_BASE_URL`. The framework repository's `npm run build:test-pages` command remains a local validation fixture, not the real-content Pages build command.
 
 For the minimal static example, use:
 
