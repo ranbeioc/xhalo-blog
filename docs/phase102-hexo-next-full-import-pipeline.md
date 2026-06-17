@@ -59,6 +59,8 @@ The importer only rewrites environment-bound fields:
   are rewritten from the historical site URL to `--site-url`.
 - `skip_render` is merged with `_headers`, `_worker.js`, `admin/**`, and
   `landing/**`.
+- `include` is merged with `_headers` and `_worker.js` so Cloudflare Pages emits
+  the header file and same-origin worker proxy into `public/`.
 - NexT theme menu entries for `Landing: /landing/` and `Admin: /admin/` are
   ensured when `themes/next/_config.yml` is present.
 
