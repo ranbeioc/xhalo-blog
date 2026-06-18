@@ -9,6 +9,20 @@ const MENU_LOCALES = [
   ['ko', '한국어']
 ];
 
+const NEXT_MENU_LABELS = {
+  home: { 'zh-CN': '首页', en: 'Home', ja: 'ホーム', ko: '홈' },
+  archives: { 'zh-CN': '归档', en: 'Archives', ja: 'アーカイブ', ko: '아카이브' },
+  categories: { 'zh-CN': '分类', en: 'Categories', ja: 'カテゴリー', ko: '카테고리' },
+  tags: { 'zh-CN': '标签', en: 'Tags', ja: 'タグ', ko: '태그' },
+  about: { 'zh-CN': '关于', en: 'About', ja: 'について', ko: '소개' },
+  search: { 'zh-CN': '搜索', en: 'Search', ja: '検索', ko: '검색' },
+  sitemap: { 'zh-CN': '站点地图', en: 'Sitemap', ja: 'サイトマップ', ko: '사이트맵' },
+  commonweal: { 'zh-CN': '公益 404', en: 'Commonweal 404', ja: 'Commonweal 404', ko: 'Commonweal 404' },
+  gptabs: { 'zh-CN': 'GPTabs', en: 'GPTabs', ja: 'GPTabs', ko: 'GPTabs' },
+  landing: { 'zh-CN': '落地页', en: 'Landing', ja: 'ランディング', ko: '랜딩' },
+  admin: { 'zh-CN': '管理后台', en: 'Admin', ja: '管理', ko: '관리' }
+};
+
 const copy = {
   zh: {
     title: '站点菜单管理',
@@ -44,7 +58,8 @@ const copy = {
     labels: '多语言',
     sourceFile: '配置文件',
     deployTriggered: '已触发 Pages 构建',
-    deployNotTriggered: '未触发 Pages 构建'
+    deployNotTriggered: '未触发 Pages 构建',
+    working: '处理中...'
   },
   en: {
     title: 'Site Menu Manager',
@@ -80,7 +95,8 @@ const copy = {
     labels: 'Labels',
     sourceFile: 'Source file',
     deployTriggered: 'Pages build triggered',
-    deployNotTriggered: 'Pages build not triggered'
+    deployNotTriggered: 'Pages build not triggered',
+    working: 'Working...'
   }
 };
 
@@ -107,14 +123,37 @@ function emptyMenuItem(order = 0) {
   };
 }
 
+function normalizeMenuKey(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+function inferNextLabels(item, fallback) {
+  const candidates = [item?.id, item?.key, item?.label, item?.name, fallback].map(normalizeMenuKey);
+  const known = candidates.map((key) => NEXT_MENU_LABELS[key]).find(Boolean);
+  if (known) return { ...known };
+  if (!fallback) return {};
+  return Object.fromEntries(MENU_LOCALES.map(([locale]) => [locale, fallback]));
+}
+
 function normalizeMenuItem(item, index = 0) {
-  const labels = item?.labels && typeof item.labels === 'object' ? { ...item.labels } : {};
-  const fallback = item?.label || item?.name || labels['zh-CN'] || labels.en || item?.id || '';
-  if (fallback && !labels['zh-CN']) labels['zh-CN'] = fallback;
-  if (fallback && !labels.en) labels.en = fallback;
+  const rawLabels = item?.labels && typeof item.labels === 'object' && !Array.isArray(item.labels)
+    ? { ...item.labels }
+    : {};
+  const fallback = item?.label || item?.name || rawLabels['zh-CN'] || rawLabels.en || item?.id || '';
+  const labels = {
+    ...inferNextLabels(item, fallback),
+    ...rawLabels
+  };
+  if (fallback && Object.keys(labels).length === 0) {
+    labels['zh-CN'] = fallback;
+    labels.en = fallback;
+  }
   return {
     id: item?.id || slugify(fallback) || `menu-item-${index}`,
-    label: item?.label || labels['zh-CN'] || labels.en || fallback,
+    label: item?.label || fallback || labels['zh-CN'] || labels.en || '',
     labels,
     path: item?.path || '/',
     external: Boolean(item?.external),
@@ -135,8 +174,12 @@ function displayLabel(item) {
 
 function normalizeLabels(item) {
   const labels = { ...(item.labels || {}) };
-  if (item.label && !labels['zh-CN']) labels['zh-CN'] = item.label;
-  if (item.label && !labels.en) labels.en = item.label;
+  const inferred = inferNextLabels(item, item.label || item.id);
+  for (const [locale, value] of Object.entries(inferred)) {
+    if (!labels[locale]) labels[locale] = value;
+  }
+  if (item.label && !labels['zh-CN'] && !NEXT_MENU_LABELS[normalizeMenuKey(item.label)]) labels['zh-CN'] = item.label;
+  if (item.label && !labels.en && !NEXT_MENU_LABELS[normalizeMenuKey(item.label)]) labels.en = item.label;
   return Object.fromEntries(Object.entries(labels).filter(([, value]) => String(value || '').trim()));
 }
 
@@ -330,29 +373,29 @@ export function renderMenuManager(container, { initialMenuData }) {
           <div class="card menu-items-list-card">
             <h3>${escapeHtml(c('listTitle'))}</h3>
             <div class="menu-list">${listHtml}</div>
-            <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border-color);"/>
+            <hr class="section-rule"/>
             <h3>${escapeHtml(editingIndex == null ? c('addTitle') : c('editTitle'))}</h3>
-            <form id="menu-item-form" class="inline-form">
-              <label><span>${escapeHtml(c('defaultLabel'))}</span><input type="text" id="item-label" value="${escapeHtml(draftItem.label || displayLabel(draftItem) || '')}" placeholder="About" /></label>
+            <form id="menu-item-form" class="inline-form menu-edit-form">
+              <label><span>${escapeHtml(c('defaultLabel'))}</span><input type="text" id="item-label" value="${escapeHtml(draftItem.label || '')}" placeholder="home" /></label>
               ${MENU_LOCALES.map(([locale, label]) => `
                 <label><span>${escapeHtml(label)} ${escapeHtml(c('defaultLabel'))}</span><input type="text" data-label-locale="${escapeHtml(locale)}" value="${escapeHtml(draftItem.labels?.[locale] || '')}" placeholder="${escapeHtml(locale)} label" /></label>
               `).join('')}
               <label><span>${escapeHtml(c('path'))}</span><input type="text" id="item-path" value="${escapeHtml(draftItem.path || '/')}" placeholder="/about/" /></label>
-              <label><span>${escapeHtml(c('icon'))}</span><input type="text" id="item-icon" value="${escapeHtml(draftItem.icon || '')}" placeholder="user" /></label>
+              <label><span>${escapeHtml(c('icon'))}</span><input type="text" id="item-icon" value="${escapeHtml(draftItem.icon || '')}" placeholder="home" /></label>
               <label><span>${escapeHtml(c('visible'))}</span><select id="item-visible"><option value="true" ${draftItem.visible !== false ? 'selected' : ''}>true</option><option value="false" ${draftItem.visible === false ? 'selected' : ''}>false</option></select></label>
-              <button type="submit" class="button-secondary" style="margin-top: 10px; width: 100%;">${escapeHtml(editingIndex == null ? c('add') : c('update'))}</button>
+              <button type="submit" class="button-secondary full-width-action">${escapeHtml(editingIndex == null ? c('add') : c('update'))}</button>
             </form>
           </div>
 
           <div class="menu-preview-actions-card">
             <div class="card operational-card">
               <h3>${escapeHtml(c('actions'))}</h3>
-              <button class="button-primary" id="btn-preview-menu-diff" style="width: 100%; margin-bottom: 15px;">${escapeHtml(c('previewDiff'))}</button>
-              <button class="button-secondary" id="btn-reset-menu" style="width: 100%; margin-bottom: 15px;">${escapeHtml(c('reset'))}</button>
-              <button class="button-primary" id="btn-save-menu-test" style="width: 100%;">${escapeHtml(c('save'))}</button>
+              <button class="button-primary full-width-action" id="btn-preview-menu-diff">${escapeHtml(c('previewDiff'))}</button>
+              <button class="button-secondary full-width-action" id="btn-reset-menu">${escapeHtml(c('reset'))}</button>
+              <button class="button-primary full-width-action" id="btn-save-menu-test">${escapeHtml(c('save'))}</button>
               <p class="help-text">${escapeHtml(c('saveHelp'))}</p>
             </div>
-            ${loadingState ? `<div class="info-text">${escapeHtml(isZh() ? '处理中...' : 'Working...')}</div>` : ''}
+            ${loadingState ? `<div class="info-text">${escapeHtml(c('working'))}</div>` : ''}
             ${actionResultHtml}
             ${diffHtml}
           </div>
@@ -382,12 +425,11 @@ export function renderMenuManager(container, { initialMenuData }) {
       form.addEventListener('submit', submitDraft);
       for (const [key, selector] of Object.entries({ label: '#item-label', path: '#item-path', icon: '#item-icon', visible: '#item-visible' })) {
         const input = container.querySelector(selector);
-        input?.addEventListener('input', (event) => {
+        const listener = (event) => {
           draftItem[key] = key === 'visible' ? event.target.value === 'true' : event.target.value;
-        });
-        input?.addEventListener('change', (event) => {
-          draftItem[key] = key === 'visible' ? event.target.value === 'true' : event.target.value;
-        });
+        };
+        input?.addEventListener('input', listener);
+        input?.addEventListener('change', listener);
       }
       container.querySelectorAll('[data-label-locale]').forEach((input) => {
         input.addEventListener('input', (event) => {

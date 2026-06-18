@@ -3,6 +3,7 @@ import { isZh } from './i18n.js';
 import { escapeHtml, showToast } from './ui.js';
 
 const pluginPackages = {
+  'next-theme': 'hexo-theme-next',
   feed: 'hexo-generator-feed',
   sitemap: 'hexo-generator-sitemap',
   search: 'hexo-generator-searchdb',
@@ -21,7 +22,7 @@ const copy = {
     plugins: 'NexT 插件与配置项',
     exists: '存在',
     missing: '缺失',
-    saveFile: '保存此文件到测试站',
+    saveFile: '保存当前 Tab 到测试站',
     saveAll: '保存全部已修改文件',
     install: '安装到 package.json',
     installed: '已安装',
@@ -33,7 +34,12 @@ const copy = {
     saved: '配置已保存到测试站。',
     saveFailed: '配置保存失败',
     installDone: '插件依赖已加入 package.json，请保存配置。',
-    editConfig: '编辑配置'
+    editConfig: '编辑配置',
+    working: '处理中...',
+    notInstalledReason: '未检测到 package 依赖或主题配置文件。',
+    themeConfigDetected: '已检测到主题配置',
+    packageDetected: '已检测到依赖',
+    packageNeedsSave: 'package.json 已更新，保存后生效。'
   },
   en: {
     title: 'Hexo / NexT Configuration',
@@ -43,7 +49,7 @@ const copy = {
     plugins: 'NexT Plugins and Config Keys',
     exists: 'Exists',
     missing: 'Missing',
-    saveFile: 'Save This File to Test Site',
+    saveFile: 'Save Current Tab to Test Site',
     saveAll: 'Save All Modified Files',
     install: 'Install to package.json',
     installed: 'Installed',
@@ -55,7 +61,12 @@ const copy = {
     saved: 'Config saved to the test site.',
     saveFailed: 'Config save failed',
     installDone: 'Plugin dependency added to package.json. Save the config to commit it.',
-    editConfig: 'Edit Config'
+    editConfig: 'Edit Config',
+    working: 'Working...',
+    notInstalledReason: 'No package dependency or theme config file detected.',
+    themeConfigDetected: 'Theme config detected',
+    packageDetected: 'Package dependency detected',
+    packageNeedsSave: 'package.json was updated; save to apply.'
   }
 };
 
@@ -72,6 +83,7 @@ export async function fetchSiteConfig() {
 export function renderSiteConfiguration(container, data) {
   const configs = Array.isArray(data?.configs) ? data.configs.map(normalizeConfig) : [];
   const plugins = Array.isArray(data?.pluginCatalog) ? data.pluginCatalog : [];
+  let activePath = pickInitialConfigPath(configs);
   let edited = Object.fromEntries(configs.map((file) => [file.path, file.content || '']));
   let actionResultHtml = '';
   let loading = false;
@@ -90,10 +102,28 @@ export function renderSiteConfiguration(container, data) {
     }
   }
 
-  function isPluginInstalled(plugin) {
+  function configExists(path) {
+    return configs.some((file) => file.path === path && file.exists);
+  }
+
+  function hasConfigKey(key) {
+    const needle = `${key}:`;
+    return configs.some((file) => file.exists && String(edited[file.path] || file.content || '').includes(needle));
+  }
+
+  function pluginDetection(plugin) {
     const pkg = packageJson();
-    const packageName = pluginPackages[plugin.id] || plugin.name;
-    return Boolean(pkg?.dependencies?.[packageName] || pkg?.devDependencies?.[packageName]);
+    const packageName = pluginPackages[plugin.id] || plugin.packageName || plugin.name;
+    const packageInstalled = Boolean(pkg?.dependencies?.[packageName] || pkg?.devDependencies?.[packageName]);
+    const configFileInstalled = (plugin.configFiles || []).some((path) => configExists(path));
+    const configKeyInstalled = (plugin.configKeys || []).some((key) => hasConfigKey(key));
+    return {
+      packageName,
+      installed: packageInstalled || configFileInstalled || configKeyInstalled,
+      packageInstalled,
+      configFileInstalled,
+      configKeyInstalled
+    };
   }
 
   function installPlugin(pluginId) {
@@ -111,6 +141,7 @@ export function renderSiteConfiguration(container, data) {
     if (!packageName) return;
     pkgJson.dependencies = { ...(pkgJson.dependencies || {}), [packageName]: pkgJson.dependencies?.[packageName] || 'latest' };
     edited[pkg.path] = `${JSON.stringify(pkgJson, null, 2)}\n`;
+    activePath = pkg.path;
     showToast(c('installDone'), 'success');
     draw();
   }
@@ -148,6 +179,10 @@ export function renderSiteConfiguration(container, data) {
           ${result.pagesDeploy?.triggered ? '<br/><span class="status-badge" data-state="ok">Pages build triggered</span>' : '<br/><span class="status-badge" data-state="warning">Pages build not triggered</span>'}
         </div>
       `;
+      for (const file of files) {
+        const base = configs.find((candidate) => candidate.path === file.path);
+        if (base) base.content = file.content;
+      }
       showToast(c('saved'), 'success');
     } catch (err) {
       actionResultHtml = `<div class="alert alert-error">${escapeHtml(c('saveFailed'))}: ${escapeHtml(err.message)}</div>`;
@@ -159,6 +194,7 @@ export function renderSiteConfiguration(container, data) {
   }
 
   function draw() {
+    const activeFile = configs.find((file) => file.path === activePath) || configs[0];
     container.innerHTML = `
       <div class="config-workspace">
         <h2>${escapeHtml(c('title'))}</h2>
@@ -166,15 +202,16 @@ export function renderSiteConfiguration(container, data) {
         <div class="alert alert-info">
           ${escapeHtml(c('target'))}: <code>${escapeHtml(data?.targetRepo || '')}@${escapeHtml(data?.targetBranch || '')}</code>
         </div>
-        <div class="dashboard-grid config-dashboard-grid">
-          <div class="card config-files-card">
+        <div class="config-layout">
+          <div class="card config-tabs-card">
             <div class="card-title-row">
               <h3>${escapeHtml(c('files'))}</h3>
               <button class="button-small button-secondary" id="btn-save-all-config">${escapeHtml(c('saveAll'))}</button>
             </div>
-            <div class="config-file-list">
-              ${configs.map((file) => renderConfigFile(file)).join('')}
+            <div class="config-tab-list" role="tablist">
+              ${configs.map((file) => renderConfigTab(file)).join('')}
             </div>
+            ${activeFile ? renderActiveConfig(activeFile) : `<p class="info-text">${escapeHtml(c('missing'))}</p>`}
           </div>
           <div class="card config-plugins-card">
             <h3>${escapeHtml(c('plugins'))}</h3>
@@ -183,50 +220,73 @@ export function renderSiteConfiguration(container, data) {
             </div>
           </div>
         </div>
-        ${loading ? '<div class="info-text">Working...</div>' : ''}
+        ${loading ? `<div class="info-text">${escapeHtml(c('working'))}</div>` : ''}
         ${actionResultHtml}
       </div>
     `;
     bindEvents();
   }
 
-  function renderConfigFile(file) {
+  function renderConfigTab(file) {
+    const active = file.path === activePath ? 'active' : '';
     return `
-      <details class="config-file" ${file.exists ? '' : 'open'}>
-        <summary>
-          <strong>${escapeHtml(file.path)}</strong>
-          <span class="status-badge" data-state="${file.exists ? 'ok' : 'warning'}">${escapeHtml(file.exists ? c('exists') : c('missing'))}</span>
-          ${file.sha ? `<code>${escapeHtml(file.sha.slice(0, 8))}</code>` : ''}
-        </summary>
-        ${file.exists && file.editable ? `
-          <label class="config-editor-label">
-            <span>${escapeHtml(c('editConfig'))}</span>
-            <textarea class="config-editor" data-config-path="${escapeHtml(file.path)}" spellcheck="false">${escapeHtml(edited[file.path] || '')}</textarea>
-          </label>
-          <button class="button-small button-secondary btn-save-config-file" data-config-save="${escapeHtml(file.path)}">${escapeHtml(c('saveFile'))}</button>
-        ` : file.exists ? `<pre class="config-preview"><code>${escapeHtml(trimPreview(file.content))}</code></pre>` : `<p class="info-text">${escapeHtml(file.error || 'not_found')}</p>`}
-      </details>
+      <button class="config-tab ${active}" data-config-tab="${escapeHtml(file.path)}" role="tab" aria-selected="${active ? 'true' : 'false'}">
+        <span>${escapeHtml(file.path)}</span>
+        <span class="status-badge" data-state="${file.exists ? 'ok' : 'warning'}">${escapeHtml(file.exists ? c('exists') : c('missing'))}</span>
+      </button>
     `;
   }
 
+  function renderActiveConfig(file) {
+    if (file.exists && file.editable) {
+      return `
+        <div class="config-tab-panel">
+          <div class="config-tab-meta">
+            <strong>${escapeHtml(file.path)}</strong>
+            ${file.sha ? `<code>${escapeHtml(file.sha.slice(0, 8))}</code>` : ''}
+          </div>
+          <label class="config-editor-label">
+            <span>${escapeHtml(c('editConfig'))}</span>
+            <textarea class="config-editor config-editor-full" data-config-path="${escapeHtml(file.path)}" spellcheck="false">${escapeHtml(edited[file.path] || '')}</textarea>
+          </label>
+          <button class="button-small button-secondary btn-save-config-file" data-config-save="${escapeHtml(file.path)}">${escapeHtml(c('saveFile'))}</button>
+        </div>
+      `;
+    }
+    if (file.exists) {
+      return `<pre class="config-preview"><code>${escapeHtml(trimPreview(file.content))}</code></pre>`;
+    }
+    return `<p class="info-text">${escapeHtml(file.error || 'not_found')}</p>`;
+  }
+
   function renderPlugin(plugin) {
-    const installed = isPluginInstalled(plugin);
-    const packageName = pluginPackages[plugin.id] || plugin.name;
+    const detection = pluginDetection(plugin);
+    const details = [
+      detection.packageInstalled ? c('packageDetected') : '',
+      detection.configFileInstalled ? c('themeConfigDetected') : ''
+    ].filter(Boolean).join(' · ');
     return `
       <div class="plugin-card">
         <div class="plugin-card-head">
           <strong>${escapeHtml(plugin.name)}</strong>
-          <span class="status-badge" data-state="${installed ? 'ok' : 'warning'}">${escapeHtml(installed ? c('installed') : c('available'))}</span>
+          <span class="status-badge" data-state="${detection.installed ? 'ok' : 'warning'}">${escapeHtml(detection.installed ? c('installed') : c('available'))}</span>
         </div>
         <span>${escapeHtml(plugin.category)}</span>
-        <code>${escapeHtml(packageName || '-')}</code>
+        <code>${escapeHtml(detection.packageName || '-')}</code>
         <p class="help-text">${escapeHtml(c('configTargets'))}: ${escapeHtml([...(plugin.configFiles || []), ...(plugin.configKeys || [])].join(', ') || '-')}</p>
-        <button class="button-small button-secondary btn-install-plugin" data-plugin-id="${escapeHtml(plugin.id)}" ${installed ? 'disabled' : ''}>${escapeHtml(c('install'))}</button>
+        <p class="help-text">${escapeHtml(details || c('notInstalledReason'))}</p>
+        <button class="button-small button-secondary btn-install-plugin" data-plugin-id="${escapeHtml(plugin.id)}" ${detection.packageInstalled ? 'disabled' : ''}>${escapeHtml(detection.packageInstalled ? c('installed') : c('install'))}</button>
       </div>
     `;
   }
 
   function bindEvents() {
+    container.querySelectorAll('[data-config-tab]').forEach((button) => {
+      button.addEventListener('click', () => {
+        activePath = button.getAttribute('data-config-tab');
+        draw();
+      });
+    });
     container.querySelectorAll('[data-config-path]').forEach((input) => {
       input.addEventListener('input', () => {
         edited[input.getAttribute('data-config-path')] = input.value;
@@ -242,6 +302,13 @@ export function renderSiteConfiguration(container, data) {
   }
 
   draw();
+}
+
+function pickInitialConfigPath(configs) {
+  return configs.find((file) => file.path === 'themes/next/_config.yml' && file.exists)?.path ||
+    configs.find((file) => file.path === '_config.yml')?.path ||
+    configs[0]?.path ||
+    '';
 }
 
 function normalizeConfig(file) {

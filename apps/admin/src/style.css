@@ -1156,12 +1156,122 @@ button, .button-small {
   min-height: 560px;
 }
 
-.vditor-panel--emoji {
-  display: none !important;
+.vditor-host .vditor-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 12;
 }
 
-.config-dashboard-grid {
-  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+.vditor-host .vditor-panel,
+.vditor-host .vditor-hint {
+  z-index: 30;
+  max-height: 280px;
+  overflow: auto;
+}
+
+.media-shortcut-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-inset);
+}
+
+.media-shortcut-bar > span {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-right: 4px;
+}
+
+.admin-language-select-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+}
+
+.admin-language-select-label {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-language-select-wrap select {
+  min-width: 100px;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: 700;
+  outline: none;
+  cursor: pointer;
+}
+
+.admin-language-select-wrap option {
+  background: var(--bg-sidebar);
+  color: var(--text-primary);
+}
+
+.config-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.6fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.config-tabs-card {
+  min-width: 0;
+}
+
+.config-tab-list {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 14px 0;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 10px;
+}
+
+.config-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 11px;
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  background: var(--bg-inset);
+  color: var(--text-secondary);
+  font: inherit;
+  cursor: pointer;
+}
+
+.config-tab.active {
+  color: var(--text-primary);
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+}
+
+.config-tab-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 70vh;
+}
+
+.config-tab-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .card-title-row,
@@ -1191,6 +1301,10 @@ button, .button-small {
   font: 0.82rem/1.55 var(--font-mono);
 }
 
+.config-editor-full {
+  min-height: min(74vh, 860px);
+}
+
 .config-editor:focus {
   outline: none;
   border-color: var(--accent);
@@ -1209,6 +1323,23 @@ button, .button-small {
 .plugin-card button:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.full-width-action {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.section-rule {
+  margin: 20px 0;
+  border: none;
+  border-top: 1px solid var(--border-color);
+}
+
+@media (max-width: 1100px) {
+  .config-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 .safety-table {

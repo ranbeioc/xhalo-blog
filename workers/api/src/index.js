@@ -2097,6 +2097,7 @@ async function handleRequest(request, env, requestStart) {
         });
 
         const publishedAt = nowIso();
+        const postUrl = buildHexoPostUrl(validationInput.slug, publishedAt);
         const persisted = await upsertPostIndexRecord(env, {
           id: validationInput.slug,
           slug: validationInput.slug,
@@ -2108,7 +2109,7 @@ async function handleRequest(request, env, requestStart) {
           published_at: publishedAt,
           github_branch: repository.baseBranch,
           github_pr_url: null,
-          preview_url: `/posts/${validationInput.slug}/`,
+          preview_url: postUrl,
           content: markdown
         });
 
@@ -2144,7 +2145,7 @@ async function handleRequest(request, env, requestStart) {
           targetRepo: `${repository.owner}/${repository.repo}`,
           targetBranch: repository.baseBranch,
           targetPath: filePath,
-          postUrl: `/posts/${validationInput.slug}/`,
+          postUrl,
           commitSha: commitResult.commitSha,
           commitUrl: commitResult.commitUrl,
           operation: commitResult.operation,
@@ -3451,6 +3452,14 @@ async function waitBeforePagesDeployHook(env) {
   const delayMs = rawDelay == null || rawDelay === '' ? 1500 : Number(rawDelay);
   if (!Number.isFinite(delayMs) || delayMs <= 0) return;
   await new Promise((resolve) => setTimeout(resolve, Math.min(delayMs, 5000)));
+}
+
+function buildHexoPostUrl(slug, publishedAt) {
+  const date = new Date(publishedAt || Date.now());
+  const year = String(date.getUTCFullYear()).padStart(4, '0');
+  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(date.getUTCDate()).padStart(2, '0');
+  return `/${year}/${month}/${day}/${slug}/`;
 }
 
 function buildHexoNextPluginCatalog() {

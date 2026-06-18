@@ -78,8 +78,8 @@ export function renderTopbar(container, { title, session, onLogin, onLogout, onL
       <h1 class="topbar-title">${escapeHtml(title)}</h1>
     </div>
     <div class="topbar-right" style="display: flex; align-items: center; gap: 15px;">
-      <label class="language-switcher" style="display: flex; align-items: center; gap: 6px;">
-        <span>${escapeHtml(t('language'))}</span>
+      <label class="language-switcher admin-language-select-wrap">
+        <span class="admin-language-select-label">${escapeHtml(t('language'))}</span>
         <select id="admin-language-select">${renderLanguageOptions()}</select>
       </label>
       <span class="env-badge" style="background: rgba(255, 255, 255, 0.1); border: 1px solid var(--border-color);">${escapeHtml(t('prOnlyMode'))}</span>

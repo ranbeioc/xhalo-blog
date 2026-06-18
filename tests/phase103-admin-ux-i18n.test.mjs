@@ -23,9 +23,10 @@ test('Admin i18n supports zh-CN/en and applies bilingual text cleanup to child p
   assert.match(i18n, /applyLocaleToElement/);
   assert.match(app, /MutationObserver/);
   assert.match(ui, /admin-language-select/);
+  assert.match(ui, /admin-language-select-wrap/);
 });
 
-test('Admin source has no known mojibake fragments in repaired user-facing modules', () => {
+test('Admin source has no common mojibake fragments in repaired user-facing modules', () => {
   const files = [
     'modules/i18n.js',
     'modules/menus.js',
@@ -33,17 +34,21 @@ test('Admin source has no known mojibake fragments in repaired user-facing modul
     'modules/editor.js',
     'modules/configuration.js'
   ];
-  const mojibakePattern = /闁硘閼縷缁攟婵瘄閺倈濮潀閸檤閻榺鈧瑋閳|淇濆瓨|鏋勫缓|绔欑偣|鍗氬|鏂囩珷|鑿滃崟/;
+  const mojibakePattern = /闂|閰|缂|绔欑|鍗氬|鈽|鈹|涓€|娴嬭瘯|鏂囩珷/;
 
   for (const file of files) {
     assert.doesNotMatch(read(file), mojibakePattern, `${file} contains mojibake`);
   }
 });
 
-test('Admin menus support CRUD, ordering, reset, edit prefill, diff preview, and test-only save', () => {
+test('Admin menus support CRUD, ordering, reset, localized edit prefill, diff preview, and test-only save', () => {
   const menus = read('modules/menus.js');
 
   assert.match(menus, /normalizeMenuItem/);
+  assert.match(menus, /NEXT_MENU_LABELS/);
+  assert.match(menus, /首页/);
+  assert.match(menus, /Home/);
+  assert.match(menus, /GPTabs/);
   assert.match(menus, /startEdit/);
   assert.match(menus, /deleteMenuItem/);
   assert.match(menus, /moveMenuItem/);
@@ -57,19 +62,24 @@ test('Admin menus support CRUD, ordering, reset, edit prefill, diff preview, and
   assert.match(menus, /pagesDeploy/);
 });
 
-test('Admin editor uses Vditor without startup emoji overlay or custom side preview', () => {
+test('Admin editor uses Vditor with emoji and media shortcuts without custom side preview', () => {
   const editor = read('modules/editor.js');
+  const css = read('style.css');
 
   assert.match(editor, /FIRST_TEST_ARTICLE_TEMPLATE/);
   assert.match(editor, /fetchPostSource/);
   assert.match(editor, /new Vditor/);
   assert.match(editor, /'preview'/);
-  assert.doesNotMatch(editor, /'emoji'/);
+  assert.match(editor, /'emoji'/);
+  assert.match(editor, /MEDIA_SNIPPETS/);
+  assert.match(editor, /data-media-snippet/);
   assert.doesNotMatch(editor, /markdown-live-preview/);
   assert.match(editor, /!\[/);
   assert.match(editor, /\/api\/drafts\/direct-update-preview/);
   assert.match(editor, /\/api\/drafts\/test-direct-publish/);
   assert.match(editor, /Publish to Test unavailable/);
+  assert.match(css, /vditor-toolbar/);
+  assert.match(css, /media-shortcut-bar/);
 });
 
 test('Admin tables expose search, filter, adaptive columns, and posts use one server pagination control', () => {
@@ -92,15 +102,20 @@ test('Admin tables expose search, filter, adaptive columns, and posts use one se
   assert.match(css, /table-layout:\s*auto/);
 });
 
-test('Admin configuration supports editable Hexo NexT config and plugin package install', () => {
+test('Admin configuration uses tabs, full-height editors, real NexT theme path, and plugin install detection', () => {
   const config = read('modules/configuration.js');
+  const css = read('style.css');
   const worker = fs.readFileSync(path.join(rootDir, 'workers/api/src/index.js'), 'utf8');
 
-  assert.match(config, /config-editor/);
+  assert.match(config, /config-tab-list/);
+  assert.match(config, /config-editor-full/);
+  assert.match(config, /themes\/next\/_config\.yml/);
+  assert.match(config, /hexo-theme-next/);
   assert.match(config, /btn-save-all-config/);
   assert.match(config, /installPlugin/);
   assert.match(config, /pluginPackages/);
   assert.match(config, /\/api\/site\/config\/test-direct-update/);
+  assert.match(css, /config-tab-panel/);
   assert.match(worker, /\/api\/site\/config\/test-direct-update/);
   assert.match(worker, /allowedConfigPaths/);
 });
