@@ -1,4 +1,6 @@
 import { apiFetch } from './api-client.js';
+import { renderDataTable, bindDataTableControls } from './table.js';
+import { escapeHtml } from './ui.js';
 
 export async function fetchPosts() {
   try {
@@ -34,62 +36,51 @@ export async function fetchPosts() {
 }
 
 export function renderPostsList(container, { items, isFallback, onSelectPost }) {
-  let searchVal = '';
+  const tableState = { query: '', filter: 'all', page: 1 };
   
   function draw() {
-    const filtered = items.filter(post => 
-      (post.title || '').toLowerCase().includes(searchVal.toLowerCase()) ||
-      (post.slug || '').toLowerCase().includes(searchVal.toLowerCase())
-    );
-
     const bannerHtml = isFallback ? `
       <div class="alert alert-info">
-        <strong>Demo Mode:</strong> Live posts API is currently unavailable. Displaying local fallback mock articles.
+        <strong>演示模式 / Demo Mode:</strong> 实时文章 API 暂不可用，当前显示本地示例文章。
       </div>
     ` : '';
 
-    const listHtml = filtered.length > 0 ? filtered.map(post => `
-      <div class="post-card card" data-slug="${post.slug}">
-        <div class="post-header">
-          <strong class="post-title">${post.title || post.slug}</strong>
-          <span class="status-badge" data-state="${post.status === 'published' ? 'ok' : 'warning'}">${post.status || 'draft'}</span>
-        </div>
-        <div class="post-meta-details">
-          <span>Slug: <code>${post.slug}</code></span>
-          <span>Path: <code>${post.filePath || '-'}</code></span>
-          ${post.branchName ? `<span>Branch: <code>${post.branchName}</code></span>` : ''}
-        </div>
-        <div class="post-actions" style="margin-top: 10px;">
-          <button class="button-small load-post-btn" data-slug="${post.slug}">Edit Article</button>
-          ${post.previewUrl ? `<a href="${post.previewUrl}" target="_blank" class="button-small button-secondary">View Preview</a>` : ''}
-        </div>
-      </div>
-    `).join('') : '<p class="info-text">No articles match your search filter.</p>';
-
     container.innerHTML = `
       <div class="posts-panel">
+        <h2>文章管理 / Posts</h2>
+        <p class="lede">按标题、slug、路径或分支搜索文章，按发布状态筛选，并从表格中进入编辑。</p>
         ${bannerHtml}
-        <div class="posts-search-bar" style="margin-bottom: 20px;">
-          <input type="text" id="posts-search-input" placeholder="Search by title or slug..." value="${searchVal}" style="width: 100%; padding: 10px; border-radius: 4px; border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary);" />
-        </div>
-        <div class="posts-list-grid">
-          ${listHtml}
+        <div class="card table-card">
+          ${renderDataTable({
+            id: 'posts',
+            rows: items,
+            query: tableState.query,
+            filter: tableState.filter,
+            page: tableState.page,
+            pageSize: 8,
+            searchPlaceholder: '搜索标题、slug、路径、分支...',
+            filterLabel: '状态筛选',
+            allLabel: '全部状态',
+            emptyText: '没有文章匹配当前搜索或筛选条件。',
+            filterOptions: uniqueStatuses(items).map((status) => ({ value: status, label: status })),
+            getFilterValue: (post) => post.status || 'draft',
+            getSearchText: (post) => [post.title, post.slug, post.status, post.filePath, post.branchName].filter(Boolean).join(' '),
+            columns: [
+              { label: '标题 / Title', minWidth: '220px', render: (post) => `<strong>${escapeHtml(post.title || post.slug || '-')}</strong><br/><code>${escapeHtml(post.slug || '-')}</code>` },
+              { label: '状态 / Status', width: '130px', render: (post) => `<span class="status-badge" data-state="${post.status === 'published' ? 'ok' : 'warning'}">${escapeHtml(post.status || 'draft')}</span>` },
+              { label: '路径 / Path', minWidth: '240px', render: (post) => `<code>${escapeHtml(post.filePath || post.path || '-')}</code>` },
+              { label: '分支 / Branch', minWidth: '160px', render: (post) => `<code>${escapeHtml(post.branchName || post.github_branch || '-')}</code>` },
+              { label: '操作 / Actions', width: '190px', render: (post) => `
+                <button class="button-small load-post-btn" data-slug="${escapeHtml(post.slug || '')}">编辑文章 / Edit Article</button>
+                ${post.previewUrl ? `<a href="${escapeHtml(post.previewUrl)}" target="_blank" class="button-small button-secondary">预览 / View Preview</a>` : ''}
+              ` }
+            ]
+          })}
         </div>
       </div>
     `;
 
-    // Bind event listeners
-    const searchInput = container.querySelector('#posts-search-input');
-    if (searchInput) {
-      searchInput.addEventListener('input', (e) => {
-        searchVal = e.target.value;
-        draw();
-        // Refocus and set cursor to end
-        const input = container.querySelector('#posts-search-input');
-        input.focus();
-        input.setSelectionRange(input.value.length, input.value.length);
-      });
-    }
+    bindDataTableControls(container, 'posts', tableState, draw);
 
     container.querySelectorAll('.load-post-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -103,4 +94,8 @@ export function renderPostsList(container, { items, isFallback, onSelectPost }) 
   }
 
   draw();
+}
+
+function uniqueStatuses(items) {
+  return Array.from(new Set(items.map((post) => post.status || 'draft'))).sort();
 }

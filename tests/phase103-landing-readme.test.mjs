@@ -30,16 +30,18 @@ test('README keeps the three-repository source boundary explicit', () => {
   assert.match(readme, /must not receive real private blog posts/);
 });
 
-test('landing footer introduces Hexo/NexT migration without replacing core sections', () => {
+test('landing main body introduces Hexo/NexT migration without replacing core sections', () => {
   const html = read('apps/landing/src/index.html');
 
   assert.match(html, /Hexo\/NexT Migration/);
   assert.match(html, /existing Hexo\/NexT blog with posts, uploads, menus, theme files, plugin config/);
   assert.match(html, /docs\/hexo-next-initialization-and-import\.md/);
+  assert.match(html, /id="migration"/);
   assert.match(html, /id="hero"/);
   assert.match(html, /id="features"/);
   assert.match(html, /id="architecture"/);
   assert.match(html, /id="quickstart"/);
+  assert.doesNotMatch(html, /footer-migration-note/);
 });
 
 test('landing deployment docs use the standalone Pages project and no Worker deploy shortcut', () => {
