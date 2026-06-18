@@ -234,6 +234,22 @@ header {
   gap: 28px;
 }
 
+.mobile-menu-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text-primary);
+  font-family: var(--font-title);
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 9px 15px;
+  backdrop-filter: var(--glass-blur);
+  cursor: pointer;
+}
+
 .nav-links a:not(.btn) {
   color: var(--text-secondary);
   text-decoration: none;
@@ -281,6 +297,18 @@ header {
 .language-select option {
   background: var(--bg-secondary);
   color: var(--text-primary);
+}
+
+.terminal-code,
+.terminal-inline {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.terminal-code code,
+.terminal-inline code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 /* Hero Section */
@@ -659,7 +687,43 @@ footer {
     width: 100%;
   }
   
+  .header-container {
+    position: relative;
+  }
+
+  .mobile-menu-btn {
+    display: inline-flex;
+    margin-left: auto;
+  }
+
   .nav-links {
-    display: none; /* simple responsive fallback */
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 16px;
+    right: 16px;
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    background: rgba(11, 15, 25, 0.96);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+    backdrop-filter: var(--glass-blur);
+  }
+
+  .nav-links.open {
+    display: flex;
+  }
+
+  .nav-links li,
+  .nav-links .btn,
+  .language-select-wrap {
+    width: 100%;
+  }
+
+  .language-select {
+    flex: 1;
   }
 }

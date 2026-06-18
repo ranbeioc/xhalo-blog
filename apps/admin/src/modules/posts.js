@@ -3,31 +3,10 @@ import { getLanguage } from './i18n.js';
 import { renderDataTable, bindDataTableControls } from './table.js';
 import { escapeHtml } from './ui.js';
 
-const fallbackCopy = {
-  zh: {
-    title: '文章管理',
-    lede: '按标题、slug、路径或分支搜索文章，按发布状态筛选，并从表格进入编辑。',
-    demo: '真实文章 API 暂不可用，当前显示本地示例文章。',
-    pageInfo: '服务端分页：第 {page} 页，每页 {pageSize} 条{total}。',
-    total: '，总计 {total} 条',
-    search: '搜索标题、slug、路径、分支...',
-    filter: '状态筛选',
-    all: '全部状态',
-    empty: '没有文章匹配当前搜索或筛选条件。',
-    titleColumn: '标题',
-    status: '状态',
-    path: '路径',
-    branch: '分支',
-    actions: '操作',
-    edit: '编辑文章',
-    preview: '预览',
-    prev: '上一页数据',
-    next: '下一页数据',
-    serverPage: '服务端第 {page} 页{totalPages}'
-  },
+const copy = {
   en: {
     title: 'Post Management',
-    lede: 'Search posts by title, slug, path, or branch, filter by status, and open a row in the editor.',
+    lede: 'Search posts by title, slug, path, or branch. Open a row in the editor or preview the real post detail page.',
     demo: 'The real posts API is unavailable; local demo posts are shown.',
     pageInfo: 'Server pagination: page {page}, {pageSize} items per page{total}.',
     total: ', {total} total',
@@ -40,38 +19,59 @@ const fallbackCopy = {
     path: 'Path',
     branch: 'Branch',
     actions: 'Actions',
-    edit: 'Edit Article',
-    preview: 'Preview',
-    prev: 'Previous Page',
-    next: 'Next Page',
+    edit: 'Edit',
+    preview: 'Preview detail',
+    prev: 'Previous page',
+    next: 'Next page',
     serverPage: 'Server page {page}{totalPages}'
   },
+  'zh-CN': {
+    title: '文章管理',
+    lede: '按标题、slug、路径或分支搜索文章。可以进入编辑器，也可以直接预览真实文章详情页。',
+    demo: '真实文章 API 暂不可用，当前显示本地示例文章。',
+    pageInfo: '服务端分页：第 {page} 页，每页 {pageSize} 条{total}。',
+    total: '，共 {total} 条',
+    search: '搜索标题、slug、路径、分支...',
+    filter: '状态筛选',
+    all: '全部状态',
+    empty: '没有文章匹配当前搜索或筛选条件。',
+    titleColumn: '标题',
+    status: '状态',
+    path: '路径',
+    branch: '分支',
+    actions: '操作',
+    edit: '编辑',
+    preview: '预览详情',
+    prev: '上一页',
+    next: '下一页',
+    serverPage: '服务端第 {page} 页{totalPages}'
+  },
   ko: {
-    title: '문서 관리',
-    lede: '제목, slug, 경로, 브랜치로 문서를 검색하고 상태로 필터링한 뒤 표에서 편집기로 이동합니다.',
-    demo: '실제 문서 API를 사용할 수 없어 로컬 데모 문서를 표시합니다.',
-    pageInfo: '서버 페이지네이션: {page} 페이지, 페이지당 {pageSize}개{total}.',
+    title: '글 관리',
+    lede: '제목, slug, 경로, 브랜치로 글을 검색합니다. 편집기로 열거나 실제 글 상세 페이지를 미리 볼 수 있습니다.',
+    demo: '실제 글 API를 사용할 수 없어 로컬 예시 글을 표시합니다.',
+    pageInfo: '서버 페이지: {page} 페이지, 페이지당 {pageSize}개{total}.',
     total: ', 총 {total}개',
     search: '제목, slug, 경로, 브랜치 검색...',
     filter: '상태 필터',
     all: '모든 상태',
-    empty: '현재 검색 또는 필터 조건과 일치하는 문서가 없습니다.',
+    empty: '현재 검색 또는 필터 조건과 일치하는 글이 없습니다.',
     titleColumn: '제목',
     status: '상태',
     path: '경로',
     branch: '브랜치',
     actions: '작업',
-    edit: '문서 편집',
-    preview: '미리보기',
+    edit: '편집',
+    preview: '상세 미리보기',
     prev: '이전 페이지',
     next: '다음 페이지',
     serverPage: '서버 {page} 페이지{totalPages}'
   },
   ja: {
     title: '記事管理',
-    lede: 'タイトル、slug、パス、ブランチで記事を検索し、状態でフィルターして、表からエディターへ移動します。',
-    demo: '実際の記事 API を利用できないため、ローカルのデモ記事を表示しています。',
-    pageInfo: 'サーバーページネーション: {page} ページ、1ページ {pageSize} 件{total}。',
+    lede: 'タイトル、slug、パス、ブランチで記事を検索します。エディターで開くか、実際の記事詳細ページをプレビューできます。',
+    demo: '実際の記事 API を利用できないため、ローカルのサンプル記事を表示しています。',
+    pageInfo: 'サーバーページ: {page} ページ、1ページ {pageSize} 件{total}。',
     total: '、合計 {total} 件',
     search: 'タイトル、slug、パス、ブランチを検索...',
     filter: '状態フィルター',
@@ -82,8 +82,8 @@ const fallbackCopy = {
     path: 'パス',
     branch: 'ブランチ',
     actions: '操作',
-    edit: '記事を編集',
-    preview: 'プレビュー',
+    edit: '編集',
+    preview: '詳細をプレビュー',
     prev: '前のページ',
     next: '次のページ',
     serverPage: 'サーバー {page} ページ{totalPages}'
@@ -92,8 +92,7 @@ const fallbackCopy = {
 
 function c(key) {
   const language = getLanguage();
-  const localeKey = language === 'zh-CN' ? 'zh' : language;
-  return fallbackCopy[localeKey]?.[key] || fallbackCopy.en[key] || fallbackCopy.zh[key] || key;
+  return copy[language]?.[key] || copy.en[key] || key;
 }
 
 function interpolate(template, params) {
@@ -123,7 +122,7 @@ export async function fetchPosts({ page = 1, pageSize = 20 } = {}) {
         status: 'published',
         filePath: 'source/_posts/hello-xhalo-blog.md',
         branchName: 'main',
-        previewUrl: ''
+        previewUrl: '/posts/hello-xhalo-blog/'
       },
       {
         title: 'Decoupled Cloudflare Architecture (Demo)',
@@ -131,7 +130,7 @@ export async function fetchPosts({ page = 1, pageSize = 20 } = {}) {
         status: 'preview-ready',
         filePath: 'source/_posts/decoupled-cloudflare-workers.md',
         branchName: 'draft/decoupled-cloudflare-workers',
-        previewUrl: 'https://staging.example.com/decoupled-cloudflare-workers/'
+        previewUrl: '/posts/decoupled-cloudflare-workers/'
       }
     ];
     return { items: fallbackItems, isFallback: true, page, pageSize, total: fallbackItems.length, totalPages: 1 };
@@ -179,9 +178,9 @@ export function renderPostsList(container, { items, isFallback, page = 1, pageSi
               { label: c('status'), width: '130px', render: (post) => `<span class="status-badge" data-state="${post.status === 'published' ? 'ok' : 'warning'}">${escapeHtml(post.status || 'draft')}</span>` },
               { label: c('path'), minWidth: '240px', render: (post) => `<code>${escapeHtml(post.filePath || post.path || '-')}</code>` },
               { label: c('branch'), minWidth: '160px', render: (post) => `<code>${escapeHtml(post.branchName || post.github_branch || '-')}</code>` },
-              { label: c('actions'), width: '190px', render: (post) => `
+              { label: c('actions'), width: '210px', render: (post) => `
                 <button class="button-small load-post-btn" data-slug="${escapeHtml(post.slug || '')}">${escapeHtml(c('edit'))}</button>
-                ${post.previewUrl || post.preview_url ? `<a href="${escapeHtml(post.previewUrl || post.preview_url)}" target="_blank" class="button-small button-secondary">${escapeHtml(c('preview'))}</a>` : ''}
+                <a href="${escapeHtml(resolvePostPreviewUrl(post))}" target="_blank" rel="noreferrer" class="button-small button-secondary">${escapeHtml(c('preview'))}</a>
               ` }
             ]
           })}
@@ -212,4 +211,26 @@ export function renderPostsList(container, { items, isFallback, page = 1, pageSi
 
 function uniqueStatuses(items) {
   return Array.from(new Set(items.map((post) => post.status || 'draft'))).sort();
+}
+
+function resolvePostPreviewUrl(post) {
+  const raw = post.previewUrl || post.preview_url || derivePreviewFromPost(post);
+  if (/^https?:\/\//i.test(raw)) return raw;
+  const path = raw.startsWith('/') ? raw : `/${raw}`;
+  return `${window.location.origin}${path}`;
+}
+
+function derivePreviewFromPost(post) {
+  const slug = post.slug || String(post.filePath || post.path || '').split('/').pop()?.replace(/\.md$/i, '') || '';
+  const dateValue = post.published_at || post.updated_at || post.created_at || post.frontmatter?.date;
+  if (dateValue) {
+    const date = new Date(dateValue);
+    if (!Number.isNaN(date.valueOf())) {
+      const year = String(date.getUTCFullYear()).padStart(4, '0');
+      const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(date.getUTCDate()).padStart(2, '0');
+      return `/${year}/${month}/${day}/${slug}/`;
+    }
+  }
+  return `/posts/${slug}/`;
 }

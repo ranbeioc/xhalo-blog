@@ -14,8 +14,9 @@ test('Admin editor exposes Publish to Test only through test_direct readiness ga
   assert.match(editor, /publishMode === 'test_direct'/);
   assert.match(editor, /testDirectPublishEnabled === true/);
   assert.match(editor, /testDirectTargetSafe === true/);
-  assert.match(editor, /DEPLOYMENT_ENV must be test/);
-  assert.match(editor, /Publish to Test unavailable/);
+  assert.match(editor, /gateReason\('testEnv'\)/);
+  assert.match(editor, /The current API is not running in the approved test environment/);
+  assert.match(editor, /Publish to Test is unavailable/);
 });
 
 test('readiness snapshot exposes test_direct target fields for Admin UI', () => {

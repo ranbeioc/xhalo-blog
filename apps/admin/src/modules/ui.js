@@ -52,21 +52,21 @@ export function renderTopbar(container, { title, session, onLogin, onLogout, onL
   let userHtml = '';
 
   if (session?.authenticated) {
-    const roleLabel = session.user?.isAdmin ? 'admin' : (session.user?.role || 'user');
+    const roleLabel = session.user?.isAdmin ? t('roleAdmin') : (session.user?.role || t('roleUser'));
     const avatarHtml = session.user?.avatarUrl
       ? `<img class="user-avatar" src="${escapeHtml(session.user.avatarUrl)}" alt="Avatar" style="width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--border-color);" />`
       : '';
     userHtml = `
       <div class="topbar-user" style="display: flex; align-items: center; gap: 10px;">
         ${avatarHtml}
-        <span class="user-name">${escapeHtml(session.user?.login || session.user?.name || 'User')} · ${escapeHtml(roleLabel)}</span>
-        <button class="topbar-btn" id="btn-logout" title="Sign out">${escapeHtml(t('logout'))}</button>
+        <span class="user-name">${escapeHtml(session.user?.login || session.user?.name || t('roleUser'))} · ${escapeHtml(roleLabel)}</span>
+        <button class="topbar-btn" id="btn-logout" title="${escapeHtml(t('logout'))}">${escapeHtml(t('logout'))}</button>
       </div>`;
   } else {
-    const apiBase = ADMIN_API_BASE_URL || 'Same Origin';
+    const apiBase = ADMIN_API_BASE_URL || t('sameOrigin');
     userHtml = `
       <div class="topbar-user unauth" style="display: flex; align-items: center; gap: 15px;">
-        <span class="api-info-badge" style="font-size: 0.8rem; color: var(--text-muted); padding: 4px 8px; border: 1px dashed var(--border-color); border-radius: 4px;">API: ${escapeHtml(apiBase)}</span>
+        <span class="api-info-badge" style="font-size: 0.8rem; color: var(--text-muted); padding: 4px 8px; border: 1px dashed var(--border-color); border-radius: 4px;">${escapeHtml(t('apiEndpoint'))}: ${escapeHtml(apiBase)}</span>
         <span class="write-warning" style="font-size: 0.85rem; color: var(--yellow);">${escapeHtml(t('writesDisabled'))}</span>
         <button class="topbar-btn login-github-btn" id="btn-login-github" style="background: var(--accent); color: white; border: none; font-weight: 500; padding: 6px 12px; border-radius: 4px;">${escapeHtml(t('loginGithub'))}</button>
       </div>`;
@@ -95,18 +95,12 @@ export function renderTopbar(container, { title, session, onLogin, onLogout, onL
     });
   }
 
-  const logoutBtn = container.querySelector('#btn-logout');
-  if (logoutBtn && onLogout) logoutBtn.addEventListener('click', onLogout);
-
-  const loginBtn = container.querySelector('#btn-login-github');
-  if (loginBtn && onLogin) loginBtn.addEventListener('click', onLogin);
-
-  const toggleBtn = container.querySelector('#sidebar-toggle');
-  if (toggleBtn) {
-    toggleBtn.addEventListener('click', () => {
-      document.body.classList.toggle('sidebar-collapsed');
-    });
-  }
+  container.querySelector('#btn-logout')?.addEventListener('click', () => onLogout?.());
+  container.querySelector('#btn-login-github')?.addEventListener('click', () => onLogin?.());
+  container.querySelector('#sidebar-toggle')?.addEventListener('click', () => {
+    document.body.classList.toggle('sidebar-collapsed');
+    document.querySelector('.sidebar')?.classList.toggle('open');
+  });
 }
 
 export function showToast(message, type = 'info', duration = 4000) {

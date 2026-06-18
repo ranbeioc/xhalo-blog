@@ -13,7 +13,11 @@ export const ALLOWED_MEDIA_TYPES = {
   'application/zip': ['.zip'],
   // Videos
   'video/mp4': ['.mp4'],
-  'video/webm': ['.webm']
+  'video/webm': ['.webm'],
+  // Audio
+  'audio/mpeg': ['.mp3', '.mpeg'],
+  'audio/wav': ['.wav'],
+  'audio/ogg': ['.ogg']
 };
 
 export const MEDIA_SIZE_LIMITS = {
@@ -22,11 +26,14 @@ export const MEDIA_SIZE_LIMITS = {
   // Documents (<= 20MB)
   document: 20 * 1024 * 1024,
   // Videos (<= 100MB)
-  video: 100 * 1024 * 1024
+  video: 100 * 1024 * 1024,
+  // Audio (<= 50MB)
+  audio: 50 * 1024 * 1024
 };
 
 export function getMediaTypeCategory(contentType) {
   if (contentType.startsWith('image/')) return 'image';
+  if (contentType.startsWith('audio/')) return 'audio';
   if (contentType.startsWith('video/')) return 'video';
   return 'document'; // pdf, txt, zip
 }
@@ -137,9 +144,11 @@ export function generateMediaSnippet({ filename, contentType, storageTarget, slu
     const url = `${baseUrl}/posts/${slug}/${cleanFilename}`;
     if (cleanContentType.startsWith('image/')) {
       return `![${displayLabel}](${url})`;
-    } else if (cleanContentType.startsWith('video/')) {
-      return `<video controls src="${url}"></video>`;
-    }
+  } else if (cleanContentType.startsWith('audio/')) {
+    return `<audio controls src="${url}"></audio>`;
+  } else if (cleanContentType.startsWith('video/')) {
+    return `<video controls src="${url}"></video>`;
+  }
     return `[${displayLabel}](${url})`;
   }
 }

@@ -123,7 +123,7 @@ describe('Admin GitHub OAuth Preview Login tests', () => {
   it('PR publish button copy and state checks based on write gates', () => {
     const editorJs = fs.readFileSync(path.join(ADMIN_SRC_DIR, 'modules', 'editor.js'), 'utf8');
     assert.ok(editorJs.includes('Create Review PR'), 'Publish button copy must be Create Review PR');
-    assert.ok(editorJs.includes('Create Review PR unavailable: LIVE_WRITES_ENABLED=false'), 'Must show disabled warning copy when writes are disabled');
+    assert.ok(editorJs.includes('Create Review PR is unavailable because live writes are disabled.'), 'Must show formal disabled warning copy when writes are disabled');
     assert.ok(editorJs.includes('disabled'), 'Create Review PR button must have disabled attribute support');
   });
 

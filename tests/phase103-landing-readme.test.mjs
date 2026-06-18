@@ -100,8 +100,11 @@ test('landing i18n markers cover visible copy and load as a module', () => {
 
   assert.match(html, /<script data-cfasync="false" type="module" src="app\.js"><\/script>/);
   assert.match(html, /id="language-select"/);
+  assert.match(html, /id="mobile-menu-toggle"/);
   assert.match(app, /const locale = resolveLocale/);
   assert.match(app, /xhalo_landing_lang/);
+  assert.match(app, /bindMobileNavigation/);
+  assert.match(app, /classList\.toggle\('open'\)/);
 });
 
 test('landing command examples use real repository commands', () => {
@@ -140,13 +143,15 @@ test('landing language selector and code blocks match the theme constraints', ()
   assert.match(css, /\.github-nav-btn[\s\S]*padding-left: 18px/);
   assert.match(css, /\.terminal-code[\s\S]*white-space: pre-wrap/);
   assert.match(css, /\.terminal-inline[\s\S]*overflow-wrap: anywhere/);
+  assert.match(css, /\.mobile-menu-btn/);
+  assert.match(css, /\.nav-links\.open/);
   assert.doesNotMatch(css, /\.terminal-inline[\s\S]{0,160}overflow-x: auto/);
 });
 
 test('landing source has no known mojibake fragments', () => {
   const source = `${read('apps/landing/src/index.html')}\n${read('apps/landing/src/app.js')}`;
 
-  for (const fragment of ['鈥', '鉁', '鈩', '馃', '锔', '�']) {
+  for (const fragment of ['鈥', '鉁', '鈩', '馃', '锔', '�', '涓', '頃滉', '鏃ユ', 'Fran莽', 'Espa帽']) {
     assert.doesNotMatch(source, new RegExp(fragment), `landing source contains mojibake fragment ${fragment}`);
   }
 });
