@@ -161,6 +161,7 @@ test('test-direct publish succeeds against test-safe mock GitHub target', async 
   assert.equal(json.targetBranch, 'main');
   assert.equal(json.commitSha, 'test-direct-commit-sha');
   assert.equal(json.operation, 'created');
+  assert.match(json.postUrl, /^\/\d{4}\/\d{2}\/\d{2}\/xhalo-blog-first-test-post\/$/);
   assert.match(putPayload.message, /^\[test-direct\]/);
 });
 
@@ -204,6 +205,7 @@ test('test-direct publish updates existing test article content on same slug', a
   assert.equal(response.status, 200);
   assert.equal(json.operation, 'updated');
   assert.equal(json.commitSha, 'test-direct-update-sha');
+  assert.match(json.postUrl, /^\/\d{4}\/\d{2}\/\d{2}\/xhalo-blog-first-test-post\/$/);
   assert.equal(putPayload.sha, 'existing-test-post-sha');
   assert.match(Buffer.from(putPayload.content, 'base64').toString('utf8'), /Updated test article body from Admin\./);
 });

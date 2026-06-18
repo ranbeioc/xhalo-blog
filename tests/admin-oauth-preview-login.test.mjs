@@ -161,6 +161,7 @@ describe('Admin GitHub OAuth Preview Login tests', () => {
     assert.ok(editorJs.includes('new Vditor'), 'Editor must mount Vditor');
     assert.ok(editorJs.includes("'preview'"), 'Vditor toolbar must expose built-in preview');
     assert.ok(!editorJs.includes('markdown-live-preview'), 'Custom side preview must not render');
-    assert.ok(!editorJs.includes("'emoji'"), 'Emoji toolbar must stay disabled to prevent startup overlay');
+    assert.ok(editorJs.includes("'emoji'"), 'Emoji toolbar should be available in Vditor');
+    assert.ok(editorJs.includes('MEDIA_SNIPPETS'), 'Editor should expose media snippet shortcuts');
   });
 });
