@@ -2936,6 +2936,7 @@ async function handleRequest(request, env, requestStart) {
           files,
           commitMessage: '[test-menu-update] update site menu and NexT runtime menu'
         });
+        await waitBeforePagesDeployHook(env);
         const pagesDeploy = await triggerPagesDeployHook(env, {
           reason: 'test_menu_update',
           commitSha: commitResult.commitSha,
@@ -3135,4 +3136,13 @@ async function triggerPagesDeployHook(env, detail = {}) {
       error: error.message || String(error)
     };
   }
+}
+
+async function waitBeforePagesDeployHook(env) {
+  const hookUrl = env.CLOUDFLARE_PAGES_DEPLOY_HOOK_URL || env.PAGES_DEPLOY_HOOK_URL || '';
+  if (!hookUrl) return;
+  const rawDelay = env.CLOUDFLARE_PAGES_DEPLOY_HOOK_DELAY_MS || env.PAGES_DEPLOY_HOOK_DELAY_MS;
+  const delayMs = rawDelay == null || rawDelay === '' ? 1500 : Number(rawDelay);
+  if (!Number.isFinite(delayMs) || delayMs <= 0) return;
+  await new Promise((resolve) => setTimeout(resolve, Math.min(delayMs, 5000)));
 }
