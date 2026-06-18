@@ -54,6 +54,13 @@ test('landing deployment docs use the standalone Pages project and no Worker dep
   assert.doesNotMatch(html, /wrangler deploy --all/);
 });
 
+test('landing sends no-transform headers to keep custom and test routes aligned', () => {
+  const headers = read('apps/landing/src/_headers');
+
+  assert.match(headers, /\/\n\s+Cache-Control: public, max-age=0, must-revalidate, no-transform/);
+  assert.match(headers, /\/\*\.html\n\s+Cache-Control: public, max-age=0, must-revalidate, no-transform/);
+});
+
 test('landing supports browser locale matching with English fallback', async () => {
   const { dictionaries, resolveLocale } = await import(`file://${path.join(rootDir, 'apps/landing/src/app.js').replace(/\\/g, '/')}`);
 
