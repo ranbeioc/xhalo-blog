@@ -153,11 +153,7 @@ export function normalizeMenuFromConfig(config) {
 
   return menu.map((item, index) => {
     const id = item.key || item.id || `menu-item-${index}`;
-    // Fallback label capitalized if not present
-    let label = item.label || item.title || item.name || id;
-    if (label && typeof label === 'string' && label.length > 0) {
-      label = label.charAt(0).toUpperCase() + label.slice(1);
-    }
+    const label = item.label || item.title || item.name || id;
     const path = item.path || '/';
     const icon = item.icon || '';
     const order = typeof item.order === 'number' ? item.order : index * 10;
@@ -229,6 +225,64 @@ export async function getNextRuntimeMenuConfigsFromMain(env, branch = 'main') {
     }
   }
   return configs;
+}
+
+function stripQuotes(value) {
+  return String(value || '').trim().replace(/^['"]|['"]$/g, '');
+}
+
+function buildMenuId(label, path, index) {
+  const pathPart = String(path || '')
+    .replace(/^https?:\/\//i, '')
+    .replace(/\/+$/g, '')
+    .split('/')
+    .filter(Boolean)
+    .pop();
+  const source = path === '/' ? 'home' : (pathPart || label || `menu-item-${index}`);
+  return String(source)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || `menu-item-${index}`;
+}
+
+export function parseNextThemeMenu(rawConfig) {
+  const lines = String(rawConfig || '').split(/\r?\n/);
+  const menuStart = lines.findIndex((line) => /^menu:\s*$/.test(line));
+  if (menuStart === -1) return [];
+
+  const menuItems = [];
+  for (let index = menuStart + 1; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (/^\S/.test(line) && line.trim() !== '') break;
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+
+    const separator = trimmed.indexOf(':');
+    if (separator <= 0) continue;
+
+    const rawLabel = stripQuotes(trimmed.slice(0, separator));
+    const value = trimmed.slice(separator + 1).trim();
+    if (!rawLabel || !value || value.startsWith('#')) continue;
+
+    const [rawPath, rawIcon] = value.split('||').map((part) => String(part || '').trim());
+    const path = rawPath || '/';
+    const icon = String(rawIcon || '')
+      .replace(/^fa\s+fa-/i, '')
+      .replace(/^fa-/i, '')
+      .trim();
+
+    menuItems.push({
+      id: buildMenuId(rawLabel, path, menuItems.length),
+      label: rawLabel,
+      path,
+      icon,
+      order: menuItems.length * 10,
+      visible: true,
+      external: /^https?:\/\//i.test(path)
+    });
+  }
+
+  return menuItems;
 }
 
 export function normalizeNextMenuIcon(icon) {

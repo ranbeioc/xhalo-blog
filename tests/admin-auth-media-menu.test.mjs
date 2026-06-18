@@ -493,6 +493,28 @@ test('updateNextThemeConfigWithMenu replaces the NexT runtime menu block', async
   assert.match(updated, /menu_settings:\n  icons: true/);
 });
 
+test('parseNextThemeMenu preserves migrated NexT labels including Chinese and GPTLabs', async () => {
+  const { parseNextThemeMenu } = await import('../packages/core/src/site-menu.js');
+  const raw = [
+    'scheme: Gemini',
+    'menu:',
+    '  "首页": / || fa fa-home',
+    '  GPTLabs: /gptlabs/ || fa fa-flask',
+    '  "关于我": /about/ || fa fa-user',
+    'menu_settings:',
+    '  icons: true',
+    ''
+  ].join('\n');
+
+  const items = parseNextThemeMenu(raw);
+  assert.equal(items.length, 3);
+  assert.equal(items[0].label, '首页');
+  assert.equal(items[0].id, 'home');
+  assert.equal(items[1].label, 'GPTLabs');
+  assert.equal(items[1].id, 'gptlabs');
+  assert.equal(items[2].label, '关于我');
+});
+
 test('getConfigFromMain reads rb-blog.config.json when present', async () => {
   const { getConfigFromMain } = await import('../packages/core/src/site-menu.js');
   const mockFetch = async (url) => {
@@ -555,6 +577,56 @@ test('getConfigFromMain throws CONFIG_NOT_FOUND or GitHub API error when both mi
   }, (err) => {
     return err.status === 404;
   });
+});
+
+test('GET /api/site/menu prefers NexT runtime menu over rb-blog defaults', async () => {
+  const mockGithubFetch = async (url, init) => {
+    const decodedUrl = decodeURIComponent(String(url));
+    if (decodedUrl.includes('/contents/_config.next.yml')) {
+      return new Response('', { status: 404 });
+    }
+    if (decodedUrl.includes('/contents/themes/next/_config.yml')) {
+      return new Response(JSON.stringify({
+        sha: 'sha-next-menu',
+        content: Buffer.from([
+          'scheme: Gemini',
+          'menu:',
+          '  "首页": / || fa fa-home',
+          '  GPTLabs: /gptlabs/ || fa fa-flask',
+          'menu_settings:',
+          '  icons: true',
+          ''
+        ].join('\n')).toString('base64')
+      }), { status: 200 });
+    }
+    if (decodedUrl.includes('/contents/rb-blog.config.json')) {
+      return new Response(JSON.stringify({
+        sha: 'sha-menu-config',
+        content: Buffer.from(JSON.stringify({
+          menu: [
+            { name: 'Home', path: '/', icon: 'home' }
+          ]
+        })).toString('base64')
+      }), { status: 200 });
+    }
+    return new Response('', { status: 404 });
+  };
+
+  const { response, json } = await requestJson('/api/site/menu', {
+    headers: adminHeaders()
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    GITHUB_OWNER: 'test-owner',
+    GITHUB_REPO: 'test-repo',
+    GITHUB_FETCH: mockGithubFetch
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(json.ok, true);
+  assert.equal(json.source, 'themes/next/_config.yml');
+  assert.equal(json.sourceType, 'next-runtime');
+  assert.equal(json.sha, 'sha-next-menu');
+  assert.deepEqual(json.menu.map((item) => item.label), ['首页', 'GPTLabs']);
 });
 
 test('GET /api/site/menu returns normalized menu using mock GitHub fetch', async () => {
