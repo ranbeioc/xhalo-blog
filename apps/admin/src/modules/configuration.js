@@ -1,5 +1,5 @@
 import { apiFetch } from './api-client.js';
-import { isZh } from './i18n.js';
+import { getLanguage } from './i18n.js';
 import { escapeHtml, showToast } from './ui.js';
 
 const pluginPackages = {
@@ -76,11 +76,75 @@ const copy = {
     themeConfigDetected: 'Theme config detected',
     packageDetected: 'Package dependency detected',
     packageNeedsSave: 'package.json was updated; save to apply.'
+  },
+  ko: {
+    title: 'Hexo / NexT 설정 관리',
+    lede: 'Hexo 기본 설정, NexT 테마 설정, package 플러그인 의존성, 플러그인 스위치를 한곳에서 확인하고 편집합니다. 저장은 test-only 설정 업데이트 gate를 사용합니다.',
+    target: '대상',
+    files: '설정 파일',
+    plugins: 'NexT 플러그인 및 설정 항목',
+    exists: '존재',
+    missing: '없음',
+    saveFile: '설정 파일 저장',
+    saveAll: '수정된 모든 파일 저장',
+    install: 'package.json에 설치',
+    installed: '설치됨',
+    configured: '설정됨',
+    available: '설치 가능',
+    configOnly: '내장 설정',
+    configTargets: '설정 대상',
+    packageMissing: 'package.json을 편집할 수 없어 플러그인을 설치할 수 없습니다.',
+    invalidPackage: 'package.json이 유효한 JSON이 아닙니다.',
+    noChange: '변경 사항이 없습니다.',
+    saved: '설정을 테스트 사이트에 저장했습니다.',
+    saveFailed: '설정 저장 실패',
+    installDone: '플러그인 의존성을 package.json에 추가했습니다. 적용하려면 설정을 저장하세요.',
+    installUnavailable: '이 항목은 NexT 내장 설정입니다. 테마 설정 파일을 직접 편집하세요.',
+    validationFailed: '설정 검증 실패',
+    editConfig: '설정 편집',
+    working: '처리 중...',
+    notInstalledReason: 'package 의존성 또는 테마 설정 파일을 감지하지 못했습니다.',
+    themeConfigDetected: '테마 설정 감지됨',
+    packageDetected: 'package 의존성 감지됨',
+    packageNeedsSave: 'package.json이 업데이트되었습니다. 저장하면 적용됩니다.'
+  },
+  ja: {
+    title: 'Hexo / NexT 設定管理',
+    lede: 'Hexo 基本設定、NexT テーマ設定、package プラグイン依存関係、プラグインスイッチをまとめて確認・編集します。保存は test-only 設定更新 gate を使用します。',
+    target: '対象',
+    files: '設定ファイル',
+    plugins: 'NexT プラグインと設定項目',
+    exists: '存在',
+    missing: 'なし',
+    saveFile: '設定ファイルを保存',
+    saveAll: '変更済みファイルをすべて保存',
+    install: 'package.json にインストール',
+    installed: 'インストール済み',
+    configured: '設定済み',
+    available: 'インストール可能',
+    configOnly: '組み込み設定',
+    configTargets: '設定対象',
+    packageMissing: 'package.json を編集できないため、プラグインをインストールできません。',
+    invalidPackage: 'package.json が有効な JSON ではありません。',
+    noChange: '変更はありません。',
+    saved: '設定をテストサイトへ保存しました。',
+    saveFailed: '設定保存に失敗しました',
+    installDone: 'プラグイン依存関係を package.json に追加しました。適用するには設定を保存してください。',
+    installUnavailable: 'この項目は NexT の組み込み設定です。テーマ設定ファイルを直接編集してください。',
+    validationFailed: '設定検証に失敗しました',
+    editConfig: '設定を編集',
+    working: '処理中...',
+    notInstalledReason: 'package 依存関係またはテーマ設定ファイルを検出できませんでした。',
+    themeConfigDetected: 'テーマ設定を検出しました',
+    packageDetected: 'package 依存関係を検出しました',
+    packageNeedsSave: 'package.json が更新されました。保存すると適用されます。'
   }
 };
 
 function c(key) {
-  return (isZh() ? copy.zh : copy.en)[key];
+  const language = getLanguage();
+  const localeKey = language === 'zh-CN' ? 'zh' : language;
+  return copy[localeKey]?.[key] || copy.en[key] || copy.zh[key] || key;
 }
 
 export async function fetchSiteConfig() {

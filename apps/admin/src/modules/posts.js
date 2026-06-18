@@ -1,5 +1,5 @@
 import { apiFetch } from './api-client.js';
-import { isZh } from './i18n.js';
+import { getLanguage } from './i18n.js';
 import { renderDataTable, bindDataTableControls } from './table.js';
 import { escapeHtml } from './ui.js';
 
@@ -45,11 +45,55 @@ const fallbackCopy = {
     prev: 'Previous Page',
     next: 'Next Page',
     serverPage: 'Server page {page}{totalPages}'
+  },
+  ko: {
+    title: '문서 관리',
+    lede: '제목, slug, 경로, 브랜치로 문서를 검색하고 상태로 필터링한 뒤 표에서 편집기로 이동합니다.',
+    demo: '실제 문서 API를 사용할 수 없어 로컬 데모 문서를 표시합니다.',
+    pageInfo: '서버 페이지네이션: {page} 페이지, 페이지당 {pageSize}개{total}.',
+    total: ', 총 {total}개',
+    search: '제목, slug, 경로, 브랜치 검색...',
+    filter: '상태 필터',
+    all: '모든 상태',
+    empty: '현재 검색 또는 필터 조건과 일치하는 문서가 없습니다.',
+    titleColumn: '제목',
+    status: '상태',
+    path: '경로',
+    branch: '브랜치',
+    actions: '작업',
+    edit: '문서 편집',
+    preview: '미리보기',
+    prev: '이전 페이지',
+    next: '다음 페이지',
+    serverPage: '서버 {page} 페이지{totalPages}'
+  },
+  ja: {
+    title: '記事管理',
+    lede: 'タイトル、slug、パス、ブランチで記事を検索し、状態でフィルターして、表からエディターへ移動します。',
+    demo: '実際の記事 API を利用できないため、ローカルのデモ記事を表示しています。',
+    pageInfo: 'サーバーページネーション: {page} ページ、1ページ {pageSize} 件{total}。',
+    total: '、合計 {total} 件',
+    search: 'タイトル、slug、パス、ブランチを検索...',
+    filter: '状態フィルター',
+    all: 'すべての状態',
+    empty: '現在の検索またはフィルター条件に一致する記事はありません。',
+    titleColumn: 'タイトル',
+    status: '状態',
+    path: 'パス',
+    branch: 'ブランチ',
+    actions: '操作',
+    edit: '記事を編集',
+    preview: 'プレビュー',
+    prev: '前のページ',
+    next: '次のページ',
+    serverPage: 'サーバー {page} ページ{totalPages}'
   }
 };
 
 function c(key) {
-  return (isZh() ? fallbackCopy.zh : fallbackCopy.en)[key];
+  const language = getLanguage();
+  const localeKey = language === 'zh-CN' ? 'zh' : language;
+  return fallbackCopy[localeKey]?.[key] || fallbackCopy.en[key] || fallbackCopy.zh[key] || key;
 }
 
 function interpolate(template, params) {

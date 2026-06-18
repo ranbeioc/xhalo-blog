@@ -130,6 +130,9 @@ test('POST /api/site/menu/test-direct-update writes only to configured safe test
       assert.equal(body.tree.length, 3);
       assert.deepEqual(body.tree.map((item) => item.path), ['rb-blog.config.json', '_config.next.yml', 'themes/next/_config.yml']);
       assert.ok(body.tree.every((item) => item.type === 'blob' && item.mode === '100644'));
+      const nextConfigBlob = body.tree.find((item) => item.path === 'themes/next/_config.yml');
+      assert.match(nextConfigBlob.content, /menu:/);
+      assert.match(nextConfigBlob.content, /social:/);
       return new Response(JSON.stringify({ sha: 'new-tree-sha' }), { status: 200 });
     }
     if (decodedUrl.includes('/git/commits') && init.method === 'POST') {
@@ -154,13 +157,13 @@ test('POST /api/site/menu/test-direct-update writes only to configured safe test
     if (decodedUrl.includes('/contents/_config.next.yml') && (init.method || 'GET') === 'GET') {
       return new Response(JSON.stringify({
         sha: 'sha-runtime-next-config',
-        content: btoa('scheme: Gemini\nmenu:\n  old: /old/ || fa fa-home\nmenu_settings:\n  icons: true\n')
+        content: btoa('scheme: Gemini\nmenu:\n  old: /old/ || fa fa-home\nsocial:\n  GitHub: https://github.com/ranbeioc || fab fa-github\nmenu_settings:\n  icons: true\n')
       }), { status: 200 });
     }
     if (decodedUrl.includes('/contents/themes/next/_config.yml') && (init.method || 'GET') === 'GET') {
       return new Response(JSON.stringify({
         sha: 'sha-next-config',
-        content: btoa('scheme: Gemini\nmenu:\n  old: /old/ || fa fa-home\nmenu_settings:\n  icons: true\n')
+        content: btoa('scheme: Gemini\nmenu:\n  old: /old/ || fa fa-home\nsocial:\n  GitHub: https://github.com/ranbeioc || fab fa-github\nmenu_settings:\n  icons: true\n')
       }), { status: 200 });
     }
     return new Response('', { status: 404 });
@@ -180,7 +183,8 @@ test('POST /api/site/menu/test-direct-update writes only to configured safe test
     headers: adminHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       baseSha: 'sha-menu-config',
-      menu: [{ id: 'home', label: 'Home', path: '/', icon: 'home', external: false, visible: true, order: 0 }]
+      menu: [{ id: 'home', label: 'Home', path: '/', icon: 'home', external: false, visible: true, order: 0 }],
+      socialLinks: [{ id: 'github', label: 'GitHub', url: 'https://github.com/ranbeioc', icon: 'fab fa-github', visible: true, order: 0 }]
     })
   }, {
     DEPLOYMENT_ENV: 'test',

@@ -51,12 +51,15 @@ import {
   sanitizeFilename,
   generateMediaSnippet,
   validateMenuList,
+  validateSocialLinkList,
   getConfigFromMain,
   getNextRuntimeMenuConfigsFromMain,
   normalizeMenuFromConfig,
   parseNextThemeMenu,
+  parseNextThemeSocialLinks,
   updateConfigWithMenu,
-  updateNextThemeConfigWithMenu
+  updateNextThemeConfigWithMenu,
+  updateNextThemeConfigWithSocialLinks
 } from '../../../packages/core/src/index.js';
 
 
@@ -565,14 +568,16 @@ async function getRuntimeMenuSnapshot(env) {
   const nextThemeConfigs = await getNextRuntimeMenuConfigsFromMain(env, repository.baseBranch);
   for (const config of nextThemeConfigs) {
     const menu = parseNextThemeMenu(config.raw);
-    if (menu.length > 0) {
+    const socialLinks = parseNextThemeSocialLinks(config.raw);
+    if (menu.length > 0 || socialLinks.length > 0) {
       return {
         ok: true,
         source: config.filePath,
         sourceType: 'next-runtime',
         sha: config.sha,
         raw: config.raw,
-        menu
+        menu,
+        socialLinks
       };
     }
   }
@@ -585,7 +590,8 @@ async function getRuntimeMenuSnapshot(env) {
     sourceType: 'rb-blog-config',
     sha: configData.sha,
     raw: configData.raw,
-    menu: normalizeMenuFromConfig(config)
+    menu: normalizeMenuFromConfig(config),
+    socialLinks: []
   };
 }
 
@@ -2874,7 +2880,8 @@ async function handleRequest(request, env, requestStart) {
           source: snapshot.source,
           sourceType: snapshot.sourceType,
           sha: snapshot.sha,
-          menu: snapshot.menu
+          menu: snapshot.menu,
+          socialLinks: snapshot.socialLinks || []
         });
       } catch (err) {
         return createJsonResponse({
@@ -3107,15 +3114,28 @@ async function handleRequest(request, env, requestStart) {
       if (menuError) {
         return createJsonResponse({ error: menuError }, { status: 400 });
       }
+      if (input.socialLinks !== undefined && !Array.isArray(input.socialLinks)) {
+        return createJsonResponse({ error: 'Request body socialLinks must be an array when provided.' }, { status: 400 });
+      }
+      if (Array.isArray(input.socialLinks)) {
+        const socialError = validateSocialLinkList(input.socialLinks);
+        if (socialError) {
+          return createJsonResponse({ error: socialError }, { status: 400 });
+        }
+      }
 
       try {
         const snapshot = await getRuntimeMenuSnapshot(env);
+        const socialLinks = Array.isArray(input.socialLinks) ? input.socialLinks : (snapshot.socialLinks || []);
         const oldText = snapshot.sourceType === 'next-runtime'
           ? snapshot.raw
           : JSON.stringify(JSON.parse(snapshot.raw), null, 2);
-        const newText = snapshot.sourceType === 'next-runtime'
+        let newText = snapshot.sourceType === 'next-runtime'
           ? updateNextThemeConfigWithMenu(snapshot.raw, input.menu)
           : JSON.stringify(updateConfigWithMenu(JSON.parse(snapshot.raw), input.menu), null, 2);
+        if (snapshot.sourceType === 'next-runtime') {
+          newText = updateNextThemeConfigWithSocialLinks(newText, socialLinks);
+        }
         const diff = generateUnifiedDiff(oldText, newText, snapshot.source);
 
         return createJsonResponse({
@@ -3214,8 +3234,19 @@ async function handleRequest(request, env, requestStart) {
       if (menuError) {
         return createJsonResponse({ error: menuError }, { status: 400 });
       }
+      if (input.socialLinks !== undefined && !Array.isArray(input.socialLinks)) {
+        return createJsonResponse({ error: 'Request body socialLinks must be an array when provided.' }, { status: 400 });
+      }
+      if (Array.isArray(input.socialLinks)) {
+        const socialError = validateSocialLinkList(input.socialLinks);
+        if (socialError) {
+          return createJsonResponse({ error: socialError }, { status: 400 });
+        }
+      }
 
       try {
+        const snapshot = await getRuntimeMenuSnapshot(env);
+        const socialLinks = Array.isArray(input.socialLinks) ? input.socialLinks : (snapshot.socialLinks || []);
         const configData = await getConfigFromMain(env);
         const oldConfig = JSON.parse(configData.raw);
         const newConfig = updateConfigWithMenu(oldConfig, input.menu);
@@ -3229,7 +3260,10 @@ async function handleRequest(request, env, requestStart) {
 
         const nextThemeConfigs = await getNextRuntimeMenuConfigsFromMain(env, repository.baseBranch);
         for (const nextThemeConfig of nextThemeConfigs) {
-          const nextThemeContent = updateNextThemeConfigWithMenu(nextThemeConfig.raw, input.menu);
+          const nextThemeContent = updateNextThemeConfigWithSocialLinks(
+            updateNextThemeConfigWithMenu(nextThemeConfig.raw, input.menu),
+            socialLinks
+          );
           files.push({
             filePath: nextThemeConfig.filePath,
             content: nextThemeContent,
@@ -3264,6 +3298,7 @@ async function handleRequest(request, env, requestStart) {
             target_branch: repository.baseBranch,
             commitSha: commitResult.commitSha,
             target_paths: targetPaths,
+            social_link_count: socialLinks.length,
             pages_deploy: pagesDeploy
           }
         });
