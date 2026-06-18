@@ -3,13 +3,14 @@ import { renderLanguageOptions, setLanguage, t } from './i18n.js';
 
 export const ROUTES = [
   { id: 'dashboard', labelKey: 'dashboard', icon: 'DB' },
+  { id: 'stats', labelKey: 'stats', icon: 'ST' },
   { id: 'posts', labelKey: 'posts', icon: 'PO' },
   { id: 'editor', labelKey: 'editor', icon: 'ED' },
   { id: 'media', labelKey: 'media', icon: 'ME' },
   { id: 'menus', labelKey: 'menus', icon: 'MN' },
   { id: 'publishing', labelKey: 'publishing', icon: 'PB' },
   { id: 'audit', labelKey: 'audit', icon: 'AU' },
-  { id: 'settings', labelKey: 'settings', icon: 'ST' }
+  { id: 'settings', labelKey: 'settings', icon: 'SE' }
 ];
 
 export function renderSidebar(container, { activeRoute, onNavigate }) {

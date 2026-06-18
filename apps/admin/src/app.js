@@ -10,6 +10,7 @@ import { apiFetch, hasAdminSecret, getAdminSecret, saveAdminSecret } from './mod
 import { checkSession, logout, getLoginUrl } from './modules/auth.js';
 import { renderSidebar, renderTopbar, showToast, getRouteLabel } from './modules/ui.js';
 import { fetchDashboardData, renderDashboard } from './modules/dashboard.js';
+import { fetchBlogStats, renderBlogStats } from './modules/stats.js';
 import { fetchPosts, renderPostsList } from './modules/posts.js';
 import { renderEditor } from './modules/editor.js';
 import { renderMediaManager } from './modules/media.js';
@@ -45,7 +46,7 @@ function navigateTo(route) {
 
 function getRouteFromHash() {
   const hash = window.location.hash.replace('#', '');
-  const validRoutes = ['dashboard', 'posts', 'editor', 'media', 'menus', 'publishing', 'audit', 'settings'];
+  const validRoutes = ['dashboard', 'stats', 'posts', 'editor', 'media', 'menus', 'publishing', 'audit', 'settings'];
   return validRoutes.includes(hash) ? hash : 'dashboard';
 }
 
@@ -116,6 +117,9 @@ async function renderContent() {
     case 'posts':
       await renderPostsPanel(container);
       break;
+    case 'stats':
+      await renderStatsPanel(container);
+      break;
     case 'editor':
       renderEditorPanel(container);
       break;
@@ -162,6 +166,16 @@ async function renderPostsPanel(container) {
     });
   } catch (err) {
     container.innerHTML = `<div class="alert alert-error">文章加载失败 / Failed to load posts: ${err.message}</div>`;
+  }
+}
+
+async function renderStatsPanel(container) {
+  container.innerHTML = '<div class="loading-splash"><div class="spinner"></div><p>正在加载博客统计 / Loading blog stats&hellip;</p></div>';
+  try {
+    const stats = await fetchBlogStats();
+    renderBlogStats(container, stats);
+  } catch (err) {
+    container.innerHTML = `<div class="alert alert-error">博客统计加载失败 / Failed to load blog stats: ${err.message}</div>`;
   }
 }
 

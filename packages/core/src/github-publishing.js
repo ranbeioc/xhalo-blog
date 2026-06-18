@@ -517,3 +517,73 @@ export async function createDirectMainUpdateCommit(env, { branch = 'main', fileP
   };
 }
 
+export async function createDirectMultiFileUpdateCommit(env, { branch = 'main', files, commitMessage }) {
+  const { owner, repo } = getGitHubRepository(env);
+  if (!Array.isArray(files) || files.length === 0) {
+    throw new Error('files is required for a multi-file commit.');
+  }
+
+  const ref = await githubApiRequest(env, `/repos/${owner}/${repo}/git/ref/heads/${encodeURIComponent(branch)}`);
+  const headSha = ref.object.sha;
+  const headCommit = await githubApiRequest(env, `/repos/${owner}/${repo}/git/commits/${encodeURIComponent(headSha)}`);
+  const baseTreeSha = headCommit.tree.sha;
+
+  for (const file of files) {
+    if (!file.filePath || typeof file.content !== 'string') {
+      throw new Error('Each multi-file commit entry requires filePath and content.');
+    }
+    if (file.baseSha) {
+      const currentFile = await githubApiRequest(env, `/repos/${owner}/${repo}/contents/${encodeURIComponent(file.filePath)}?ref=${encodeURIComponent(branch)}`);
+      if (currentFile.sha !== file.baseSha) {
+        const staleError = new Error(`File has changed on ${branch}: ${file.filePath}. Please reload before saving.`);
+        staleError.status = 409;
+        staleError.code = 'STALE_BASE_SHA';
+        throw staleError;
+      }
+    }
+  }
+
+  const tree = await githubApiRequest(env, `/repos/${owner}/${repo}/git/trees`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      base_tree: baseTreeSha,
+      tree: files.map((file) => ({
+        path: file.filePath,
+        mode: '100644',
+        type: 'blob',
+        content: file.content
+      }))
+    })
+  });
+
+  const finalCommitMessage = commitMessage.startsWith('[owner-direct-update]')
+    ? commitMessage
+    : `[owner-direct-update] ${commitMessage}`;
+
+  const commit = await githubApiRequest(env, `/repos/${owner}/${repo}/git/commits`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      message: finalCommitMessage,
+      tree: tree.sha,
+      parents: [headSha]
+    })
+  });
+
+  await githubApiRequest(env, `/repos/${owner}/${repo}/git/refs/heads/${encodeURIComponent(branch)}`, {
+    method: 'PATCH',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      sha: commit.sha,
+      force: false
+    })
+  });
+
+  return {
+    commitSha: commit.sha,
+    commitUrl: `https://github.com/${owner}/${repo}/commit/${commit.sha}`,
+    files: files.map((file) => file.filePath)
+  };
+}
+

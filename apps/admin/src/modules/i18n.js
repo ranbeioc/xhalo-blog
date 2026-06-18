@@ -4,6 +4,7 @@ const STORAGE_KEY = 'xhalo_admin_lang';
 export const dictionaries = {
   'zh-CN': {
     dashboard: '仪表盘',
+    stats: '博客统计',
     posts: '文章',
     editor: '编辑器',
     media: '媒体',
@@ -23,6 +24,7 @@ export const dictionaries = {
   },
   en: {
     dashboard: 'Dashboard',
+    stats: 'Blog Stats',
     posts: 'Posts',
     editor: 'Editor',
     media: 'Media',
