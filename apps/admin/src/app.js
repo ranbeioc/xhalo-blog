@@ -89,10 +89,10 @@ function renderLoginScreen() {
         ${t('loginGithub')}
       </button>
       <div class="login-card-info">
-        <p><strong>Deployment Mode:</strong> Test / PR-only</p>
-        <p><strong>Target Repository:</strong> xhalo-blog-test</p>
-        <p><strong>Admin Bootstrap:</strong> First GitHub login may become admin only in test mode or explicit bootstrap mode.</p>
-        <p><strong>Security Gate:</strong> All direct production writes are blocked. Test writes target only <code>ranbeioc/xhalo-blog-test@main</code>.</p>
+        <p><strong>部署模式 / Deployment Mode:</strong> Test / PR-only</p>
+        <p><strong>目标仓库 / Target Repository:</strong> xhalo-blog-test</p>
+        <p><strong>管理员初始化 / Admin Bootstrap:</strong> 首个 GitHub 登录用户仅可在测试模式或显式 bootstrap 模式下成为管理员。</p>
+        <p><strong>安全 Gate / Security Gate:</strong> 所有生产直写均被阻断；测试写入仅指向 <code>ranbeioc/xhalo-blog-test@main</code>。</p>
       </div>
     </div>
   `;
@@ -140,17 +140,17 @@ async function renderContent() {
 }
 
 async function renderDashboardPanel(container) {
-  container.innerHTML = '<div class="loading-splash"><div class="spinner"></div><p>Loading dashboard&hellip;</p></div>';
+  container.innerHTML = '<div class="loading-splash"><div class="spinner"></div><p>正在加载仪表盘 / Loading dashboard&hellip;</p></div>';
   try {
     appState.dashboardData = await fetchDashboardData();
     renderDashboard(container, appState.dashboardData);
   } catch (err) {
-    container.innerHTML = `<div class="alert alert-error">Failed to load dashboard: ${err.message}</div>`;
+    container.innerHTML = `<div class="alert alert-error">仪表盘加载失败 / Failed to load dashboard: ${err.message}</div>`;
   }
 }
 
 async function renderPostsPanel(container) {
-  container.innerHTML = '<div class="loading-splash"><div class="spinner"></div><p>Loading posts&hellip;</p></div>';
+  container.innerHTML = '<div class="loading-splash"><div class="spinner"></div><p>正在加载文章 / Loading posts&hellip;</p></div>';
   try {
     appState.postsData = await fetchPosts();
     renderPostsList(container, {
@@ -161,7 +161,7 @@ async function renderPostsPanel(container) {
       }
     });
   } catch (err) {
-    container.innerHTML = `<div class="alert alert-error">Failed to load posts: ${err.message}</div>`;
+    container.innerHTML = `<div class="alert alert-error">文章加载失败 / Failed to load posts: ${err.message}</div>`;
   }
 }
 
@@ -179,7 +179,7 @@ function renderEditorPanel(container) {
       : undefined,
     dashboardData: appState.dashboardData,
     onSaveSuccess: () => {
-      showToast('Draft saved successfully', 'success');
+      showToast('草稿保存成功 / Draft saved successfully', 'success');
     }
   });
 }
@@ -191,7 +191,7 @@ function renderMediaPanel(container) {
 }
 
 async function renderMenusPanel(container) {
-  container.innerHTML = '<div class="loading-splash"><div class="spinner"></div><p>Loading menu&hellip;</p></div>';
+  container.innerHTML = '<div class="loading-splash"><div class="spinner"></div><p>正在加载菜单 / Loading menu&hellip;</p></div>';
   try {
     const menuData = await fetchSiteMenu();
     renderMenuManager(container, { initialMenuData: menuData, dashboardData: appState.dashboardData });
@@ -207,7 +207,7 @@ function renderPublishingPanel(container) {
 }
 
 async function renderAuditPanel(container) {
-  container.innerHTML = '<div class="loading-splash"><div class="spinner"></div><p>Loading audit logs&hellip;</p></div>';
+  container.innerHTML = '<div class="loading-splash"><div class="spinner"></div><p>正在加载审计日志 / Loading audit logs&hellip;</p></div>';
   try {
     const [logs, summary] = await Promise.all([fetchAuditLogs(), fetchAuditSummary()]);
     renderAuditLogs(container, { logs, summary });
@@ -234,10 +234,10 @@ async function handleLogout() {
   const ok = await logout();
   if (ok) {
     appState.session = { authenticated: false };
-    showToast('Logged out', 'info');
+    showToast('已退出登录 / Logged out', 'info');
     render();
   } else {
-    showToast('Logout failed', 'error');
+    showToast('退出登录失败 / Logout failed', 'error');
   }
 }
 

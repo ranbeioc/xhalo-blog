@@ -495,6 +495,29 @@ header {
   color: #a7f3d0;
 }
 
+/* Migration showcase */
+.migration-showcase {
+  position: relative;
+}
+
+.migration-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.migration-card {
+  padding: 28px;
+}
+
+.migration-card h3 {
+  margin-bottom: 12px;
+}
+
+.migration-card-cta {
+  border-color: rgba(47, 128, 237, 0.45);
+}
+
 /* Footer */
 footer {
   border-top: 1px solid var(--border-color);
@@ -508,34 +531,6 @@ footer {
   align-items: center;
   flex-wrap: wrap;
   gap: 24px;
-}
-
-.footer-migration-note {
-  width: 100%;
-  padding: 20px 0 8px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.footer-migration-note h3 {
-  font-size: 1.05rem;
-  margin-bottom: 6px;
-}
-
-.footer-migration-note p {
-  max-width: 760px;
-  font-size: 0.92rem;
-}
-
-.footer-migration-note a {
-  display: inline-block;
-  margin-top: 8px;
-  color: var(--primary-hover);
-  text-decoration: none;
-  font-size: 0.9rem;
-}
-
-.footer-migration-note a:hover {
-  color: #ffffff;
 }
 
 .footer-container p {
@@ -578,6 +573,10 @@ footer {
   
   .hero-actions {
     justify-content: center;
+  }
+
+  .migration-grid {
+    grid-template-columns: 1fr;
   }
   
   .setup-steps::before {
