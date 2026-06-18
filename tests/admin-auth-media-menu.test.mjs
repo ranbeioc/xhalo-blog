@@ -516,6 +516,39 @@ test('updateNextThemeConfigWithMenu replaces the NexT runtime menu block', async
   assert.match(updated, /menu_settings:\n  icons: true/);
 });
 
+test('parse and update NexT runtime social links for sidebar profile area', async () => {
+  const {
+    parseNextThemeSocialLinks,
+    updateNextThemeConfigWithSocialLinks,
+    validateSocialLinkList
+  } = await import('../packages/core/src/site-menu.js');
+  const raw = [
+    'scheme: Gemini',
+    'social:',
+    '  GitHub: https://github.com/ranbeioc || fab fa-github',
+    '  Email: mailto:hello@example.com || fa fa-envelope',
+    'social_icons:',
+    '  enable: true',
+    ''
+  ].join('\n');
+
+  const links = parseNextThemeSocialLinks(raw);
+  assert.equal(links.length, 2);
+  assert.equal(links[0].label, 'GitHub');
+  assert.equal(links[0].url, 'https://github.com/ranbeioc');
+  assert.equal(validateSocialLinkList(links), null);
+
+  const updated = updateNextThemeConfigWithSocialLinks(raw, [
+    { id: 'github', label: 'GitHub', url: 'https://github.com/ranbeioc', icon: 'fab fa-github', visible: true, order: 0 },
+    { id: 'hidden', label: 'Hidden', url: 'https://example.com', icon: 'fa fa-link', visible: false, order: 5 },
+    { id: 'rss', label: 'RSS', url: 'https://xhalo-blog-test.pages.dev/atom.xml', icon: 'rss', visible: true, order: 10 }
+  ]);
+
+  assert.match(updated, /social:\n  "GitHub": https:\/\/github\.com\/ranbeioc \|\| fab fa-github\n  "RSS": https:\/\/xhalo-blog-test\.pages\.dev\/atom\.xml \|\| fa fa-rss/);
+  assert.doesNotMatch(updated, /Hidden/);
+  assert.match(updated, /social_icons:\n  enable: true/);
+});
+
 test('parseNextThemeMenu preserves migrated NexT labels including Chinese and GPTLabs', async () => {
   const { parseNextThemeMenu } = await import('../packages/core/src/site-menu.js');
   const raw = [
@@ -616,6 +649,8 @@ test('GET /api/site/menu prefers NexT runtime menu over rb-blog defaults', async
           'menu:',
           '  "首页": / || fa fa-home',
           '  GPTLabs: /gptlabs/ || fa fa-flask',
+          'social:',
+          '  GitHub: https://github.com/ranbeioc || fab fa-github',
           'menu_settings:',
           '  icons: true',
           ''
@@ -650,6 +685,10 @@ test('GET /api/site/menu prefers NexT runtime menu over rb-blog defaults', async
   assert.equal(json.sourceType, 'next-runtime');
   assert.equal(json.sha, 'sha-next-menu');
   assert.deepEqual(json.menu.map((item) => item.label), ['首页', 'GPTLabs']);
+  assert.ok(Array.isArray(json.socialLinks));
+  assert.equal(json.socialLinks.length, 1);
+  assert.equal(json.socialLinks[0].label, 'GitHub');
+  assert.equal(json.socialLinks[0].url, 'https://github.com/ranbeioc');
 });
 
 test('GET /api/site/menu returns normalized menu using mock GitHub fetch', async () => {
@@ -683,6 +722,7 @@ test('GET /api/site/menu returns normalized menu using mock GitHub fetch', async
   assert.ok(Array.isArray(json.menu));
   assert.equal(json.menu.length, 1);
   assert.equal(json.menu[0].label, 'Home');
+  assert.deepEqual(json.socialLinks, []);
 });
 
 test('POST /api/site/menu/preview returns diff using mock GitHub fetch', async () => {

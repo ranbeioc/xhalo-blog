@@ -118,6 +118,66 @@ export function validateMenuList(menuList) {
   return null;
 }
 
+export function validateSocialLinkItem(item, existingIds = []) {
+  if (!item || typeof item !== 'object') {
+    return 'Social link item must be a JSON object.';
+  }
+  if (!item.id || typeof item.id !== 'string') {
+    return 'Social link id is required and must be a string.';
+  }
+  if (!/^[a-z0-9-]+$/.test(item.id)) {
+    return 'Social link id must contain only lowercase letters, numbers, and hyphens.';
+  }
+  if (existingIds.includes(item.id)) {
+    return `Duplicate social link id: ${item.id}.`;
+  }
+  if (!item.label || typeof item.label !== 'string' || item.label.length > 60) {
+    return 'Social link label is required and must be a string up to 60 characters.';
+  }
+  if (!item.url || typeof item.url !== 'string' || item.url.length > 500) {
+    return 'Social link URL is required and must be a string up to 500 characters.';
+  }
+  const normalizedUrl = item.url.trim().toLowerCase();
+  if (
+    normalizedUrl.startsWith('javascript:') ||
+    normalizedUrl.startsWith('data:') ||
+    normalizedUrl.startsWith('//')
+  ) {
+    return 'Social link URL cannot use javascript:, data:, or protocol-relative URLs.';
+  }
+  if (!/^https:\/\//i.test(item.url) && !/^mailto:/i.test(item.url)) {
+    return 'Social link URL must begin with https:// or mailto:.';
+  }
+  if (item.icon !== undefined && item.icon !== null && item.icon !== '') {
+    if (typeof item.icon !== 'string' || !/^[a-zA-Z0-9-\s]+$/.test(item.icon)) {
+      return 'Social link icon must contain only alphanumeric characters, spaces, and hyphens.';
+    }
+  }
+  if (item.visible === undefined || item.visible === null || typeof item.visible !== 'boolean') {
+    return 'Social link visible is required and must be a boolean.';
+  }
+  if (item.order === undefined || item.order === null) {
+    return 'Social link order is required.';
+  }
+  if (!Number.isInteger(item.order) || item.order < 0 || item.order > 9999) {
+    return 'Social link order must be an integer between 0 and 9999.';
+  }
+  return null;
+}
+
+export function validateSocialLinkList(socialLinks) {
+  if (!Array.isArray(socialLinks)) {
+    return 'Social links must be a JSON array.';
+  }
+  const existingIds = [];
+  for (const item of socialLinks) {
+    const error = validateSocialLinkItem(item, existingIds);
+    if (error) return error;
+    existingIds.push(item.id);
+  }
+  return null;
+}
+
 export async function getConfigFromMain(env) {
   const owner = env.GITHUB_OWNER;
   const repo = env.GITHUB_REPO;
@@ -304,6 +364,54 @@ export function parseNextThemeMenu(rawConfig) {
   return menuItems;
 }
 
+function buildSocialLinkId(label, url, index) {
+  const source = String(label || url || `social-link-${index}`)
+    .replace(/^https?:\/\//i, '')
+    .replace(/^mailto:/i, '')
+    .split(/[/?#@]/)
+    .filter(Boolean)
+    .pop();
+  return String(source || `social-link-${index}`)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '') || `social-link-${index}`;
+}
+
+export function parseNextThemeSocialLinks(rawConfig) {
+  const lines = String(rawConfig || '').split(/\r?\n/);
+  const socialStart = lines.findIndex((line) => /^social:\s*$/.test(line));
+  if (socialStart === -1) return [];
+
+  const socialLinks = [];
+  for (let index = socialStart + 1; index < lines.length; index += 1) {
+    const line = lines[index];
+    if (/^\S/.test(line) && line.trim() !== '') break;
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+
+    const separator = trimmed.indexOf(':');
+    if (separator <= 0) continue;
+
+    const rawLabel = stripQuotes(trimmed.slice(0, separator));
+    const value = trimmed.slice(separator + 1).trim();
+    if (!rawLabel || !value || value.startsWith('#')) continue;
+
+    const [rawUrl, rawIcon] = value.split('||').map((part) => String(part || '').trim());
+    const url = rawUrl || '';
+    const icon = String(rawIcon || '').trim();
+    socialLinks.push({
+      id: buildSocialLinkId(rawLabel, url, socialLinks.length),
+      label: rawLabel,
+      url,
+      icon,
+      order: socialLinks.length * 10,
+      visible: true
+    });
+  }
+
+  return socialLinks;
+}
+
 export function normalizeNextMenuIcon(icon) {
   const raw = String(icon || '').trim();
   if (!raw) return 'fa fa-circle';
@@ -358,6 +466,61 @@ export function updateNextThemeConfigWithMenu(rawConfig, menuList) {
     ...lines.slice(0, menuStart),
     ...nextBlock,
     ...lines.slice(menuEnd)
+  ].join('\n');
+
+  return updated.endsWith('\n') ? updated : `${updated}\n`;
+}
+
+export function normalizeNextSocialIcon(icon) {
+  const raw = String(icon || '').trim();
+  if (!raw) return 'fa fa-link';
+  if (/^(fa|fab|far|fas)\s+fa-/i.test(raw)) return raw;
+  if (/^(fa|fab|far|fas)-/i.test(raw)) return raw.replace(/^(fa|fab|far|fas)-/i, '$1 fa-');
+  return `fa fa-${raw.replace(/^fa-/, '')}`;
+}
+
+export function buildNextThemeSocialBlock(socialLinks) {
+  const lines = ['social:'];
+  const visibleLinks = [...socialLinks]
+    .filter((item) => item.visible !== false)
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+  if (visibleLinks.length === 0) {
+    lines.push('  # No visible social links configured by xhalo-blog Admin.');
+    return lines.join('\n');
+  }
+
+  for (const item of visibleLinks) {
+    const label = String(item.label || item.id || 'Link').trim().replace(/"/g, '\\"');
+    const url = String(item.url || '').trim();
+    const icon = normalizeNextSocialIcon(item.icon);
+    lines.push(`  "${label}": ${url} || ${icon}`);
+  }
+  return lines.join('\n');
+}
+
+export function updateNextThemeConfigWithSocialLinks(rawConfig, socialLinks) {
+  const source = String(rawConfig || '');
+  const lines = source.split(/\r?\n/);
+  const socialStart = lines.findIndex((line) => /^social:\s*$/.test(line));
+  const nextBlock = buildNextThemeSocialBlock(socialLinks).split('\n');
+
+  if (socialStart === -1) {
+    const trimmed = source.endsWith('\n') ? source.trimEnd() : source;
+    return `${trimmed}\n\n${nextBlock.join('\n')}\n`;
+  }
+
+  let socialEnd = socialStart + 1;
+  while (socialEnd < lines.length) {
+    const line = lines[socialEnd];
+    if (/^\S/.test(line) && line.trim() !== '') break;
+    socialEnd += 1;
+  }
+
+  const updated = [
+    ...lines.slice(0, socialStart),
+    ...nextBlock,
+    ...lines.slice(socialEnd)
   ].join('\n');
 
   return updated.endsWith('\n') ? updated : `${updated}\n`;

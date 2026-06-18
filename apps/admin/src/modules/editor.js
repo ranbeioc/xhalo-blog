@@ -30,11 +30,11 @@ const EMPTY_POST = {
 };
 
 const MEDIA_SNIPPETS = [
-  { id: 'image', zh: '图片', en: 'Image', snippet: '\n![image alt](media/example-image.png)\n' },
-  { id: 'document', zh: '文档', en: 'Document', snippet: '\n[document.pdf](media/document.pdf)\n' },
-  { id: 'audio', zh: '音频', en: 'Audio', snippet: '\n<audio controls src="media/audio.mp3"></audio>\n' },
-  { id: 'video', zh: '视频', en: 'Video', snippet: '\n<video controls src="media/video.mp4"></video>\n' },
-  { id: 'attachment', zh: '附件', en: 'Attachment', snippet: '\n[download attachment](media/attachment.zip)\n' }
+  { id: 'image', zh: '图片', en: 'Image', ko: '이미지', ja: '画像', snippet: '\n![image alt](media/example-image.png)\n' },
+  { id: 'document', zh: '文档', en: 'Document', ko: '문서', ja: '文書', snippet: '\n[document.pdf](media/document.pdf)\n' },
+  { id: 'audio', zh: '音频', en: 'Audio', ko: '오디오', ja: '音声', snippet: '\n<audio controls src="media/audio.mp3"></audio>\n' },
+  { id: 'video', zh: '视频', en: 'Video', ko: '동영상', ja: '動画', snippet: '\n<video controls src="media/video.mp4"></video>\n' },
+  { id: 'attachment', zh: '附件', en: 'Attachment', ko: '첨부파일', ja: '添付', snippet: '\n[download attachment](media/attachment.zip)\n' }
 ];
 
 const copy = {
@@ -123,17 +123,111 @@ const copy = {
     stats: 'Lines {lines} · Characters {chars} · Words {words}',
     pagesTriggered: 'Pages build triggered',
     pagesNotTriggered: 'Pages build not triggered'
+  },
+  ko: {
+    title: '문서 편집기',
+    template: '테스트 템플릿 사용',
+    blank: '빈 초안',
+    loadSource: 'main 원본 불러오기',
+    notice: '테스트 사이트로 게시하면 실제 원본 경로 {path}를 먼저 업데이트하고, 쓰기 후 Pages 빌드를 트리거합니다. Hexo 홈 출력은 frontmatter 제목, 요약, permalink 규칙을 따릅니다.',
+    edit: '편집',
+    diff: 'Diff',
+    plan: 'PR 계획',
+    titleField: '문서 제목',
+    slug: '문서 Slug',
+    category: '분류',
+    tags: '태그(쉼표로 구분)',
+    sourcePath: '원본 파일 경로',
+    body: '본문 내용(Vditor Markdown)',
+    media: '미디어 첨부 삽입',
+    mediaShortcuts: '빠른 미디어 태그',
+    previewDiff: 'Diff 미리보기',
+    dryRun: 'Dry-run PR 계획',
+    createPr: '리뷰 PR 만들기',
+    publishTest: '테스트 사이트에 게시',
+    prUnavailable: '리뷰 PR 만들기 사용 불가: LIVE_WRITES_ENABLED=false',
+    publishUnavailable: '테스트 사이트 게시 사용 불가',
+    fillSlug: '먼저 Slug를 입력하세요.',
+    sourceLoaded: '원본을 불러왔습니다',
+    sourceFailed: '원본 불러오기 실패',
+    diffReady: 'Diff가 생성되었습니다',
+    diffFailed: 'Diff 생성 실패',
+    planReady: '게시 계획이 생성되었습니다',
+    planFailed: '게시 계획 가져오기 실패',
+    blocked: '쓰기 gate에 의해 차단됨',
+    dispatched: 'PR 생성 작업이 전송되었습니다',
+    operationFailed: '작업 실패',
+    published: '테스트 대상에 게시되었습니다',
+    publishFailed: '테스트 게시 실패',
+    insertMedia: '미디어 Markdown 태그를 삽입했습니다. 미디어 관리에서 실제 링크를 만든 뒤 경로를 교체하세요.',
+    emptyDiff: 'Diff를 생성한 뒤 변경 내용을 확인하세요.',
+    emptyPlan: '게시 계획을 생성한 뒤 작업을 미리 확인하세요.',
+    vditorPlaceholder: 'Markdown으로 본문을 작성하세요. 붙여넣기, 드래그 앤 드롭, 표, 코드 블록, 이모지, 미디어 링크를 지원합니다...',
+    stats: '줄 {lines} · 문자 {chars} · 단어 {words}',
+    pagesTriggered: 'Pages 빌드가 트리거됨',
+    pagesNotTriggered: 'Pages 빌드가 트리거되지 않음'
+  },
+  ja: {
+    title: '記事エディター',
+    template: 'テストテンプレートを使用',
+    blank: '空の下書き',
+    loadSource: 'main ソースを読み込む',
+    notice: 'テストサイトへ公開すると、実際のソースパス {path} を先に更新し、書き込み後に Pages ビルドを起動します。Hexo のトップページは frontmatter のタイトル、概要、permalink ルールに従います。',
+    edit: '編集',
+    diff: 'Diff',
+    plan: 'PR 計画',
+    titleField: '記事タイトル',
+    slug: '記事 Slug',
+    category: 'カテゴリー',
+    tags: 'タグ(カンマ区切り)',
+    sourcePath: 'ソースファイルパス',
+    body: '本文(Vditor Markdown)',
+    media: 'メディア添付を挿入',
+    mediaShortcuts: 'クイックメディアタグ',
+    previewDiff: 'Diff をプレビュー',
+    dryRun: 'Dry-run PR 計画',
+    createPr: 'レビュー PR を作成',
+    publishTest: 'テストサイトへ公開',
+    prUnavailable: 'レビュー PR 作成は使用不可: LIVE_WRITES_ENABLED=false',
+    publishUnavailable: 'テストサイト公開は使用不可',
+    fillSlug: '先に Slug を入力してください。',
+    sourceLoaded: 'ソースを読み込みました',
+    sourceFailed: 'ソースの読み込みに失敗しました',
+    diffReady: 'Diff を生成しました',
+    diffFailed: 'Diff 生成に失敗しました',
+    planReady: '公開計画を生成しました',
+    planFailed: '公開計画の取得に失敗しました',
+    blocked: '書き込み gate によりブロックされました',
+    dispatched: 'PR 作成タスクを送信しました',
+    operationFailed: '操作に失敗しました',
+    published: 'テスト対象へ公開しました',
+    publishFailed: 'テスト公開に失敗しました',
+    insertMedia: 'メディア Markdown タグを挿入しました。メディア管理で実リンクを生成した後にパスを置き換えてください。',
+    emptyDiff: 'Diff を生成して変更内容を確認してください。',
+    emptyPlan: '公開計画を生成して操作を確認してください。',
+    vditorPlaceholder: 'Markdown で本文を書けます。貼り付け、ドラッグ&ドロップ、表、コードブロック、絵文字、メディアリンクに対応しています...',
+    stats: '行 {lines} · 文字 {chars} · Words {words}',
+    pagesTriggered: 'Pages ビルドを起動しました',
+    pagesNotTriggered: 'Pages ビルドは起動していません'
   }
 };
 
 let vditorAssetsPromise = null;
 
 function c(key) {
-  return (isZh() ? copy.zh : copy.en)[key];
+  const language = getLanguage();
+  const localeKey = language === 'zh-CN' ? 'zh' : language;
+  return copy[localeKey]?.[key] || copy.en[key] || copy.zh[key] || key;
 }
 
 function interpolate(template, params) {
   return Object.entries(params).reduce((value, [key, replacement]) => value.replaceAll(`{${key}}`, String(replacement)), template);
+}
+
+function mediaLabel(item) {
+  const language = getLanguage();
+  if (language === 'zh-CN') return item.zh;
+  return item[language] || item.en;
 }
 
 export async function fetchPostSource(slug, targetPath = '') {
@@ -471,10 +565,14 @@ export function renderEditor(container, { initialPost, dashboardData }) {
         <label class="field-span-2"><span>${escapeHtml(c('sourcePath'))}</span><input type="text" id="edit-file-path" value="${escapeHtml(post.filePath || '')}" placeholder="source/_posts/2026-01-01-example.md" /></label>
         <div class="field-span-2 media-shortcut-bar" aria-label="${escapeHtml(c('mediaShortcuts'))}">
           <span>${escapeHtml(c('mediaShortcuts'))}</span>
-          ${MEDIA_SNIPPETS.map((item) => `<button type="button" class="button-small button-secondary btn-media-snippet" data-media-snippet="${escapeHtml(item.id)}">${escapeHtml(isZh() ? item.zh : item.en)}</button>`).join('')}
+          ${MEDIA_SNIPPETS.map((item) => `<button type="button" class="button-small button-secondary btn-media-snippet" data-media-snippet="${escapeHtml(item.id)}">${escapeHtml(mediaLabel(item))}</button>`).join('')}
         </div>
         <div class="field-span-2 markdown-editor-shell">
-          <label class="markdown-input-pane"><span>${escapeHtml(c('body'))}</span><div id="vditor-editor" class="vditor-host"></div><textarea id="edit-body" rows="22" spellcheck="false" placeholder="${escapeHtml(c('vditorPlaceholder'))}">${escapeHtml(post.body)}</textarea></label>
+          <div class="markdown-input-pane">
+            <span id="edit-body-label">${escapeHtml(c('body'))}</span>
+            <div id="vditor-editor" class="vditor-host" role="textbox" aria-labelledby="edit-body-label"></div>
+            <textarea id="edit-body" rows="22" spellcheck="false" aria-labelledby="edit-body-label" placeholder="${escapeHtml(c('vditorPlaceholder'))}">${escapeHtml(post.body)}</textarea>
+          </div>
           <div class="markdown-editor-status">${renderMarkdownStats(post.body)}</div>
         </div>
       </div>
