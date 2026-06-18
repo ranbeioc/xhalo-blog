@@ -10,13 +10,19 @@ function read(relativePath) {
   return fs.readFileSync(path.join(adminDir, relativePath), 'utf8');
 }
 
-test('Admin i18n supports zh-CN/en and applies bilingual text cleanup to child pages', () => {
+test('Admin i18n supports full-name language options and applies bilingual text cleanup to child pages', () => {
   const i18n = read('modules/i18n.js');
   const ui = read('modules/ui.js');
   const app = read('app.js');
 
   assert.match(i18n, /zh-CN/);
   assert.match(i18n, /en/);
+  assert.match(i18n, /ko/);
+  assert.match(i18n, /ja/);
+  assert.match(i18n, /English/);
+  assert.match(i18n, /简体中文/);
+  assert.match(i18n, /한국어/);
+  assert.match(i18n, /日本語/);
   assert.match(i18n, /URLSearchParams/);
   assert.match(i18n, /localStorage\.getItem\(STORAGE_KEY\)/);
   assert.match(i18n, /navigator\.language/);
@@ -71,6 +77,9 @@ test('Admin editor uses Vditor with emoji and media shortcuts without custom sid
   assert.match(editor, /new Vditor/);
   assert.match(editor, /'preview'/);
   assert.match(editor, /'emoji'/);
+  assert.match(editor, /closeVditorFloatingPanels/);
+  assert.match(editor, /focusVditorEditorBody/);
+  assert.doesNotMatch(editor, /toolbar:\s*\['emoji'/);
   assert.match(editor, /MEDIA_SNIPPETS/);
   assert.match(editor, /data-media-snippet/);
   assert.doesNotMatch(editor, /markdown-live-preview/);
@@ -111,11 +120,20 @@ test('Admin configuration uses tabs, full-height editors, real NexT theme path, 
   assert.match(config, /config-editor-full/);
   assert.match(config, /themes\/next\/_config\.yml/);
   assert.match(config, /hexo-theme-next/);
+  assert.match(config, /保存配置文件/);
+  assert.match(config, /Save Config File/);
+  assert.match(config, /validateConfigFiles/);
+  assert.match(config, /configured/);
+  assert.match(config, /configOnly/);
+  assert.match(config, /installUnavailable/);
+  assert.match(config, /hexo-filter-mathjax/);
   assert.match(config, /btn-save-all-config/);
   assert.match(config, /installPlugin/);
   assert.match(config, /pluginPackages/);
   assert.match(config, /\/api\/site\/config\/test-direct-update/);
   assert.match(css, /config-tab-panel/);
+  assert.match(css, /height:\s*clamp\(360px,\s*54vh,\s*620px\)/);
+  assert.match(css, /status-badge\[data-state="info"\]/);
   assert.match(worker, /\/api\/site\/config\/test-direct-update/);
   assert.match(worker, /allowedConfigPaths/);
 });

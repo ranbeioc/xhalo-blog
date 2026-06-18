@@ -370,6 +370,7 @@ body {
 .status-badge[data-state="ok"]      { background: var(--green-subtle); color: var(--green); }
 .status-badge[data-state="warning"] { background: var(--yellow-subtle); color: var(--yellow); }
 .status-badge[data-state="error"]   { background: var(--red-subtle); color: var(--red); }
+.status-badge[data-state="info"]    { background: var(--accent-subtle); color: var(--accent); }
 
 /* ── Alerts ─────────────────────────────────────────────────────────────────── */
 .alert {
@@ -1207,7 +1208,7 @@ button, .button-small {
 }
 
 .admin-language-select-wrap select {
-  min-width: 100px;
+  min-width: 132px;
   border: 0;
   background: transparent;
   color: var(--text-primary);
@@ -1265,7 +1266,7 @@ button, .button-small {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-height: 70vh;
+  min-height: 0;
 }
 
 .config-tab-meta {
@@ -1302,7 +1303,8 @@ button, .button-small {
 }
 
 .config-editor-full {
-  min-height: min(74vh, 860px);
+  height: clamp(360px, 54vh, 620px);
+  min-height: 320px;
 }
 
 .config-editor:focus {
