@@ -31,6 +31,20 @@ export function validateMenuItem(item, existingIds = []) {
     return 'Menu item label must be between 1 and 40 characters.';
   }
 
+  if (item.labels !== undefined && item.labels !== null) {
+    if (typeof item.labels !== 'object' || Array.isArray(item.labels)) {
+      return 'Menu item labels must be an object keyed by locale.';
+    }
+    for (const [locale, label] of Object.entries(item.labels)) {
+      if (!/^[a-z]{2}(?:-[A-Z]{2})?$/.test(locale)) {
+        return `Invalid menu item locale key: ${locale}.`;
+      }
+      if (typeof label !== 'string' || label.length > 40) {
+        return `Menu item label for ${locale} must be a string up to 40 characters.`;
+      }
+    }
+  }
+
   // path validation: required, 1-200 chars
   if (!item.path || typeof item.path !== 'string') {
     return 'Menu item path is required and must be a string.';
@@ -154,13 +168,16 @@ export function normalizeMenuFromConfig(config) {
   return menu.map((item, index) => {
     const id = item.key || item.id || `menu-item-${index}`;
     const label = item.label || item.title || item.name || id;
+    const labels = item.labels && typeof item.labels === 'object' && !Array.isArray(item.labels)
+      ? item.labels
+      : {};
     const path = item.path || '/';
     const icon = item.icon || '';
     const order = typeof item.order === 'number' ? item.order : index * 10;
     const visible = typeof item.visible === 'boolean' ? item.visible : true;
     const external = typeof item.external === 'boolean' ? item.external : path.startsWith('http');
 
-    return { id, label, path, icon, order, visible, external };
+    return { id, label, labels, path, icon, order, visible, external };
   });
 }
 
@@ -174,6 +191,7 @@ export function updateConfigWithMenu(config, menuList) {
       path: item.path,
       icon: item.icon || undefined,
       label: item.label,
+      labels: item.labels && typeof item.labels === 'object' ? item.labels : undefined,
       order: item.order,
       visible: item.visible,
       external: item.external
@@ -186,6 +204,7 @@ export function updateConfigWithMenu(config, menuList) {
     newConfig.menu = menuList.map(item => {
       return {
         name: item.label,
+        labels: item.labels && typeof item.labels === 'object' ? item.labels : undefined,
         path: item.path,
         icon: item.icon || undefined,
         order: item.order,
@@ -293,7 +312,8 @@ export function normalizeNextMenuIcon(icon) {
 }
 
 export function formatNextMenuLabel(item) {
-  return String(item.label || item.id || 'Menu').trim().replace(/"/g, '\\"');
+  const labels = item.labels && typeof item.labels === 'object' ? item.labels : {};
+  return String(labels['zh-CN'] || item.label || labels.en || item.id || 'Menu').trim().replace(/"/g, '\\"');
 }
 
 export function buildNextThemeMenuBlock(menuList) {

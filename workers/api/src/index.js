@@ -36,6 +36,7 @@ import {
   createDirectMainUpsertCommit,
   createDirectMainUpdateCommit,
   createDirectMultiFileUpdateCommit,
+  getFileContentFromBranch,
   getPostFileFromMain,
   listPostFilesFromMain,
   generateUnifiedDiff,
@@ -1257,15 +1258,22 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/posts') {
-      const requestedLimit = Math.max(1, Math.min(Number(url.searchParams.get('limit')) || 100, 200));
+      const requestedLimit = Math.max(1, Math.min(Number(url.searchParams.get('limit')) || 20, 100));
+      const requestedPage = Math.max(1, Number(url.searchParams.get('page')) || 1);
+      const offset = (requestedPage - 1) * requestedLimit;
       try {
-        const gitItems = await listPostFilesFromMain(env, { branch: getGitHubRepository(env).baseBranch, limit: requestedLimit });
+        const gitItems = await listPostFilesFromMain(env, { branch: getGitHubRepository(env).baseBranch, limit: 500 });
         if (gitItems.length > 0) {
+          const pagedItems = gitItems.slice(offset, offset + requestedLimit);
           return createJsonResponse({
-            items: gitItems.map(summarizePostRecord),
+            items: pagedItems.map(summarizePostRecord),
             backend: 'github',
             source_of_truth: 'git',
-            count: gitItems.length,
+            count: pagedItems.length,
+            page: requestedPage,
+            pageSize: requestedLimit,
+            total: gitItems.length,
+            totalPages: Math.max(1, Math.ceil(gitItems.length / requestedLimit)),
             note: 'GitHub source/_posts listing from the configured test repository.'
           });
         }
@@ -1275,14 +1283,19 @@ async function handleRequest(request, env, requestStart) {
 
       const items = await selectRows(
         env,
-        'SELECT id, slug, title, path, status, created_at, updated_at, published_at, github_branch, github_pr_url, preview_url, content FROM posts_index ORDER BY COALESCE(updated_at, created_at) DESC LIMIT 100'
+        `SELECT id, slug, title, path, status, created_at, updated_at, published_at, github_branch, github_pr_url, preview_url, content FROM posts_index ORDER BY COALESCE(updated_at, created_at) DESC LIMIT ${requestedLimit} OFFSET ${offset}`
       );
 
       const d1Items = Array.isArray(items) && items.length > 0 ? items : null;
+      const fallbackItems = createFallbackPosts();
       return createJsonResponse({
-        items: d1Items ? d1Items.map(summarizePostRecord) : createFallbackPosts().map(summarizePostRecord),
+        items: d1Items ? d1Items.map(summarizePostRecord) : fallbackItems.slice(offset, offset + requestedLimit).map(summarizePostRecord),
         backend: d1Items ? 'd1' : 'fallback',
         source_of_truth: 'git',
+        page: requestedPage,
+        pageSize: requestedLimit,
+        total: d1Items ? null : fallbackItems.length,
+        totalPages: d1Items ? null : Math.max(1, Math.ceil(fallbackItems.length / requestedLimit)),
         note: d1Items ? 'Read-only posts_index prototype.' : 'GitHub listing and D1 posts_index unavailable; showing fallback examples.'
       });
     }
@@ -1295,7 +1308,8 @@ async function handleRequest(request, env, requestStart) {
       }
 
       try {
-        const postData = await getPostFileFromMain(env, { slug });
+        const targetPath = url.searchParams.get('targetPath') || undefined;
+        const postData = await getPostFileFromMain(env, { slug, filePath: targetPath });
         const repository = getGitHubRepository(env);
         return createJsonResponse({
           ok: true,
@@ -1353,7 +1367,7 @@ async function handleRequest(request, env, requestStart) {
       }
 
       try {
-        const postData = await getPostFileFromMain(env, { slug: input.slug });
+        const postData = await getPostFileFromMain(env, { slug: input.slug, filePath: input.targetPath || input.filePath });
         const updatedMarkdown = buildDraftMarkdownDocument(input);
         const diff = generateUnifiedDiff(postData.raw, updatedMarkdown, `${input.slug}.md`);
 
@@ -1513,7 +1527,7 @@ async function handleRequest(request, env, requestStart) {
       try {
         let oldRaw = '';
         try {
-          const existingPost = await getPostFileFromMain(env, { slug: input.slug });
+          const existingPost = await getPostFileFromMain(env, { slug: input.slug, filePath: input.targetPath || input.filePath });
           oldRaw = existingPost.raw;
         } catch (existingErr) {
           // ignore
@@ -1998,7 +2012,13 @@ async function handleRequest(request, env, requestStart) {
         }, { status: 403 });
       }
 
-      const filePath = `source/_posts/${validationInput.slug}.md`;
+      const filePath = validationInput.targetPath || validationInput.filePath || `source/_posts/${validationInput.slug}.md`;
+      if (!/^source\/_posts\/[^/]+\.md$/i.test(filePath)) {
+        return createJsonResponse({
+          error: 'Post file path must stay under source/_posts and end with .md.',
+          code: 'INVALID_POST_FILE_PATH'
+        }, { status: 400 });
+      }
       const markdown = buildDraftMarkdownDocument(validationInput);
       const commitMessage = `[test-direct] publish first test post: ${validationInput.title}`;
 
@@ -2043,6 +2063,14 @@ async function handleRequest(request, env, requestStart) {
             operation: commitResult.operation
           }
         });
+        await waitBeforePagesDeployHook(env);
+        const pagesDeploy = await triggerPagesDeployHook(env, {
+          reason: 'test_direct_publish',
+          commitSha: commitResult.commitSha,
+          targetRepo: `${repository.owner}/${repository.repo}`,
+          targetBranch: repository.baseBranch,
+          targetPath: filePath
+        });
 
         return createJsonResponse({
           ok: true,
@@ -2054,8 +2082,9 @@ async function handleRequest(request, env, requestStart) {
           commitSha: commitResult.commitSha,
           commitUrl: commitResult.commitUrl,
           operation: commitResult.operation,
+          pagesDeploy,
           persisted,
-          message: 'Test direct commit created. Cloudflare Pages rebuild should be verified before production approval.'
+          message: 'Test direct commit created and Pages rebuild hook was triggered when configured.'
         });
       } catch (err) {
         const statusCode = err.status || 500;
@@ -2788,6 +2817,74 @@ async function handleRequest(request, env, requestStart) {
       }
     }
 
+    if (url.pathname === '/api/site/config' && request.method === 'GET') {
+      const repository = getGitHubRepository(env);
+      const files = [
+        '_config.yml',
+        '_config.next.yml',
+        'themes/next/_config.yml',
+        'package.json'
+      ];
+      const configs = [];
+      for (const filePath of files) {
+        try {
+          const file = await getFileContentFromBranch(env, { branch: repository.baseBranch, filePath });
+          configs.push({
+            path: filePath,
+            sha: file.sha,
+            exists: true,
+            content: file.raw,
+            editable: ['_config.yml', '_config.next.yml', 'themes/next/_config.yml', 'package.json'].includes(filePath)
+          });
+        } catch (err) {
+          configs.push({
+            path: filePath,
+            exists: false,
+            error: err.status === 404 ? 'not_found' : err.message,
+            editable: false
+          });
+        }
+      }
+      return createJsonResponse({
+        ok: true,
+        targetRepo: `${repository.owner}/${repository.repo}`,
+        targetBranch: repository.baseBranch,
+        configs,
+        pluginCatalog: buildHexoNextPluginCatalog(),
+        note: 'Read-only Hexo/NexT configuration snapshot. Test-only editing will be wired through a guarded config update endpoint.'
+      });
+    }
+
+    if (url.pathname === '/api/integrations/status' && request.method === 'GET') {
+      const repository = getGitHubRepository(env);
+      return createJsonResponse({
+        ok: true,
+        github: {
+          owner: repository.owner,
+          repo: repository.repo,
+          branch: repository.baseBranch,
+          tokenConfigured: Boolean(env.GITHUB_TOKEN || (env.GITHUB_APP_ID && env.GITHUB_APP_PRIVATE_KEY && env.GITHUB_INSTALLATION_ID)),
+          oauthConfigured: Boolean(env.GITHUB_OAUTH_CLIENT_ID && env.GITHUB_OAUTH_CLIENT_SECRET),
+          safeTestTarget: !isForbiddenProductionContentTarget(repository)
+        },
+        cloudflare: {
+          deploymentEnv: env.DEPLOYMENT_ENV || 'development',
+          pagesDeployHookConfigured: Boolean(env.CLOUDFLARE_PAGES_DEPLOY_HOOK_URL || env.PAGES_DEPLOY_HOOK_URL),
+          pagesDeployHookDelayMs: Number(env.CLOUDFLARE_PAGES_DEPLOY_HOOK_DELAY_MS || env.PAGES_DEPLOY_HOOK_DELAY_MS || 1500),
+          d1Bound: Boolean(env.DB),
+          r2Bound: Boolean(env.ASSETS),
+          queueBound: Boolean(env.TASK_QUEUE),
+          r2LiveWritesEnabled: String(env.LIVE_WRITES_ENABLED || '').toLowerCase() === 'true',
+          testMediaUploadEnabled: String(env.TEST_MEDIA_UPLOAD_ENABLED || '').toLowerCase() === 'true'
+        },
+        writeGates: {
+          liveWritesEnabled: isLiveWritesEnabled(env),
+          testDirectPublishEnabled: isTestDirectPublishEnabled(env),
+          publishMode: env.PUBLISH_MODE || 'pr_only'
+        }
+      });
+    }
+
     if (url.pathname === '/api/site/menu/preview' && request.method === 'POST') {
       const { input, error: parseError } = await readJsonBody(request);
       if (parseError) return createJsonResponse({ error: parseError }, { status: 400 });
@@ -3145,4 +3242,19 @@ async function waitBeforePagesDeployHook(env) {
   const delayMs = rawDelay == null || rawDelay === '' ? 1500 : Number(rawDelay);
   if (!Number.isFinite(delayMs) || delayMs <= 0) return;
   await new Promise((resolve) => setTimeout(resolve, Math.min(delayMs, 5000)));
+}
+
+function buildHexoNextPluginCatalog() {
+  return [
+    { id: 'next-theme', name: 'NexT Theme', configFiles: ['themes/next/_config.yml', '_config.next.yml'], category: 'theme', supportsToggle: true },
+    { id: 'feed', name: 'hexo-generator-feed', configKeys: ['feed'], category: 'seo', supportsToggle: true },
+    { id: 'sitemap', name: 'hexo-generator-sitemap', configKeys: ['sitemap'], category: 'seo', supportsToggle: true },
+    { id: 'search', name: 'hexo-generator-searchdb', configKeys: ['search'], category: 'search', supportsToggle: true },
+    { id: 'waline', name: 'Waline comments', configKeys: ['waline'], category: 'comments', supportsToggle: true },
+    { id: 'analytics', name: 'Analytics providers', configKeys: ['google_analytics', 'baidu_analytics', 'clarity'], category: 'analytics', supportsToggle: true },
+    { id: 'math', name: 'Math rendering', configKeys: ['math', 'katex', 'mathjax'], category: 'content', supportsToggle: true },
+    { id: 'mermaid', name: 'Mermaid diagrams', configKeys: ['mermaid'], category: 'content', supportsToggle: true },
+    { id: 'pjax', name: 'NexT PJAX', configKeys: ['pjax'], category: 'performance', supportsToggle: true },
+    { id: 'lazyload', name: 'Image lazy loading', configKeys: ['lazyload'], category: 'performance', supportsToggle: true }
+  ];
 }

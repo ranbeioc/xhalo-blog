@@ -4,20 +4,37 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>xhalo-blog - Cloudflare-Native Blog Framework Scaffold</title>
-  <meta name="description" content="xhalo-blog is a premium, open-source, Cloudflare-native blog framework scaffold combining Cloudflare Pages, Workers API, D1 Database, R2 Storage, and Hexo/NexT static compilation.">
+  <meta name="description" content="Open-source Cloudflare-native blog framework for Hexo/NexT, Cloudflare Pages, Workers API, D1, R2, GitHub publishing, and a private test-site migration flow.">
+  <meta name="keywords" content="xhalo-blog, Cloudflare Pages blog, Hexo NexT migration, Workers API, D1, R2, GitHub publishing">
+  <meta name="robots" content="index,follow">
+  <meta name="theme-color" content="#0b0f19">
+  <link rel="canonical" href="https://blog.xhalo.co/">
+  <link rel="alternate" hreflang="x-default" href="https://blog.xhalo.co/">
+  <link rel="alternate" hreflang="en" href="https://blog.xhalo.co/">
+  <link rel="alternate" hreflang="zh-CN" href="https://blog.xhalo.co/?lang=zh-CN">
+  <link rel="alternate" hreflang="ko" href="https://blog.xhalo.co/?lang=ko">
+  <link rel="alternate" hreflang="ja" href="https://blog.xhalo.co/?lang=ja">
+  <link rel="alternate" hreflang="fr" href="https://blog.xhalo.co/?lang=fr">
+  <link rel="alternate" hreflang="es" href="https://blog.xhalo.co/?lang=es">
+  <link rel="alternate" hreflang="de" href="https://blog.xhalo.co/?lang=de">
+  <link rel="alternate" hreflang="pt" href="https://blog.xhalo.co/?lang=pt">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="xhalo-blog">
+  <meta property="og:title" content="xhalo-blog - Cloudflare-Native Blog Framework Scaffold">
+  <meta property="og:description" content="Open-source Cloudflare-native blog framework for Hexo/NexT, Cloudflare Pages, Workers API, D1, R2, GitHub publishing, and a private test-site migration flow.">
+  <meta property="og:url" content="https://blog.xhalo.co/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="xhalo-blog - Cloudflare-Native Blog Framework Scaffold">
+  <meta name="twitter:description" content="Open-source Cloudflare-native blog framework for Hexo/NexT, Cloudflare Pages, Workers API, D1, R2, GitHub publishing, and a private test-site migration flow.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
-  <!-- Header / Navigation -->
   <header id="main-header" class="header-glass">
     <div class="container header-container">
-      <a href="#" id="brand-logo" class="logo">
-        <span class="logo-accent">x</span>halo-blog
-      </a>
+      <a href="#" id="brand-logo" class="logo"><span class="logo-accent">x</span>halo-blog</a>
       <nav id="navbar">
         <ul class="nav-links">
           <li><a href="#features" id="nav-features-link" data-i18n="nav.features">Features</a></li>
@@ -51,16 +68,13 @@
     </div>
   </header>
 
-  <!-- Hero Section -->
   <section id="hero">
     <div class="hero-bg-glow"></div>
     <div class="container hero-container">
       <div class="hero-content">
         <div class="badge" id="hero-badge" data-i18n="hero.badge">Cloudflare Native</div>
         <h1 id="hero-title" data-i18n-html="hero.title">The Ultimate <span class="gradient-text">Cloudflare-Native</span> Blog Scaffold</h1>
-        <p id="hero-subtitle" class="lead" data-i18n="hero.subtitle">
-          Deploy a blazing-fast personal blog or developer journal completely on the Cloudflare edge network. Powered by Hexo, Pages, Workers, D1 database, and R2 bucket.
-        </p>
+        <p id="hero-subtitle" class="lead" data-i18n="hero.subtitle">Deploy a fast personal blog or developer journal on Cloudflare. Use Hexo/NexT for static output, Workers for authenticated admin APIs, D1 for metadata, and R2 for media assets.</p>
         <div class="hero-actions">
           <a href="#quickstart" id="btn-get-started" class="btn btn-primary" data-i18n="hero.primaryCta">Deploy Now</a>
           <a href="#architecture" id="btn-learn-more" class="btn btn-tertiary" data-i18n="hero.secondaryCta">Learn More -></a>
@@ -83,62 +97,30 @@ $ npm run check:all
 
 <span class="code-success">OK xhalo-blog validation passed.</span>
 <span class="code-info">INFO Landing build: npm run build:landing</span>
-<span class="code-info">INFO Test site build: npm run init:hexo-next -- --target ../my-blog-test</span></code></pre>
+<span class="code-info">INFO Test site: npm run init:hexo-next -- --target ../my-blog-test</span></code></pre>
           </div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Features Grid -->
   <section id="features" class="section-padding">
     <div class="container">
       <div class="section-header">
         <h2 data-i18n-html="features.title">Powerful Capabilities, <span class="gradient-text">Zero Servers</span></h2>
-        <p class="section-lead" data-i18n="features.lead">xhalo-blog provides everything you need to run a professional, secure, and infinitely scalable blog with zero server maintenance overhead.</p>
+        <p class="section-lead" data-i18n="features.lead">xhalo-blog provides the framework, Admin, Workers API, migration tooling, and Cloudflare deployment conventions for a secure edge-native blog.</p>
       </div>
-
       <div class="features-grid">
-        <div class="glass-card feature-card" id="feat-static">
-          <div class="feature-icon" aria-hidden="true">⚡</div>
-          <h3 data-i18n="features.hexo.title">Hexo Speed</h3>
-          <p data-i18n="features.hexo.body">Supercharged by Hexo static generation. Fast build times, standard Markdown compatibility, and NexT theme adapter support.</p>
-        </div>
-
-        <div class="glass-card feature-card" id="feat-d1">
-          <div class="feature-icon" aria-hidden="true">▦</div>
-          <h3 data-i18n="features.d1.title">D1 SQLite Database</h3>
-          <p data-i18n="features.d1.body">Serverless relational database at the edge. Mapped schemas, index tracking, and auto-generated migration history.</p>
-        </div>
-
-        <div class="glass-card feature-card" id="feat-r2">
-          <div class="feature-icon" aria-hidden="true">◆</div>
-          <h3 data-i18n="features.r2.title">R2 Object Storage</h3>
-          <p data-i18n="features.r2.body">Zero egress fee storage bucket. Directly upload assets, support signed preview links, and automatically match theme folders.</p>
-        </div>
-
-        <div class="glass-card feature-card" id="feat-turnstile">
-          <div class="feature-icon" aria-hidden="true">◇</div>
-          <h3 data-i18n="features.security.title">Turnstile Security</h3>
-          <p data-i18n="features.security.body">Protect mutation endpoints from bots and malicious requests using non-interactive Cloudflare Turnstile token validation.</p>
-        </div>
-
-        <div class="glass-card feature-card" id="feat-admin">
-          <div class="feature-icon" aria-hidden="true">✎</div>
-          <h3 data-i18n="features.admin.title">Admin Panel UI</h3>
-          <p data-i18n="features.admin.body">Write, edit, preview, and publish your content on the web. Connects directly to Workers API with local dry-run options.</p>
-        </div>
-
-        <div class="glass-card feature-card" id="feat-actions">
-          <div class="feature-icon" aria-hidden="true">↗</div>
-          <h3 data-i18n="features.actions.title">GitHub Actions Integration</h3>
-          <p data-i18n="features.actions.body">Deploy preview environments on branch commits. Auto-generate sitemaps, robots.txt rules, and RSS feeds during merge cycles.</p>
-        </div>
+        <div class="glass-card feature-card" id="feat-static"><div class="feature-icon" aria-hidden="true">HX</div><h3 data-i18n="features.hexo.title">Hexo Speed</h3><p data-i18n="features.hexo.body">Static generation with standard Markdown compatibility and a NexT-compatible initialization path.</p></div>
+        <div class="glass-card feature-card" id="feat-d1"><div class="feature-icon" aria-hidden="true">D1</div><h3 data-i18n="features.d1.title">D1 SQLite Database</h3><p data-i18n="features.d1.body">Serverless relational metadata storage for sessions, admins, audit logs, and publishing state.</p></div>
+        <div class="glass-card feature-card" id="feat-r2"><div class="feature-icon" aria-hidden="true">R2</div><h3 data-i18n="features.r2.title">R2 Object Storage</h3><p data-i18n="features.r2.body">Media and attachment storage with test-only gates and safe signed-upload flows.</p></div>
+        <div class="glass-card feature-card" id="feat-turnstile"><div class="feature-icon" aria-hidden="true">SC</div><h3 data-i18n="features.security.title">Turnstile Security</h3><p data-i18n="features.security.body">Protect mutation endpoints with authentication, environment gates, Turnstile, and audit logs.</p></div>
+        <div class="glass-card feature-card" id="feat-admin"><div class="feature-icon" aria-hidden="true">UI</div><h3 data-i18n="features.admin.title">Admin Panel UI</h3><p data-i18n="features.admin.body">Edit posts, menus, media, Hexo/NexT config, GitHub, and Cloudflare integration state from one dashboard.</p></div>
+        <div class="glass-card feature-card" id="feat-actions"><div class="feature-icon" aria-hidden="true">GH</div><h3 data-i18n="features.actions.title">GitHub Publishing</h3><p data-i18n="features.actions.body">Keep Git as the content source of truth with PR-only production publishing and test-only direct publishing.</p></div>
       </div>
     </div>
   </section>
 
-  <!-- Hexo / NexT Migration -->
   <section id="migration" class="section-padding migration-showcase alt-bg">
     <div class="container">
       <div class="section-header">
@@ -146,156 +128,73 @@ $ npm run check:all
         <p class="section-lead" data-i18n="migration.lead">Initialize a private test site from the default NexT starter or import an existing Hexo/NexT blog with posts, uploads, menus, theme files, plugin config, and an audit report.</p>
       </div>
       <div class="migration-grid">
-        <div class="glass-card migration-card">
-          <h3 data-i18n="migration.starter.title">Starter Mode</h3>
-          <p data-i18n="migration.starter.body">Generate a clean NexT site with a welcome post when no historical source is provided.</p>
-        </div>
-        <div class="glass-card migration-card">
-          <h3 data-i18n="migration.import.title">Import Mode</h3>
-          <p data-i18n="migration.import.body">Copy historical posts, uploads, pages, theme config, feed/search/sitemap/media plugin settings, and safe audit outputs into a private test repository.</p>
-        </div>
-        <div class="glass-card migration-card migration-card-cta">
-          <h3 data-i18n="migration.guide.title">Read the Guide</h3>
-          <p data-i18n="migration.guide.body">Use the documented flow to keep open-source framework code separate from private blog content.</p>
-          <a href="https://github.com/ranbeioc/xhalo-blog/blob/main/docs/hexo-next-initialization-and-import.md" class="btn btn-secondary" data-i18n="migration.guide.cta">Migration Guide</a>
-        </div>
+        <div class="glass-card migration-card"><h3 data-i18n="migration.starter.title">Starter Mode</h3><p data-i18n="migration.starter.body">Generate a clean NexT site with a welcome post when no historical source is provided.</p></div>
+        <div class="glass-card migration-card"><h3 data-i18n="migration.import.title">Import Mode</h3><p data-i18n="migration.import.body">Copy historical posts, uploads, pages, theme config, feed/search/sitemap/media plugin settings, and safe audit outputs into a private test repository.</p></div>
+        <div class="glass-card migration-card migration-card-cta"><h3 data-i18n="migration.guide.title">Read the Guide</h3><p data-i18n="migration.guide.body">Use the documented flow to keep open-source framework code separate from private blog content.</p><a href="https://github.com/ranbeioc/xhalo-blog/blob/main/docs/hexo-next-initialization-and-import.md" class="btn btn-secondary" data-i18n="migration.guide.cta">Migration Guide</a></div>
       </div>
     </div>
   </section>
 
-  <!-- Architecture Diagram -->
   <section id="architecture" class="section-padding alt-bg">
     <div class="container">
       <div class="section-header">
         <h2 data-i18n="architecture.title">Edge Architecture Overview</h2>
-        <p class="section-lead" data-i18n="architecture.lead">Here is how xhalo-blog integrates the full Cloudflare ecosystem to distribute content and manage assets globally.</p>
+        <p class="section-lead" data-i18n="architecture.lead">xhalo-blog combines Cloudflare Pages, Workers, D1, R2, and GitHub to keep the static blog fast while preserving authenticated admin workflows.</p>
       </div>
-
       <div class="architecture-diagram-container">
         <svg viewBox="0 0 800 400" width="100%" height="auto" class="arch-svg" id="svg-arch-diagram">
           <defs>
-            <linearGradient id="cf-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#f48220" />
-              <stop offset="100%" stop-color="#faad3f" />
-            </linearGradient>
-            <linearGradient id="db-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#3b82f6" />
-              <stop offset="100%" stop-color="#06b6d4" />
-            </linearGradient>
-            <linearGradient id="ui-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#8b5cf6" />
-              <stop offset="100%" stop-color="#ec4899" />
-            </linearGradient>
-            <linearGradient id="edge-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#10b981" />
-              <stop offset="100%" stop-color="#34d399" />
-            </linearGradient>
+            <linearGradient id="cf-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f48220"/><stop offset="100%" stop-color="#faad3f"/></linearGradient>
+            <linearGradient id="db-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#06b6d4"/></linearGradient>
+            <linearGradient id="ui-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#8b5cf6"/><stop offset="100%" stop-color="#ec4899"/></linearGradient>
+            <linearGradient id="edge-grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#10b981"/><stop offset="100%" stop-color="#34d399"/></linearGradient>
           </defs>
-
-          <g transform="translate(40, 200)" class="node user-node">
-            <rect x="0" y="0" width="100" height="60" rx="8" fill="url(#ui-grad)" />
-            <text data-i18n="architecture.svg.user" x="50" y="35" text-anchor="middle" fill="#ffffff" font-family="'Outfit', sans-serif" font-weight="600" font-size="14">Visitor / Admin</text>
-          </g>
-
-          <rect x="200" y="40" width="560" height="320" rx="15" fill="none" stroke="#374151" stroke-width="2" stroke-dasharray="8 4" />
+          <g transform="translate(40, 200)" class="node user-node"><rect x="0" y="0" width="110" height="60" rx="8" fill="url(#ui-grad)"/><text data-i18n="architecture.svg.user" x="55" y="35" text-anchor="middle" fill="#ffffff" font-family="'Outfit', sans-serif" font-weight="600" font-size="14">Visitor / Admin</text></g>
+          <rect x="200" y="40" width="560" height="320" rx="15" fill="none" stroke="#374151" stroke-width="2" stroke-dasharray="8 4"/>
           <text data-i18n="architecture.svg.edge" x="220" y="70" fill="#9ca3af" font-family="'Outfit', sans-serif" font-weight="500" font-size="14">Cloudflare Edge Network</text>
-
-          <g transform="translate(240, 100)" class="node edge-node">
-            <rect x="0" y="0" width="140" height="70" rx="8" fill="url(#edge-grad)" />
-            <text data-i18n="architecture.svg.pages" x="70" y="32" text-anchor="middle" fill="#ffffff" font-family="'Outfit', sans-serif" font-weight="600" font-size="14">CF Pages</text>
-            <text data-i18n="architecture.svg.pagesSub" x="70" y="52" text-anchor="middle" fill="#ffffff" font-family="'Outfit', sans-serif" font-size="11" opacity="0.8">Static HTML / CSS</text>
-          </g>
-
-          <g transform="translate(240, 230)" class="node edge-node">
-            <rect x="0" y="0" width="140" height="70" rx="8" fill="url(#cf-grad)" />
-            <text data-i18n="architecture.svg.worker" x="70" y="32" text-anchor="middle" fill="#ffffff" font-family="'Outfit', sans-serif" font-weight="600" font-size="14">CF Workers API</text>
-            <text data-i18n="architecture.svg.workerSub" x="70" y="52" text-anchor="middle" fill="#ffffff" font-family="'Outfit', sans-serif" font-size="11" opacity="0.8">Serverless Router</text>
-          </g>
-
-          <g transform="translate(540, 100)" class="node db-node">
-            <rect x="0" y="0" width="140" height="70" rx="8" fill="url(#db-grad)" />
-            <text data-i18n="architecture.svg.r2" x="70" y="32" text-anchor="middle" fill="#ffffff" font-family="'Outfit', sans-serif" font-weight="600" font-size="14">CF R2 Bucket</text>
-            <text data-i18n="architecture.svg.r2Sub" x="70" y="52" text-anchor="middle" fill="#ffffff" font-family="'Outfit', sans-serif" font-size="11" opacity="0.8">Media & Assets</text>
-          </g>
-
-          <g transform="translate(540, 230)" class="node db-node">
-            <rect x="0" y="0" width="140" height="70" rx="8" fill="url(#db-grad)" />
-            <text data-i18n="architecture.svg.d1" x="70" y="32" text-anchor="middle" fill="#ffffff" font-family="'Outfit', sans-serif" font-weight="600" font-size="14">CF D1 Database</text>
-            <text data-i18n="architecture.svg.d1Sub" x="70" y="52" text-anchor="middle" fill="#ffffff" font-family="'Outfit', sans-serif" font-size="11" opacity="0.8">SQLite Metadata</text>
-          </g>
-
-          <path d="M 140 215 L 230 145" fill="none" stroke="#f3f4f6" stroke-width="2" marker-end="url(#arrow)" />
-          <path d="M 140 235 L 230 255" fill="none" stroke="#f3f4f6" stroke-width="2" marker-end="url(#arrow)" />
-          <path d="M 380 135 L 530 135" fill="none" stroke="#f3f4f6" stroke-width="2" stroke-dasharray="4 2" />
-          <path d="M 380 265 L 530 265" fill="none" stroke="#f3f4f6" stroke-width="2" />
-          <path d="M 360 230 L 550 170" fill="none" stroke="#f3f4f6" stroke-width="1.5" />
-
-          <defs>
-            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="#f3f4f6" />
-            </marker>
-          </defs>
+          <g transform="translate(240, 100)" class="node edge-node"><rect x="0" y="0" width="140" height="70" rx="8" fill="url(#edge-grad)"/><text data-i18n="architecture.svg.pages" x="70" y="32" text-anchor="middle" fill="#ffffff" font-weight="600" font-size="14">CF Pages</text><text data-i18n="architecture.svg.pagesSub" x="70" y="52" text-anchor="middle" fill="#ffffff" font-size="11" opacity="0.8">Static HTML / CSS</text></g>
+          <g transform="translate(240, 230)" class="node edge-node"><rect x="0" y="0" width="140" height="70" rx="8" fill="url(#cf-grad)"/><text data-i18n="architecture.svg.worker" x="70" y="32" text-anchor="middle" fill="#ffffff" font-weight="600" font-size="14">CF Workers API</text><text data-i18n="architecture.svg.workerSub" x="70" y="52" text-anchor="middle" fill="#ffffff" font-size="11" opacity="0.8">Serverless Router</text></g>
+          <g transform="translate(540, 100)" class="node db-node"><rect x="0" y="0" width="140" height="70" rx="8" fill="url(#db-grad)"/><text data-i18n="architecture.svg.r2" x="70" y="32" text-anchor="middle" fill="#ffffff" font-weight="600" font-size="14">CF R2 Bucket</text><text data-i18n="architecture.svg.r2Sub" x="70" y="52" text-anchor="middle" fill="#ffffff" font-size="11" opacity="0.8">Media & Assets</text></g>
+          <g transform="translate(540, 230)" class="node db-node"><rect x="0" y="0" width="140" height="70" rx="8" fill="url(#db-grad)"/><text data-i18n="architecture.svg.d1" x="70" y="32" text-anchor="middle" fill="#ffffff" font-weight="600" font-size="14">CF D1 Database</text><text data-i18n="architecture.svg.d1Sub" x="70" y="52" text-anchor="middle" fill="#ffffff" font-size="11" opacity="0.8">SQLite Metadata</text></g>
         </svg>
       </div>
     </div>
   </section>
 
-  <!-- Quickstart Setup Guide -->
   <section id="quickstart" class="section-padding">
     <div class="container">
       <div class="section-header">
         <h2 data-i18n-html="quickstart.title">Get Started in <span class="gradient-text">2 Minutes</span></h2>
-        <p class="section-lead" data-i18n="quickstart.lead">Follow these validated commands to create a starter site, import a Hexo/NexT blog, and deploy through Cloudflare Pages.</p>
+        <p class="section-lead" data-i18n="quickstart.lead">Create a starter site, import a Hexo/NexT blog, configure custom domains, and connect the right Cloudflare Pages projects.</p>
       </div>
-
       <div class="setup-steps">
-        <div class="setup-step">
-          <div class="step-num">1</div>
-          <div class="step-info">
-            <h3 data-i18n="quickstart.step1.title">Clone and Install</h3>
-            <p data-i18n="quickstart.step1.body">Get the framework source and install the locked workspace dependencies.</p>
-            <pre class="terminal-inline"><code>git clone https://github.com/ranbeioc/xhalo-blog.git
+        <div class="setup-step"><div class="step-num">1</div><div class="step-info"><h3 data-i18n="quickstart.step1.title">Clone and Install</h3><p data-i18n="quickstart.step1.body">Get the framework source and install the locked workspace dependencies.</p><pre class="terminal-inline"><code>git clone https://github.com/ranbeioc/xhalo-blog.git
 cd xhalo-blog
-npm ci</code></pre>
-          </div>
-        </div>
+npm ci</code></pre></div></div>
+        <div class="setup-step"><div class="step-num">2</div><div class="step-info"><h3 data-i18n="quickstart.step2.title">Initialize a Test Site</h3><p data-i18n="quickstart.step2.body">Generate a default NexT starter or import an existing Hexo/NexT source into a private test repository, then set the site URL to your main domain.</p><pre class="terminal-inline"><code>npm run init:hexo-next -- --target ../my-blog-test
+npm run init:hexo-next -- --target ../my-blog-test --source ../hexo-blog --site-url https://blog.example.com
 
-        <div class="setup-step">
-          <div class="step-num">2</div>
-          <div class="step-info">
-            <h3 data-i18n="quickstart.step2.title">Initialize a Test Site</h3>
-            <p data-i18n="quickstart.step2.body">Generate a default NexT starter or import an existing Hexo/NexT source into a private test repository.</p>
-            <pre class="terminal-inline"><code>npm run init:hexo-next -- --target ../my-blog-test
-npm run init:hexo-next -- --target ../my-blog-test --source ../hexo-blog --site-url https://my-blog-test.pages.dev</code></pre>
-          </div>
-        </div>
-
-        <div class="setup-step">
-          <div class="step-num">3</div>
-          <div class="step-info">
-            <h3 data-i18n="quickstart.step3.title">Build and Validate</h3>
-            <p data-i18n="quickstart.step3.body">Run the repository validation gate and build the standalone landing page before publishing.</p>
-            <pre class="terminal-inline"><code>npm run check:all
-npm run build:landing</code></pre>
-          </div>
-        </div>
-
-        <div class="setup-step">
-          <div class="step-num">4</div>
-          <div class="step-info">
-            <h3 data-i18n="quickstart.step4.title">Connect Cloudflare Pages</h3>
-            <p data-i18n="quickstart.step4.body">Use the Pages project settings below for the standalone product landing page.</p>
-            <pre class="terminal-inline"><code>Project: xhalo-blog-landing
+# Custom main domain in generated _config.yml:
+# url: https://blog.example.com</code></pre></div></div>
+        <div class="setup-step"><div class="step-num">3</div><div class="step-info"><h3 data-i18n="quickstart.step3.title">Build and Validate</h3><p data-i18n="quickstart.step3.body">Run the repository validation gate and build the landing page before publishing.</p><pre class="terminal-inline"><code>npm run check:all
+npm run build:landing</code></pre></div></div>
+        <div class="setup-step"><div class="step-num">4</div><div class="step-info"><h3 data-i18n="quickstart.step4.title">Connect Cloudflare Pages</h3><p data-i18n="quickstart.step4.body">Use one Pages project for the open-source landing page and one Pages project for the private full blog test or production site.</p><pre class="terminal-inline"><code># Product landing
+Project: xhalo-blog-landing
+Source: ranbeioc/xhalo-blog
 Build command: npm ci && npm run build:landing
 Output directory: apps/landing/dist
-Production domain: blog.xhalo.co</code></pre>
-          </div>
-        </div>
+Domain: blog.xhalo.co
+
+# Full blog test or production site
+Project: my-blog-site
+Source: your-private-blog-repo
+Build command: npm ci && npm run build
+Output directory: public
+Domain: blog.example.com</code></pre></div></div>
       </div>
     </div>
   </section>
 
-  <!-- Footer -->
   <footer id="main-footer">
     <div class="container footer-container">
       <p data-i18n="footer.copyright">&copy; 2026 xhalo-blog scaffold. Released under the MIT License.</p>

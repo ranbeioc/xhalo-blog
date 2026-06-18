@@ -14,7 +14,8 @@ export const FIRST_TEST_ARTICLE_TEMPLATE = {
     '- Pages 承载博客 HTML、Admin 前端和普通静态资源。',
     '- R2 仅作为媒体和附件资产层，不作为整站托管层。',
     '- 生产写入未被批准。'
-  ].join('\n')
+  ].join('\n'),
+  filePath: ''
 };
 
 const EMPTY_POST = {
@@ -23,17 +24,41 @@ const EMPTY_POST = {
   category: '',
   tags: '',
   body: '',
-  sha: ''
+  sha: '',
+  filePath: ''
 };
 
-export async function fetchPostSource(slug) {
-  const res = await apiFetch(`/api/posts/source?slug=${encodeURIComponent(slug)}`);
+let vditorAssetsPromise = null;
+
+export async function fetchPostSource(slug, targetPath = '') {
+  const query = new URLSearchParams({ slug });
+  if (targetPath) query.set('targetPath', targetPath);
+  const res = await apiFetch(`/api/posts/source?${query.toString()}`);
   if (!res.ok) throw new Error(`Source API returned status ${res.status}`);
   return await res.json();
 }
 
+function ensureVditorAssets() {
+  if (window.Vditor) return Promise.resolve(window.Vditor);
+  if (vditorAssetsPromise) return vditorAssetsPromise;
+  vditorAssetsPromise = new Promise((resolve, reject) => {
+    const css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = 'https://unpkg.com/vditor/dist/index.css';
+    document.head.appendChild(css);
+
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/vditor/dist/index.min.js';
+    script.async = true;
+    script.onload = () => resolve(window.Vditor);
+    script.onerror = () => reject(new Error('Vditor failed to load.'));
+    document.head.appendChild(script);
+  });
+  return vditorAssetsPromise;
+}
+
 export function renderEditor(container, { initialPost, dashboardData }) {
-  let post = initialPost || { ...FIRST_TEST_ARTICLE_TEMPLATE, sha: '' };
+  let post = normalizePost(initialPost || { ...FIRST_TEST_ARTICLE_TEMPLATE, sha: '' });
   let activeTab = 'edit';
   let splitPreview = true;
   let diffHtml = '';
@@ -43,13 +68,6 @@ export function renderEditor(container, { initialPost, dashboardData }) {
   let autoLoadAttempted = false;
 
   const readiness = dashboardData?.readiness || {};
-  const isDirectPublishEnabled = dashboardData?.readiness?.ownerDirectPublishEnabled === true;
-  const isDirectUpdateEnabled = dashboardData?.readiness?.ownerDirectUpdateEnabled === true;
-  const isLiveWritesEnabled = dashboardData?.readiness?.liveWritesEnabled === true;
-  void isDirectPublishEnabled;
-  void isDirectUpdateEnabled;
-  void isLiveWritesEnabled;
-
   const isTestDirectPublishEnabled = readiness.deploymentEnv === 'test' &&
     readiness.publishMode === 'test_direct' &&
     readiness.testDirectPublishEnabled === true &&
@@ -67,13 +85,15 @@ export function renderEditor(container, { initialPost, dashboardData }) {
 
   function syncFromForm() {
     const getValue = (id) => container.querySelector(id)?.value || '';
+    const vditor = container.querySelector('#vditor-editor')?._xhaloVditor;
     post = {
       ...post,
       title: getValue('#edit-title'),
       slug: getValue('#edit-slug'),
       category: getValue('#edit-category'),
       tags: getValue('#edit-tags'),
-      body: getValue('#edit-body')
+      body: vditor ? vditor.getValue() : getValue('#edit-body'),
+      filePath: getValue('#edit-file-path')
     };
   }
 
@@ -82,15 +102,16 @@ export function renderEditor(container, { initialPost, dashboardData }) {
     loadingState = true;
     draw();
     try {
-      const data = await fetchPostSource(post.slug);
-      post = {
+      const data = await fetchPostSource(post.slug, post.filePath);
+      post = normalizePost({
         title: data.frontmatter?.title || post.title || '',
         slug: post.slug,
         category: data.frontmatter?.category || (Array.isArray(data.frontmatter?.categories) ? data.frontmatter.categories.join(', ') : data.frontmatter?.categories || ''),
         tags: Array.isArray(data.frontmatter?.tags) ? data.frontmatter.tags.join(', ') : '',
         body: data.body || '',
-        sha: data.sha || ''
-      };
+        sha: data.sha || '',
+        filePath: data.targetPath || post.filePath || ''
+      });
       actionResultHtml = `<div class="alert alert-success">源码加载成功 / Source loaded successfully (SHA: <code>${escapeHtml(post.sha.substring(0, 7))}</code>)</div>`;
       showToast('源码加载成功 / Source loaded successfully', 'success');
     } catch (err) {
@@ -122,7 +143,7 @@ export function renderEditor(container, { initialPost, dashboardData }) {
       const diff = data.diff || {};
       diffHtml = `
         <div class="diff-container">
-          <p>正在对比本地草稿与 main 源文件 / Comparing local draft changes against main source file <code>${escapeHtml(diff.filePath || '')}</code>.</p>
+          <p>正在对比本地草稿与 main 源文件 / Comparing local draft changes against <code>${escapeHtml(diff.filePath || post.filePath || '')}</code>.</p>
           <div class="diff-meta">
             <span>Base SHA: <code>${escapeHtml(diff.baseSha ? diff.baseSha.substring(0, 7) : 'None')}</code></span>
             <span>Status: <strong>${escapeHtml(diff.status || 'modified')}</strong></span>
@@ -230,6 +251,9 @@ export function renderEditor(container, { initialPost, dashboardData }) {
           Path: <code>${escapeHtml(data.targetPath || '')}</code>
           ${data.commitSha ? `<br/>Commit: <code>${escapeHtml(data.commitSha.substring(0, 12))}</code>` : ''}
           ${data.postUrl ? `<br/>Post URL: <a href="${escapeHtml(data.postUrl)}" target="_blank" rel="noreferrer">${escapeHtml(data.postUrl)}</a>` : ''}
+          ${data.pagesDeploy?.triggered ? '<br/><span class="status-badge" data-state="ok">已触发 Pages 构建</span>' : '<br/><span class="status-badge" data-state="warning">Pages 构建未触发</span>'}
+          ${data.pagesDeploy?.deploymentId ? `<br/>Deployment: <code>${escapeHtml(data.pagesDeploy.deploymentId)}</code>` : ''}
+          ${data.pagesDeploy?.error ? `<br/><span class="text-danger">Deploy hook error: ${escapeHtml(data.pagesDeploy.error)}</span>` : ''}
         </div>
       `;
       showToast('测试发布请求完成 / Test publish request completed', 'success');
@@ -248,14 +272,15 @@ export function renderEditor(container, { initialPost, dashboardData }) {
       slug: post.slug,
       category: post.category,
       tags: post.tags ? post.tags.split(',').map((tag) => tag.trim()).filter(Boolean) : [],
-      body: post.body
+      body: post.body,
+      targetPath: post.filePath || undefined
     };
   }
 
   function useTemplate(templateName) {
-    post = templateName === 'first-test'
+    post = normalizePost(templateName === 'first-test'
       ? { ...FIRST_TEST_ARTICLE_TEMPLATE, sha: '' }
-      : { ...EMPTY_POST };
+      : { ...EMPTY_POST });
     activeTab = 'edit';
     actionResultHtml = '';
     draw();
@@ -275,19 +300,21 @@ export function renderEditor(container, { initialPost, dashboardData }) {
         </div>
 
         <div class="alert alert-info">
-          <strong>测试发布 / Test publishing:</strong> Publish to Test 仅在 DEPLOYMENT_ENV=test、PUBLISH_MODE=test_direct、TEST_DIRECT_PUBLISH_ENABLED=true 且目标安全时可用。
+          <strong>测试发布 / Test publishing:</strong> Publish to Test 会优先更新当前文章真实路径
+          <code>${escapeHtml(post.filePath || `source/_posts/${post.slug || 'slug'}.md`)}</code>，并在写入后触发 Pages 构建。
         </div>
 
         <div class="editor-tabs">
           <button class="tab-btn ${activeTab === 'edit' ? 'active' : ''}" data-tab="edit">编辑 / Edit</button>
           <button class="tab-btn ${activeTab === 'preview' ? 'active' : ''}" data-tab="preview">Markdown Preview / Markdown 预览</button>
-          <button class="tab-btn ${activeTab === 'diff' ? 'active' : ''}" data-tab="diff">Diff / 差异</button>
-          <button class="tab-btn ${activeTab === 'plan' ? 'active' : ''}" data-tab="plan">PR Plan / PR 计划</button>
+          <button class="tab-btn ${activeTab === 'diff' ? 'active' : ''}" data-tab="diff">差异 / Diff</button>
+          <button class="tab-btn ${activeTab === 'plan' ? 'active' : ''}" data-tab="plan">PR 计划 / PR Plan</button>
         </div>
 
         <div class="editor-tab-content card">${tabContent}</div>
 
         <div class="editor-actions">
+          <button class="button-secondary" id="btn-insert-media">插入媒体附件 / Insert Media</button>
           <button class="button-secondary" id="btn-diff">预览 Diff / Preview Diff</button>
           <button class="button-secondary" id="btn-plan">Dry-run PR 计划 / Dry-run PR Plan</button>
           <button class="button-secondary" id="btn-create-pr" ${readiness.liveWritesEnabled === true ? '' : 'disabled'} title="${readiness.liveWritesEnabled === true ? 'Ready' : 'Create Review PR unavailable: LIVE_WRITES_ENABLED=false'}">创建审核 PR / Create Review PR</button>
@@ -335,13 +362,14 @@ export function renderEditor(container, { initialPost, dashboardData }) {
         <label><span>文章 Slug / Article Slug</span><input type="text" id="edit-slug" value="${escapeHtml(post.slug)}" placeholder="例如：hello-world" /></label>
         <label><span>分类 / Category</span><input type="text" id="edit-category" value="${escapeHtml(post.category)}" placeholder="例如：Life" /></label>
         <label><span>标签 / Tags (comma separated)</span><input type="text" id="edit-tags" value="${escapeHtml(post.tags)}" placeholder="例如：personal, welcome" /></label>
+        <label class="field-span-2"><span>源文件路径 / Source File Path</span><input type="text" id="edit-file-path" value="${escapeHtml(post.filePath || '')}" placeholder="source/_posts/2026-01-01-example.md" /></label>
         <div class="field-span-2 markdown-editor-shell">
           <div class="markdown-toolbar" aria-label="Markdown editor toolbar">
             ${renderMarkdownToolbar()}
             <button type="button" class="button-small button-secondary" id="btn-toggle-split">${splitPreview ? '关闭分屏 / Close Split' : '打开分屏 / Split Preview'}</button>
           </div>
           <div class="markdown-editor-layout ${splitPreview ? 'split' : ''}">
-            <label class="markdown-input-pane"><span>正文内容 / Body Content (Markdown)</span><textarea id="edit-body" rows="22" spellcheck="false" placeholder="使用 Markdown 编写正文，支持标题、列表、引用、代码块、表格、图片和链接...">${escapeHtml(post.body)}</textarea></label>
+            <label class="markdown-input-pane"><span>正文内容 / Body Content (Vditor Markdown)</span><div id="vditor-editor" class="vditor-host"></div><textarea id="edit-body" rows="22" spellcheck="false" placeholder="使用 Markdown 编写正文，支持标题、列表、引用、代码块、表格、图片和链接...">${escapeHtml(post.body)}</textarea></label>
             ${splitPreview ? `<div class="markdown-live-preview"><span>实时预览 / Live Preview</span><div class="markdown-rendered-body">${post.body ? renderSimpleMarkdown(post.body) : '<p class="info-text">正文为空 / No content in post body.</p>'}</div></div>` : ''}
           </div>
           <div class="markdown-editor-status">${renderMarkdownStats(post.body)}</div>
@@ -368,6 +396,10 @@ export function renderEditor(container, { initialPost, dashboardData }) {
     container.querySelector('#btn-plan')?.addEventListener('click', fetchPublishPlan);
     container.querySelector('#btn-create-pr')?.addEventListener('click', handleCreatePR);
     container.querySelector('#btn-publish-test')?.addEventListener('click', handlePublishToTest);
+    container.querySelector('#btn-insert-media')?.addEventListener('click', () => {
+      insertMarkdownSnippet('\n![媒体描述](https://assets.example.com/path/to/media.png)\n');
+      showToast('已插入媒体 Markdown 占位，可替换为媒体管理页生成的真实链接。', 'info');
+    });
     container.querySelector('#btn-toggle-split')?.addEventListener('click', () => {
       syncFromForm();
       splitPreview = !splitPreview;
@@ -382,20 +414,79 @@ export function renderEditor(container, { initialPost, dashboardData }) {
     if (bodyInput && splitPreview) {
       bodyInput.addEventListener('input', () => {
         syncFromForm();
-        const preview = container.querySelector('.markdown-live-preview .markdown-rendered-body');
-        const status = container.querySelector('.markdown-editor-status');
-        if (preview) preview.innerHTML = post.body ? renderSimpleMarkdown(post.body) : '<p class="info-text">正文为空 / No content in post body.</p>';
-        if (status) status.innerHTML = renderMarkdownStats(post.body);
+        updateLivePreview();
       });
     }
+    mountVditor();
+  }
+
+  function mountVditor() {
+    const host = container.querySelector('#vditor-editor');
+    const textarea = container.querySelector('#edit-body');
+    if (!host || !textarea || host.dataset.ready === 'true') return;
+    ensureVditorAssets().then((Vditor) => {
+      if (!Vditor || !container.contains(host)) return;
+      textarea.style.display = 'none';
+      host.dataset.ready = 'true';
+      const storedLang = localStorage.getItem('xhalo_admin_lang') || navigator.language || 'zh-CN';
+      const lang = String(storedLang).toLowerCase().startsWith('zh') ? 'zh_CN' : 'en_US';
+      const editor = new Vditor(host, {
+        value: post.body || '',
+        height: 520,
+        mode: 'ir',
+        lang,
+        cache: { enable: false },
+        placeholder: '使用 Markdown 编写正文，支持粘贴、拖拽、表格、代码块和媒体链接...',
+        toolbar: ['emoji', 'headings', 'bold', 'italic', 'strike', '|', 'list', 'ordered-list', 'check', '|', 'quote', 'line', 'code', 'inline-code', '|', 'upload', 'link', 'table', '|', 'undo', 'redo', 'preview', 'fullscreen'],
+        input(value) {
+          post.body = value;
+          textarea.value = value;
+          updateLivePreview();
+        },
+        upload: {
+          accept: 'image/*,audio/*,video/*,.pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.zip',
+          handler(files) {
+            const snippets = Array.from(files || []).map((file) => buildMediaSnippet(file.name, file.type)).join('\n');
+            editor.insertValue(`\n${snippets}\n`);
+            return null;
+          }
+        }
+      });
+      host._xhaloVditor = editor;
+    }).catch((err) => {
+      showToast(`Vditor 加载失败，已回退到基础 Markdown 输入框：${err.message}`, 'warning');
+    });
+  }
+
+  function updateLivePreview() {
+    const preview = container.querySelector('.markdown-live-preview .markdown-rendered-body');
+    const status = container.querySelector('.markdown-editor-status');
+    if (preview) preview.innerHTML = post.body ? renderSimpleMarkdown(post.body) : '<p class="info-text">正文为空 / No content in post body.</p>';
+    if (status) status.innerHTML = renderMarkdownStats(post.body);
+  }
+
+  function insertMarkdownSnippet(snippet) {
+    const host = container.querySelector('#vditor-editor');
+    if (host?._xhaloVditor) {
+      host._xhaloVditor.insertValue(snippet);
+      post.body = host._xhaloVditor.getValue();
+      updateLivePreview();
+      return;
+    }
+    const textarea = container.querySelector('#edit-body');
+    if (!textarea) return;
+    const start = textarea.selectionStart || 0;
+    textarea.value = `${textarea.value.slice(0, start)}${snippet}${textarea.value.slice(start)}`;
+    post.body = textarea.value;
+    updateLivePreview();
   }
 
   function insertMarkdownSyntax(kind) {
     const textarea = container.querySelector('#edit-body');
-    if (!textarea) return;
-    const start = textarea.selectionStart || 0;
-    const end = textarea.selectionEnd || 0;
-    const selected = textarea.value.slice(start, end);
+    const value = textarea?.value || post.body || '';
+    const start = textarea?.selectionStart || 0;
+    const end = textarea?.selectionEnd || 0;
+    const selected = value.slice(start, end);
     const snippets = {
       h2: `## ${selected || '小标题'}\n`,
       bold: `**${selected || '加粗文本'}**`,
@@ -409,15 +500,32 @@ export function renderEditor(container, { initialPost, dashboardData }) {
       table: `| 列 A | 列 B |\n| --- | --- |\n| ${selected || '内容'} | 示例 |\n`
     };
     const insert = snippets[kind] || selected;
-    textarea.value = `${textarea.value.slice(0, start)}${insert}${textarea.value.slice(end)}`;
+    const host = container.querySelector('#vditor-editor');
+    if (host?._xhaloVditor) {
+      host._xhaloVditor.insertValue(insert);
+      post.body = host._xhaloVditor.getValue();
+      updateLivePreview();
+      return;
+    }
+    if (!textarea) return;
+    textarea.value = `${value.slice(0, start)}${insert}${value.slice(end)}`;
     textarea.focus();
     textarea.selectionStart = start + insert.length;
     textarea.selectionEnd = start + insert.length;
     syncFromForm();
-    draw();
+    updateLivePreview();
   }
 
   draw();
+}
+
+function normalizePost(post) {
+  return {
+    ...EMPTY_POST,
+    ...post,
+    tags: Array.isArray(post?.tags) ? post.tags.join(', ') : (post?.tags || ''),
+    filePath: post?.filePath || post?.path || post?.targetPath || ''
+  };
 }
 
 function renderMarkdownToolbar() {
@@ -433,6 +541,14 @@ function renderMarkdownToolbar() {
     ['image', '图片'],
     ['table', '表格']
   ].map(([kind, label]) => `<button type="button" class="button-small button-secondary" data-md-insert="${kind}">${label}</button>`).join('');
+}
+
+function buildMediaSnippet(filename, contentType = '') {
+  const safeName = encodeURI(filename || 'media-file');
+  if (contentType.startsWith('audio/')) return `<audio controls src="media/${safeName}"></audio>`;
+  if (contentType.startsWith('video/')) return `<video controls src="media/${safeName}"></video>`;
+  if (contentType.startsWith('image/')) return `![${filename}](media/${safeName})`;
+  return `[${filename}](media/${safeName})`;
 }
 
 function renderMarkdownStats(markdown) {
@@ -469,9 +585,8 @@ function renderSimpleMarkdown(markdown) {
     const line = lines[index];
     if (line.trim().startsWith('```')) {
       closeList();
-      if (inCodeBlock) {
-        closeCodeBlock();
-      } else {
+      if (inCodeBlock) closeCodeBlock();
+      else {
         inCodeBlock = true;
         codeLines = [];
       }
@@ -529,9 +644,7 @@ function renderSimpleMarkdown(markdown) {
     }
 
     closeList();
-    if (line.trim()) {
-      htmlBlocks.push(`<p>${renderInlineMarkdown(line)}</p>`);
-    }
+    if (line.trim()) htmlBlocks.push(`<p>${renderInlineMarkdown(line)}</p>`);
   }
 
   closeList();
@@ -541,11 +654,11 @@ function renderSimpleMarkdown(markdown) {
 
 function renderInlineMarkdown(input) {
   return escapeHtml(input)
-    .replace(/!\[(.*?)\]\((https?:\/\/[^)\s]+)\)/g, '<img src="$2" alt="$1" loading="lazy" />')
+    .replace(/!\[(.*?)\]\((https?:\/\/[^)\s]+|media\/[^)\s]+)\)/g, '<img src="$2" alt="$1" loading="lazy" />')
     .replace(/`([^`]+)`/g, '<code>$1</code>')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/\[(.*?)\]\((https?:\/\/[^)\s]+|mailto:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
+    .replace(/\[(.*?)\]\((https?:\/\/[^)\s]+|mailto:[^)\s]+|media\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
 }
 
 function isMarkdownTable(lines, index) {

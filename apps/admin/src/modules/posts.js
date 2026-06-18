@@ -2,14 +2,20 @@ import { apiFetch } from './api-client.js';
 import { renderDataTable, bindDataTableControls } from './table.js';
 import { escapeHtml } from './ui.js';
 
-export async function fetchPosts() {
+export async function fetchPosts({ page = 1, pageSize = 20 } = {}) {
   try {
-    const res = await apiFetch('/api/posts?limit=100');
-    if (!res.ok) {
-      throw new Error(`API returned status ${res.status}`);
-    }
+    const query = new URLSearchParams({ page: String(page), limit: String(pageSize) });
+    const res = await apiFetch(`/api/posts?${query.toString()}`);
+    if (!res.ok) throw new Error(`API returned status ${res.status}`);
     const data = await res.json();
-    return { items: data.items || [], isFallback: data.backend === 'fallback' };
+    return {
+      items: data.items || [],
+      isFallback: data.backend === 'fallback',
+      page: data.page || page,
+      pageSize: data.pageSize || pageSize,
+      total: data.total,
+      totalPages: data.totalPages
+    };
   } catch (err) {
     console.warn('Failed to fetch posts, loading fallback demo data:', err);
     const fallbackItems = [
@@ -30,11 +36,11 @@ export async function fetchPosts() {
         previewUrl: 'https://staging.example.com/decoupled-cloudflare-workers/'
       }
     ];
-    return { items: fallbackItems, isFallback: true };
+    return { items: fallbackItems, isFallback: true, page, pageSize, total: fallbackItems.length, totalPages: 1 };
   }
 }
 
-export function renderPostsList(container, { items, isFallback, onSelectPost }) {
+export function renderPostsList(container, { items, isFallback, page = 1, pageSize = 20, total = null, totalPages = null, onSelectPost, onPageChange }) {
   const tableState = { query: '', filter: 'all', page: 1 };
 
   function draw() {
@@ -48,6 +54,7 @@ export function renderPostsList(container, { items, isFallback, onSelectPost }) 
       <div class="posts-panel">
         <h2>文章管理 / Posts</h2>
         <p class="lede">按标题、slug、路径或分支搜索文章，按发布状态筛选，并从表格进入编辑。</p>
+        <p class="help-text">当前使用服务端分页加载：第 ${page} 页，每页 ${pageSize} 条${total == null ? '' : `，总计 ${total} 条`}。</p>
         ${bannerHtml}
         <div class="card table-card">
           ${renderDataTable({
@@ -56,7 +63,7 @@ export function renderPostsList(container, { items, isFallback, onSelectPost }) 
             query: tableState.query,
             filter: tableState.filter,
             page: tableState.page,
-            pageSize: 8,
+            pageSize: Math.max(items.length, 1),
             searchPlaceholder: '搜索标题、slug、路径、分支...',
             filterLabel: '状态筛选',
             allLabel: '全部状态',
@@ -76,20 +83,25 @@ export function renderPostsList(container, { items, isFallback, onSelectPost }) 
             ]
           })}
         </div>
+        <div class="server-pagination">
+          <button class="button-small button-secondary" id="posts-prev-page" ${page <= 1 ? 'disabled' : ''}>上一页数据</button>
+          <span>服务端第 ${page} 页${totalPages ? ` / 共 ${totalPages} 页` : ''}</span>
+          <button class="button-small button-secondary" id="posts-next-page" ${totalPages && page >= totalPages ? 'disabled' : ''}>下一页数据</button>
+        </div>
       </div>
     `;
 
     bindDataTableControls(container, 'posts', tableState, draw);
 
-    container.querySelectorAll('.load-post-btn').forEach(btn => {
+    container.querySelectorAll('.load-post-btn').forEach((btn) => {
       btn.addEventListener('click', (event) => {
         const slug = event.target.getAttribute('data-slug');
-        const selected = items.find(post => post.slug === slug);
-        if (selected && onSelectPost) {
-          onSelectPost(selected);
-        }
+        const selected = items.find((post) => post.slug === slug);
+        if (selected && onSelectPost) onSelectPost(selected);
       });
     });
+    container.querySelector('#posts-prev-page')?.addEventListener('click', () => onPageChange?.(Math.max(1, page - 1)));
+    container.querySelector('#posts-next-page')?.addEventListener('click', () => onPageChange?.(page + 1));
   }
 
   draw();
