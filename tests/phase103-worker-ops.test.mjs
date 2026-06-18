@@ -172,6 +172,7 @@ test('POST /api/site/menu/test-direct-update writes only to configured safe test
     GITHUB_BRANCH: 'main',
     GITHUB_FETCH: mockGithubFetch,
     CLOUDFLARE_PAGES_DEPLOY_HOOK_URL: 'https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/00000000-0000-4000-8000-000000000001',
+    PAGES_DEPLOY_HOOK_DELAY_MS: '0',
     PAGES_DEPLOY_HOOK_FETCH: mockDeployHookFetch
   });
 
