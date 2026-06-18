@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>xhalo-blog 管理后台 / Admin</title>
-    <meta name="description" content="xhalo-blog 管理后台：管理文章、媒体、菜单和发布安全 gate。" />
+    <title>xhalo-blog Admin</title>
+    <meta name="description" content="xhalo-blog Admin for posts, media, menus, Hexo/NexT configuration, and guarded test publishing." />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -13,24 +13,16 @@
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
   </head>
   <body>
-    <!-- Sidebar -->
     <aside class="sidebar" id="sidebar"></aside>
-
-    <!-- Main wrapper -->
     <div class="main-wrapper">
-      <!-- Topbar -->
       <header class="topbar" id="topbar"></header>
-
-      <!-- Route-based panel content -->
       <main class="content-area" id="content-area">
         <div class="loading-splash">
           <div class="spinner"></div>
-          <p>正在初始化管理后台 / Initializing admin panel&hellip;</p>
+          <p>Initializing admin panel&hellip;</p>
         </div>
       </main>
     </div>
-
-    <!-- Toast container for notifications -->
     <div id="toast-container" class="toast-container"></div>
   </body>
 </html>
