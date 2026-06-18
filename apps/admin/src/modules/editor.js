@@ -163,6 +163,26 @@ function ensureVditorAssets() {
   return vditorAssetsPromise;
 }
 
+function closeVditorFloatingPanels(host) {
+  if (!host) return;
+  host.querySelectorAll('.vditor-panel, .vditor-hint').forEach((panel) => {
+    panel.style.display = 'none';
+  });
+  host.querySelectorAll('.vditor-toolbar__item--current').forEach((button) => {
+    button.classList.remove('vditor-toolbar__item--current');
+  });
+  const active = document.activeElement;
+  if (active && host.contains(active) && active.closest?.('.vditor-toolbar')) {
+    active.blur();
+  }
+}
+
+function focusVditorEditorBody(host) {
+  if (!host) return;
+  const editable = host.querySelector('[contenteditable="true"], .vditor-ir pre, .vditor-wysiwyg');
+  editable?.focus?.({ preventScroll: true });
+}
+
 export function renderEditor(container, { initialPost, dashboardData }) {
   let post = normalizePost(initialPost || { ...FIRST_TEST_ARTICLE_TEMPLATE, sha: '' });
   let activeTab = 'edit';
@@ -515,7 +535,13 @@ export function renderEditor(container, { initialPost, dashboardData }) {
         lang,
         cache: { enable: false },
         placeholder: c('vditorPlaceholder'),
-        toolbar: ['emoji', 'headings', 'bold', 'italic', 'strike', '|', 'list', 'ordered-list', 'check', '|', 'quote', 'line', 'code', 'inline-code', '|', 'upload', 'link', 'table', '|', 'undo', 'redo', 'preview', 'fullscreen'],
+        toolbar: ['headings', 'bold', 'italic', 'strike', '|', 'list', 'ordered-list', 'check', '|', 'quote', 'line', 'code', 'inline-code', '|', 'upload', 'link', 'table', '|', 'undo', 'redo', 'preview', 'fullscreen', '|', 'emoji'],
+        after() {
+          setTimeout(() => {
+            closeVditorFloatingPanels(host);
+            focusVditorEditorBody(host);
+          }, 0);
+        },
         input(value) {
           post.body = value;
           textarea.value = value;

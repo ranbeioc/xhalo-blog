@@ -1,5 +1,12 @@
-const SUPPORTED_LANGUAGES = ['zh-CN', 'en'];
+const SUPPORTED_LANGUAGES = ['en', 'zh-CN', 'ko', 'ja'];
 const STORAGE_KEY = 'xhalo_admin_lang';
+
+const LANGUAGE_LABELS = {
+  en: 'English',
+  'zh-CN': '简体中文',
+  ko: '한국어',
+  ja: '日本語'
+};
 
 export const dictionaries = {
   'zh-CN': {
@@ -112,9 +119,21 @@ export const dictionaries = {
   }
 };
 
+dictionaries.ko = {
+  ...dictionaries.en,
+  language: '언어'
+};
+
+dictionaries.ja = {
+  ...dictionaries.en,
+  language: '言語'
+};
+
 function normalizeLanguage(value) {
   if (value === 'zh' || value === 'zh-CN' || value === 'zh-Hans' || value === 'zh-SG') return 'zh-CN';
   if (value === 'en' || value === 'en-US' || value === 'en-GB') return 'en';
+  if (value === 'ko' || value === 'ko-KR') return 'ko';
+  if (value === 'ja' || value === 'ja-JP') return 'ja';
   return null;
 }
 
@@ -138,7 +157,7 @@ export function isZh() {
 }
 
 export function setLanguage(language) {
-  const normalized = normalizeLanguage(language) || 'zh-CN';
+  const normalized = normalizeLanguage(language) || 'en';
   localStorage.setItem(STORAGE_KEY, normalized);
   return normalized;
 }
@@ -200,6 +219,6 @@ export function applyLocaleToElement(root) {
 export function renderLanguageOptions() {
   const language = getLanguage();
   return SUPPORTED_LANGUAGES.map((code) => (
-    `<option value="${code}" ${code === language ? 'selected' : ''}>${code}</option>`
+    `<option value="${code}" ${code === language ? 'selected' : ''}>${LANGUAGE_LABELS[code] || code}</option>`
   )).join('');
 }

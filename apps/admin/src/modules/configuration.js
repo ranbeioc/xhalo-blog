@@ -8,6 +8,7 @@ const pluginPackages = {
   sitemap: 'hexo-generator-sitemap',
   search: 'hexo-generator-searchdb',
   waline: '@waline/hexo-next',
+  math: 'hexo-filter-mathjax',
   mermaid: 'hexo-filter-mermaid-diagrams',
   lazyload: 'hexo-lazyload-image',
   pjax: 'theme-next-pjax'
@@ -22,11 +23,13 @@ const copy = {
     plugins: 'NexT 插件与配置项',
     exists: '存在',
     missing: '缺失',
-    saveFile: '保存当前 Tab 到测试站',
+    saveFile: '保存配置文件',
     saveAll: '保存全部已修改文件',
     install: '安装到 package.json',
     installed: '已安装',
+    configured: '已配置',
     available: '可安装',
+    configOnly: '内置配置项',
     configTargets: '配置目标',
     packageMissing: 'package.json 不可编辑，无法安装插件。',
     invalidPackage: 'package.json 不是有效 JSON。',
@@ -34,6 +37,8 @@ const copy = {
     saved: '配置已保存到测试站。',
     saveFailed: '配置保存失败',
     installDone: '插件依赖已加入 package.json，请保存配置。',
+    installUnavailable: '此项目是 NexT 内置配置项，请直接编辑主题配置文件。',
+    validationFailed: '配置校验失败',
     editConfig: '编辑配置',
     working: '处理中...',
     notInstalledReason: '未检测到 package 依赖或主题配置文件。',
@@ -49,11 +54,13 @@ const copy = {
     plugins: 'NexT Plugins and Config Keys',
     exists: 'Exists',
     missing: 'Missing',
-    saveFile: 'Save Current Tab to Test Site',
+    saveFile: 'Save Config File',
     saveAll: 'Save All Modified Files',
     install: 'Install to package.json',
     installed: 'Installed',
+    configured: 'Configured',
     available: 'Available',
+    configOnly: 'Built-in Config',
     configTargets: 'Config Targets',
     packageMissing: 'package.json is not editable, so plugins cannot be installed.',
     invalidPackage: 'package.json is not valid JSON.',
@@ -61,6 +68,8 @@ const copy = {
     saved: 'Config saved to the test site.',
     saveFailed: 'Config save failed',
     installDone: 'Plugin dependency added to package.json. Save the config to commit it.',
+    installUnavailable: 'This item is built into NexT config. Edit the theme config file directly.',
+    validationFailed: 'Config validation failed',
     editConfig: 'Edit Config',
     working: 'Working...',
     notInstalledReason: 'No package dependency or theme config file detected.',
@@ -113,13 +122,19 @@ export function renderSiteConfiguration(container, data) {
 
   function pluginDetection(plugin) {
     const pkg = packageJson();
-    const packageName = pluginPackages[plugin.id] || plugin.packageName || plugin.name;
+    const packageName = pluginPackages[plugin.id] || plugin.packageName || '';
     const packageInstalled = Boolean(pkg?.dependencies?.[packageName] || pkg?.devDependencies?.[packageName]);
     const configFileInstalled = (plugin.configFiles || []).some((path) => configExists(path));
     const configKeyInstalled = (plugin.configKeys || []).some((key) => hasConfigKey(key));
+    const configOnly = !packageName && (plugin.configKeys || []).length > 0;
+    const installed = plugin.id === 'next-theme'
+      ? packageInstalled || configFileInstalled
+      : packageInstalled;
     return {
       packageName,
-      installed: packageInstalled || configFileInstalled || configKeyInstalled,
+      installed,
+      configured: configFileInstalled || configKeyInstalled,
+      configOnly,
       packageInstalled,
       configFileInstalled,
       configKeyInstalled
@@ -138,7 +153,10 @@ export function renderSiteConfiguration(container, data) {
       showToast(c('invalidPackage'), 'error');
       return;
     }
-    if (!packageName) return;
+    if (!packageName) {
+      showToast(c('installUnavailable'), 'info');
+      return;
+    }
     pkgJson.dependencies = { ...(pkgJson.dependencies || {}), [packageName]: pkgJson.dependencies?.[packageName] || 'latest' };
     edited[pkg.path] = `${JSON.stringify(pkgJson, null, 2)}\n`;
     activePath = pkg.path;
@@ -155,7 +173,17 @@ export function renderSiteConfiguration(container, data) {
       .filter((file) => file.content !== (configs.find((base) => base.path === file.path)?.content || ''));
 
     if (files.length === 0) {
+      actionResultHtml = `<div class="alert alert-info">${escapeHtml(c('noChange'))}</div>`;
       showToast(c('noChange'), 'info');
+      draw();
+      return;
+    }
+
+    const validationError = validateConfigFiles(files);
+    if (validationError) {
+      actionResultHtml = `<div class="alert alert-error">${escapeHtml(c('validationFailed'))}: ${escapeHtml(validationError)}</div>`;
+      showToast(`${c('validationFailed')}: ${validationError}`, 'error');
+      draw();
       return;
     }
 
@@ -263,19 +291,23 @@ export function renderSiteConfiguration(container, data) {
     const detection = pluginDetection(plugin);
     const details = [
       detection.packageInstalled ? c('packageDetected') : '',
-      detection.configFileInstalled ? c('themeConfigDetected') : ''
+      detection.configFileInstalled || detection.configKeyInstalled ? c('themeConfigDetected') : ''
     ].filter(Boolean).join(' · ');
+    const statusText = detection.installed ? c('installed') : detection.configured ? c('configured') : c('available');
+    const statusState = detection.installed ? 'ok' : detection.configured ? 'info' : 'warning';
+    const buttonText = detection.installed ? c('installed') : detection.configOnly ? c('configOnly') : c('install');
+    const disabled = detection.installed || detection.configOnly;
     return `
       <div class="plugin-card">
         <div class="plugin-card-head">
           <strong>${escapeHtml(plugin.name)}</strong>
-          <span class="status-badge" data-state="${detection.installed ? 'ok' : 'warning'}">${escapeHtml(detection.installed ? c('installed') : c('available'))}</span>
+          <span class="status-badge" data-state="${statusState}">${escapeHtml(statusText)}</span>
         </div>
         <span>${escapeHtml(plugin.category)}</span>
         <code>${escapeHtml(detection.packageName || '-')}</code>
         <p class="help-text">${escapeHtml(c('configTargets'))}: ${escapeHtml([...(plugin.configFiles || []), ...(plugin.configKeys || [])].join(', ') || '-')}</p>
         <p class="help-text">${escapeHtml(details || c('notInstalledReason'))}</p>
-        <button class="button-small button-secondary btn-install-plugin" data-plugin-id="${escapeHtml(plugin.id)}" ${detection.packageInstalled ? 'disabled' : ''}>${escapeHtml(detection.packageInstalled ? c('installed') : c('install'))}</button>
+        <button class="button-small button-secondary btn-install-plugin" data-plugin-id="${escapeHtml(plugin.id)}" ${disabled ? 'disabled' : ''}>${escapeHtml(buttonText)}</button>
       </div>
     `;
   }
@@ -317,6 +349,21 @@ function normalizeConfig(file) {
     content: String(file.content || ''),
     editable: file.editable === true && file.exists === true
   };
+}
+
+function validateConfigFiles(files) {
+  for (const file of files) {
+    const content = String(file.content || '');
+    if (!content.trim()) return `${file.path} is empty.`;
+    if (file.path === 'package.json') {
+      try {
+        JSON.parse(content);
+      } catch (err) {
+        return `package.json: ${err.message}`;
+      }
+    }
+  }
+  return '';
 }
 
 function trimPreview(content) {
