@@ -175,12 +175,16 @@ test('Admin UI Static Check: layout correctness', () => {
   // Must not contain old publish-d1 value
   assert.ok(!html.includes('value="publish-d1"'));
 
-  // app.js must import all expected modules
+  // app.js must keep startup imports small and lazy-load route modules.
   const appJs = readFileSync('apps/admin/src/app.js', 'utf8');
-  const expectedModuleImports = [
-    './modules/api-client.js',
+  const expectedStaticImports = [
     './modules/auth.js',
-    './modules/ui.js',
+    './modules/ui.js'
+  ];
+  for (const mod of expectedStaticImports) {
+    assert.ok(appJs.includes(mod), `Missing static import in app.js: ${mod}`);
+  }
+  const expectedLazyImports = [
     './modules/dashboard.js',
     './modules/posts.js',
     './modules/editor.js',
@@ -190,8 +194,9 @@ test('Admin UI Static Check: layout correctness', () => {
     './modules/audit.js',
     './modules/settings.js'
   ];
-  for (const mod of expectedModuleImports) {
-    assert.ok(appJs.includes(mod), `Missing import in app.js: ${mod}`);
+  for (const mod of expectedLazyImports) {
+    assert.ok(appJs.includes(`import('${mod}')`), `Missing lazy import in app.js: ${mod}`);
+    assert.ok(!appJs.includes(`from '${mod}'`), `Route module should not be statically imported: ${mod}`);
   }
 
   // Verify key module files exist

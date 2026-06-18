@@ -20,12 +20,17 @@ describe('Admin UI smoke tests', () => {
     assert.ok(html.includes('src="./app.js"'), 'Must reference ./app.js');
   });
 
-  it('app.js should import all expected modules', () => {
+  it('app.js should keep the initial module graph small and lazy-load route panels', () => {
     const appJs = fs.readFileSync(path.join(ADMIN_SRC_DIR, 'app.js'), 'utf8');
-    const expectedImports = [
-      './modules/api-client.js',
+    const expectedStaticImports = [
       './modules/auth.js',
       './modules/ui.js',
+      './modules/i18n.js'
+    ];
+    for (const imp of expectedStaticImports) {
+      assert.ok(appJs.includes(imp), `Missing import: ${imp}`);
+    }
+    for (const routeModule of [
       './modules/dashboard.js',
       './modules/posts.js',
       './modules/editor.js',
@@ -34,10 +39,12 @@ describe('Admin UI smoke tests', () => {
       './modules/publishing.js',
       './modules/audit.js',
       './modules/settings.js'
-    ];
-    for (const imp of expectedImports) {
-      assert.ok(appJs.includes(imp), `Missing import: ${imp}`);
+    ]) {
+      assert.ok(appJs.includes(`import('${routeModule}')`), `Missing lazy import: ${routeModule}`);
+      assert.ok(!appJs.includes(`from '${routeModule}'`), `Route module must not be statically imported: ${routeModule}`);
     }
+    assert.ok(appJs.includes('preloadLikelyRoutes'), 'Expected idle route preloading');
+    assert.ok(!appJs.includes('await fetchDashboardData()'), 'Initial render must not block on dashboard API');
   });
 
   it('ui.js should define all 8 route entries', () => {
