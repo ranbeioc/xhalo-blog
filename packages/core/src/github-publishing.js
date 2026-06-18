@@ -452,6 +452,8 @@ export async function listPostFilesFromMain(env, { branch = 'main', limit = 100 
     const title = frontmatter.title || slug;
     const date = frontmatter.updated || frontmatter.date || frontmatter.created || null;
 
+    const previewUrl = buildHexoPostPreviewUrl({ slug, date });
+
     return {
       id: `git-${slug}`,
       slug,
@@ -464,12 +466,23 @@ export async function listPostFilesFromMain(env, { branch = 'main', limit = 100 
       published_at: frontmatter.date || date,
       github_branch: targetBranch,
       github_pr_url: null,
-      preview_url: `/posts/${slug}/`,
+      preview_url: previewUrl,
       sha: fileData.sha,
       excerpt: body ? body.split(/\r?\n/).find((line) => line.trim()) || '' : '',
       frontmatter
     };
   });
+}
+
+function buildHexoPostPreviewUrl({ slug, date }) {
+  const parsed = date ? new Date(date) : null;
+  if (parsed && !Number.isNaN(parsed.valueOf())) {
+    const year = String(parsed.getUTCFullYear()).padStart(4, '0');
+    const month = String(parsed.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getUTCDate()).padStart(2, '0');
+    return `/${year}/${month}/${day}/${slug}/`;
+  }
+  return `/posts/${slug}/`;
 }
 
 async function mapWithConcurrency(items, concurrency, mapper) {

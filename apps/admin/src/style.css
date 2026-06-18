@@ -1158,9 +1158,8 @@ button, .button-small {
 }
 
 .vditor-host .vditor-toolbar {
-  position: sticky;
-  top: 0;
-  z-index: 12;
+  position: relative;
+  z-index: 4;
 }
 
 .vditor-host .vditor-panel,
@@ -1168,6 +1167,29 @@ button, .button-small {
   z-index: 30;
   max-height: 280px;
   overflow: auto;
+}
+
+.vditor-loading-card {
+  min-height: 560px;
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-inset);
+  color: var(--text-secondary);
+}
+
+.vditor-loading-card[hidden] {
+  display: none !important;
+}
+
+.vditor-host.is-loading {
+  height: 0;
+  min-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 
 .media-shortcut-bar {
@@ -1303,8 +1325,8 @@ button, .button-small {
 }
 
 .config-editor-full {
-  height: clamp(360px, 54vh, 620px);
-  min-height: 320px;
+  height: clamp(280px, 46vh, 520px);
+  min-height: 260px;
 }
 
 .config-editor:focus {
@@ -1421,6 +1443,45 @@ button, .button-small {
   gap: 20px;
 }
 
+.dashboard-heading-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.dashboard-heading-row h2 {
+  margin-bottom: 6px;
+}
+
+.settings-secret-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  margin: 14px 0;
+}
+
+.settings-secret-row input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-primary);
+}
+
+.advanced-debug-card summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.advanced-debug-card .details-content {
+  margin-top: 14px;
+}
+
 /* ── Toast notifications ────────────────────────────────────────────────────── */
 .toast-container {
   position: fixed;
@@ -1489,6 +1550,28 @@ code {
     display: block;
   }
 
+  .topbar {
+    padding: 0 12px;
+  }
+
+  .topbar-right {
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .admin-language-select-wrap {
+    padding: 5px 8px;
+  }
+
+  .admin-language-select-label {
+    display: none;
+  }
+
+  .admin-language-select-wrap select {
+    min-width: 116px;
+  }
+
   .content-area {
     padding: 20px 16px;
   }
@@ -1518,6 +1601,12 @@ code {
 
   .publishing-grid {
     grid-template-columns: 1fr;
+  }
+
+  .dashboard-heading-row,
+  .settings-secret-row {
+    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 }
 

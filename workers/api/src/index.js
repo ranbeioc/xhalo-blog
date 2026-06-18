@@ -71,6 +71,9 @@ const ALLOWED_MIME_TYPES = {
   'application/pdf': ['.pdf'],
   'video/mp4': ['.mp4'],
   'video/webm': ['.webm'],
+  'audio/mpeg': ['.mp3', '.mpeg'],
+  'audio/wav': ['.wav'],
+  'audio/ogg': ['.ogg'],
   'text/plain': ['.txt']
 };
 
