@@ -80,6 +80,7 @@ test('landing i18n markers cover visible copy and load as a module', () => {
 
   for (const key of [
     'hero.title',
+    'language.label',
     'features.title',
     'migration.title',
     'architecture.title',
@@ -91,7 +92,9 @@ test('landing i18n markers cover visible copy and load as a module', () => {
   }
 
   assert.match(html, /<script data-cfasync="false" type="module" src="app\.js"><\/script>/);
+  assert.match(html, /id="language-select"/);
   assert.match(app, /const locale = resolveLocale/);
+  assert.match(app, /xhalo_landing_lang/);
 });
 
 test('landing command examples use real repository commands', () => {
@@ -108,6 +111,25 @@ test('landing command examples use real repository commands', () => {
   assert.match(html, /npm run init:hexo-next -- --target/);
   assert.match(html, /Build command: npm ci && npm run build:landing/);
   assert.match(html, /Output directory: apps\/landing\/dist/);
+});
+
+test('landing language selector and code blocks match the theme constraints', () => {
+  const html = read('apps/landing/src/index.html');
+  const css = read('apps/landing/src/style.css');
+
+  assert.match(html, /class="language-select-wrap"/);
+  assert.match(html, /<option value="zh-CN">/);
+  assert.match(html, /<option value="ko">/);
+  assert.match(html, /<option value="ja">/);
+  assert.match(html, /<option value="fr">/);
+  assert.match(html, /<option value="es">/);
+  assert.match(html, /<option value="de">/);
+  assert.match(html, /<option value="pt">/);
+  assert.match(css, /\.language-select-wrap/);
+  assert.match(css, /\.language-select/);
+  assert.match(css, /\.terminal-code[\s\S]*white-space: pre-wrap/);
+  assert.match(css, /\.terminal-inline[\s\S]*overflow-wrap: anywhere/);
+  assert.doesNotMatch(css, /\.terminal-inline[\s\S]{0,160}overflow-x: auto/);
 });
 
 test('landing source has no known mojibake fragments', () => {

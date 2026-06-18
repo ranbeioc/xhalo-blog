@@ -329,6 +329,63 @@ export async function createDirectMainCommit(env, { branch = 'main', filePath, c
   };
 }
 
+export async function getFileContentFromBranch(env, { branch = 'main', filePath }) {
+  const { owner, repo } = getGitHubRepository(env);
+  const result = await githubApiRequest(env, `/repos/${owner}/${repo}/contents/${encodeURIComponent(filePath)}?ref=${encodeURIComponent(branch)}`);
+
+  if (!result || !result.content) {
+    const error = new Error('File content is empty.');
+    error.status = 404;
+    error.code = 'FILE_CONTENT_EMPTY';
+    throw error;
+  }
+
+  const bytes = decodeBase64ToBytes(result.content);
+  return {
+    filePath,
+    sha: result.sha,
+    raw: new TextDecoder().decode(bytes)
+  };
+}
+
+export async function createDirectMainUpsertCommit(env, { branch = 'main', filePath, content, commitMessage }) {
+  const { owner, repo } = getGitHubRepository(env);
+
+  let existingSha = null;
+  try {
+    const existingFile = await githubApiRequest(env, `/repos/${owner}/${repo}/contents/${encodeURIComponent(filePath)}?ref=${encodeURIComponent(branch)}`);
+    if (existingFile && existingFile.sha) {
+      existingSha = existingFile.sha;
+    }
+  } catch (error) {
+    if (error.status !== 404) {
+      throw error;
+    }
+  }
+
+  const finalCommitMessage = commitMessage.includes('[owner-direct]') || commitMessage.includes('[test-direct]')
+    ? commitMessage
+    : `[test-direct] ${commitMessage}`;
+
+  const result = await githubApiRequest(env, `/repos/${owner}/${repo}/contents/${filePath}`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      message: finalCommitMessage,
+      content: encodeBase64Utf8(content),
+      branch,
+      ...(existingSha ? { sha: existingSha } : {})
+    })
+  });
+
+  return {
+    commitSha: result.commit.sha,
+    commitUrl: `https://github.com/${owner}/${repo}/commit/${result.commit.sha}`,
+    operation: existingSha ? 'updated' : 'created',
+    previousSha: existingSha
+  };
+}
+
 export async function getPostFileFromMain(env, { slug }) {
   const { owner, repo, baseBranch } = getGitHubRepository(env);
   if (baseBranch !== 'main') {
