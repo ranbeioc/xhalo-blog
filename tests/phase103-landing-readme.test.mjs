@@ -90,7 +90,7 @@ test('landing i18n markers cover visible copy and load as a module', () => {
     assert.ok(app.includes(`'${key}'`), `landing dictionary must define key ${key}`);
   }
 
-  assert.match(html, /<script type="module" src="app\.js"><\/script>/);
+  assert.match(html, /<script data-cfasync="false" type="module" src="app\.js"><\/script>/);
   assert.match(app, /const locale = resolveLocale/);
 });
 
