@@ -53,3 +53,67 @@ test('landing deployment docs use the standalone Pages project and no Worker dep
   assert.match(readme, /Build command: npm ci && npm run build:landing/);
   assert.doesNotMatch(html, /wrangler deploy --all/);
 });
+
+test('landing supports browser locale matching with English fallback', async () => {
+  const { dictionaries, resolveLocale } = await import(`file://${path.join(rootDir, 'apps/landing/src/app.js').replace(/\\/g, '/')}`);
+
+  assert.equal(resolveLocale(['zh-CN']), 'zh-CN');
+  assert.equal(resolveLocale(['ko-KR']), 'ko');
+  assert.equal(resolveLocale(['ja-JP']), 'ja');
+  assert.equal(resolveLocale(['fr-FR']), 'fr');
+  assert.equal(resolveLocale(['es-MX']), 'es');
+  assert.equal(resolveLocale(['de-DE']), 'de');
+  assert.equal(resolveLocale(['pt-BR']), 'pt');
+  assert.equal(resolveLocale(['it-IT']), 'en');
+
+  for (const locale of ['en', 'zh-CN', 'ko', 'ja', 'fr', 'es', 'de', 'pt']) {
+    assert.ok(dictionaries[locale], `missing landing dictionary for ${locale}`);
+    assert.ok(dictionaries[locale]['hero.title'], `missing hero title for ${locale}`);
+    assert.ok(dictionaries[locale]['migration.lead'], `missing migration lead for ${locale}`);
+    assert.ok(dictionaries[locale]['quickstart.step4.body'], `missing quickstart copy for ${locale}`);
+  }
+});
+
+test('landing i18n markers cover visible copy and load as a module', () => {
+  const html = read('apps/landing/src/index.html');
+  const app = read('apps/landing/src/app.js');
+
+  for (const key of [
+    'hero.title',
+    'features.title',
+    'migration.title',
+    'architecture.title',
+    'quickstart.title',
+    'footer.docs'
+  ]) {
+    assert.ok(html.includes(key), `landing HTML must expose i18n key ${key}`);
+    assert.ok(app.includes(`'${key}'`), `landing dictionary must define key ${key}`);
+  }
+
+  assert.match(html, /<script type="module" src="app\.js"><\/script>/);
+  assert.match(app, /const locale = resolveLocale/);
+});
+
+test('landing command examples use real repository commands', () => {
+  const html = read('apps/landing/src/index.html');
+  const pkg = JSON.parse(read('package.json'));
+
+  assert.ok(pkg.scripts['check:all']);
+  assert.ok(pkg.scripts['build:landing']);
+  assert.ok(pkg.scripts['init:hexo-next']);
+  assert.doesNotMatch(html, /npm run dev/);
+  assert.match(html, /npm ci/);
+  assert.match(html, /npm run check:all/);
+  assert.match(html, /npm run build:landing/);
+  assert.match(html, /npm run init:hexo-next -- --target/);
+  assert.match(html, /Build command: npm ci && npm run build:landing/);
+  assert.match(html, /Output directory: apps\/landing\/dist/);
+});
+
+test('landing source has no known mojibake fragments', () => {
+  const source = `${read('apps/landing/src/index.html')}\n${read('apps/landing/src/app.js')}`;
+
+  for (const fragment of ['鈥', '鉁', '鈩', '馃', '锔', '�']) {
+    assert.doesNotMatch(source, new RegExp(fragment), `landing source contains mojibake fragment ${fragment}`);
+  }
+});
