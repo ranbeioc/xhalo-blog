@@ -6,6 +6,7 @@ const en = {
   'nav.features': 'Features',
   'nav.architecture': 'Architecture',
   'nav.quickstart': 'Quickstart',
+  'language.label': 'Language',
   'hero.badge': 'Cloudflare Native',
   'hero.title': 'The Ultimate <span class="gradient-text">Cloudflare-Native</span> Blog Scaffold',
   'hero.subtitle': 'Deploy a blazing-fast personal blog or developer journal completely on the Cloudflare edge network. Powered by Hexo, Pages, Workers, D1 database, and R2 bucket.',
@@ -72,6 +73,7 @@ const dictionaries = {
     'nav.features': '功能',
     'nav.architecture': '架构',
     'nav.quickstart': '快速开始',
+    'language.label': '语言',
     'hero.badge': 'Cloudflare 原生',
     'hero.title': '面向 Cloudflare 的<span class="gradient-text">现代博客框架</span>',
     'hero.subtitle': '在 Cloudflare 边缘网络上部署高速个人博客或开发者日志，由 Hexo、Pages、Workers、D1 数据库和 R2 存储驱动。',
@@ -131,6 +133,7 @@ const dictionaries = {
     'nav.features': '기능',
     'nav.architecture': '아키텍처',
     'nav.quickstart': '빠른 시작',
+    'language.label': '언어',
     'hero.badge': 'Cloudflare 네이티브',
     'hero.title': '<span class="gradient-text">Cloudflare 네이티브</span> 블로그 스캐폴드',
     'hero.subtitle': 'Hexo, Pages, Workers, D1, R2로 Cloudflare 엣지에서 빠른 개인 블로그와 개발자 저널을 배포합니다.',
@@ -169,6 +172,7 @@ const dictionaries = {
     'nav.features': '機能',
     'nav.architecture': '構成',
     'nav.quickstart': 'クイックスタート',
+    'language.label': '言語',
     'hero.badge': 'Cloudflare ネイティブ',
     'hero.title': '<span class="gradient-text">Cloudflare ネイティブ</span>なブログ基盤',
     'hero.subtitle': 'Hexo、Pages、Workers、D1、R2 を使い、Cloudflare エッジ上で高速な個人ブログや開発者ジャーナルを公開します。',
@@ -207,6 +211,7 @@ const dictionaries = {
     'nav.features': 'Fonctionnalites',
     'nav.architecture': 'Architecture',
     'nav.quickstart': 'Demarrage',
+    'language.label': 'Langue',
     'hero.badge': 'Natif Cloudflare',
     'hero.title': 'Le scaffold de blog <span class="gradient-text">natif Cloudflare</span>',
     'hero.subtitle': 'Deploiez un blog personnel ou un journal developpeur tres rapide sur le reseau edge de Cloudflare avec Hexo, Pages, Workers, D1 et R2.',
@@ -245,6 +250,7 @@ const dictionaries = {
     'nav.features': 'Funciones',
     'nav.architecture': 'Arquitectura',
     'nav.quickstart': 'Inicio rapido',
+    'language.label': 'Idioma',
     'hero.badge': 'Nativo de Cloudflare',
     'hero.title': 'El scaffold de blog <span class="gradient-text">nativo de Cloudflare</span>',
     'hero.subtitle': 'Despliega un blog personal o diario de desarrollo muy rapido en la red edge de Cloudflare con Hexo, Pages, Workers, D1 y R2.',
@@ -283,6 +289,7 @@ const dictionaries = {
     'nav.features': 'Funktionen',
     'nav.architecture': 'Architektur',
     'nav.quickstart': 'Schnellstart',
+    'language.label': 'Sprache',
     'hero.badge': 'Cloudflare-nativ',
     'hero.title': 'Das <span class="gradient-text">Cloudflare-native</span> Blog-Scaffold',
     'hero.subtitle': 'Veröffentliche ein schnelles persönliches Blog oder Entwicklerjournal am Cloudflare Edge mit Hexo, Pages, Workers, D1 und R2.',
@@ -321,6 +328,7 @@ const dictionaries = {
     'nav.features': 'Recursos',
     'nav.architecture': 'Arquitetura',
     'nav.quickstart': 'Inicio rapido',
+    'language.label': 'Idioma',
     'hero.badge': 'Nativo Cloudflare',
     'hero.title': 'O scaffold de blog <span class="gradient-text">nativo Cloudflare</span>',
     'hero.subtitle': 'Publique um blog pessoal ou diario de desenvolvimento rapido na rede edge da Cloudflare com Hexo, Pages, Workers, D1 e R2.',
@@ -532,6 +540,22 @@ function resolveLocale(languages = []) {
   return 'en';
 }
 
+function getStoredLocale() {
+  try {
+    return localStorage.getItem('xhalo_landing_lang');
+  } catch {
+    return null;
+  }
+}
+
+function setStoredLocale(locale) {
+  try {
+    localStorage.setItem('xhalo_landing_lang', locale);
+  } catch {
+    // Storage can be unavailable in strict privacy contexts.
+  }
+}
+
 function applyLocale(locale) {
   const dictionary = dictionaries[locale] || dictionaries.en;
   document.documentElement.lang = locale;
@@ -548,13 +572,25 @@ function applyLocale(locale) {
     const key = node.getAttribute('data-i18n-html');
     node.innerHTML = dictionary[key] || en[key] || node.innerHTML;
   });
+
+  const languageSelect = document.getElementById('language-select');
+  if (languageSelect) {
+    languageSelect.value = dictionaries[locale] ? locale : 'en';
+  }
 }
 
 if (typeof document !== 'undefined') {
 document.addEventListener('DOMContentLoaded', () => {
   const urlLocale = new URLSearchParams(window.location.search).get('lang');
-  const locale = resolveLocale([urlLocale, ...(navigator.languages || [navigator.language])]);
+  const locale = resolveLocale([urlLocale, getStoredLocale(), ...(navigator.languages || [navigator.language])]);
   applyLocale(locale);
+
+  const languageSelect = document.getElementById('language-select');
+  languageSelect?.addEventListener('change', () => {
+    const selectedLocale = resolveLocale([languageSelect.value]);
+    setStoredLocale(selectedLocale);
+    applyLocale(selectedLocale);
+  });
 
   const header = document.getElementById('main-header');
   window.addEventListener('scroll', () => {

@@ -235,6 +235,43 @@ header {
   color: #ffffff;
 }
 
+.language-select-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid var(--glass-border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: var(--glass-blur);
+}
+
+.language-select-label {
+  color: var(--text-muted);
+  font-family: var(--font-title);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.language-select {
+  min-width: 112px;
+  border: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-title);
+  font-size: 0.9rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+}
+
+.language-select option {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
 /* Hero Section */
 #hero {
   position: relative;
@@ -325,6 +362,9 @@ header {
   font-family: var(--font-mono);
   font-size: 0.85rem;
   line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .code-comment { color: var(--text-muted); }
@@ -486,7 +526,10 @@ header {
   border: 1px solid var(--border-color);
   padding: 16px 20px;
   border-radius: 8px;
-  overflow-x: auto;
+  overflow-x: hidden;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .terminal-inline code {

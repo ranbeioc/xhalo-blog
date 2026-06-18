@@ -160,5 +160,50 @@ test('test-direct publish succeeds against test-safe mock GitHub target', async 
   assert.equal(json.targetRepo, 'ranbeioc/xhalo-blog-test');
   assert.equal(json.targetBranch, 'main');
   assert.equal(json.commitSha, 'test-direct-commit-sha');
+  assert.equal(json.operation, 'created');
   assert.match(putPayload.message, /^\[test-direct\]/);
+});
+
+test('test-direct publish updates existing test article content on same slug', async () => {
+  let putPayload = null;
+  const mockGithubFetch = async (url, init = {}) => {
+    const parsedUrl = new URL(url);
+    const path = decodeURIComponent(parsedUrl.pathname);
+    if (path.includes('/contents/source/_posts/xhalo-blog-first-test-post.md')) {
+      if (!init.method || init.method === 'GET') {
+        return new Response(JSON.stringify({
+          sha: 'existing-test-post-sha',
+          content: btoa('---\ntitle: Old\n---\nOld body')
+        }), { status: 200 });
+      }
+      if (init.method === 'PUT') {
+        putPayload = JSON.parse(init.body);
+        return new Response(JSON.stringify({
+          content: { path: 'source/_posts/xhalo-blog-first-test-post.md' },
+          commit: { sha: 'test-direct-update-sha' }
+        }), { status: 200 });
+      }
+    }
+    return new Response('{}', { status: 404 });
+  };
+
+  const { response, json } = await requestJson('/api/drafts/test-direct-publish', {
+    ...validPost,
+    body: 'Updated test article body from Admin.'
+  }, {
+    DEPLOYMENT_ENV: 'test',
+    PUBLISH_MODE: 'test_direct',
+    TEST_DIRECT_PUBLISH_ENABLED: 'true',
+    GITHUB_OWNER: 'ranbeioc',
+    GITHUB_REPO: 'xhalo-blog-test',
+    GITHUB_BRANCH: 'main',
+    GITHUB_TOKEN: 'mock-token',
+    GITHUB_FETCH: mockGithubFetch
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(json.operation, 'updated');
+  assert.equal(json.commitSha, 'test-direct-update-sha');
+  assert.equal(putPayload.sha, 'existing-test-post-sha');
+  assert.match(Buffer.from(putPayload.content, 'base64').toString('utf8'), /Updated test article body from Admin\./);
 });

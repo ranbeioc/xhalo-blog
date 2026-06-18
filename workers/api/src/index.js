@@ -33,6 +33,7 @@ import {
   createBranchIfMissing,
   createDraftFileCommit,
   createDirectMainCommit,
+  createDirectMainUpsertCommit,
   createDirectMainUpdateCommit,
   getPostFileFromMain,
   generateUnifiedDiff,
@@ -48,8 +49,11 @@ import {
   generateMediaSnippet,
   validateMenuList,
   getConfigFromMain,
+  getNextThemeMenuConfigFromMain,
   normalizeMenuFromConfig,
-  updateConfigWithMenu
+  updateConfigWithMenu,
+  updateNextThemeConfigWithMenu,
+  NEXT_THEME_MENU_CONFIG_PATH
 } from '../../../packages/core/src/index.js';
 
 
@@ -1920,7 +1924,7 @@ async function handleRequest(request, env, requestStart) {
       const commitMessage = `[test-direct] publish first test post: ${validationInput.title}`;
 
       try {
-        const commitResult = await createDirectMainCommit(env, {
+        const commitResult = await createDirectMainUpsertCommit(env, {
           branch: repository.baseBranch,
           filePath,
           content: markdown,
@@ -1956,7 +1960,8 @@ async function handleRequest(request, env, requestStart) {
             target_repo: `${repository.owner}/${repository.repo}`,
             target_branch: repository.baseBranch,
             target_path: filePath,
-            commit_sha: commitResult.commitSha
+            commit_sha: commitResult.commitSha,
+            operation: commitResult.operation
           }
         });
 
@@ -1969,12 +1974,12 @@ async function handleRequest(request, env, requestStart) {
           postUrl: `/posts/${validationInput.slug}/`,
           commitSha: commitResult.commitSha,
           commitUrl: commitResult.commitUrl,
+          operation: commitResult.operation,
           persisted,
           message: 'Test direct commit created. Cloudflare Pages rebuild should be verified before production approval.'
         });
       } catch (err) {
-        const isExistsError = err.message.includes('Target post already exists');
-        const statusCode = isExistsError ? 409 : 500;
+        const statusCode = err.status || 500;
 
         await insertAuditLog(env, {
           action: 'test_direct_publish_failed',
@@ -1983,12 +1988,12 @@ async function handleRequest(request, env, requestStart) {
           status_code: statusCode,
           duration_ms: Date.now() - requestStart,
           error: err.message,
-          detail: { code: isExistsError ? 'TARGET_EXISTS' : 'COMMIT_FAILED' }
+          detail: { code: err.code || 'COMMIT_FAILED' }
         });
 
         return createJsonResponse({
           error: err.message,
-          code: isExistsError ? 'TARGET_EXISTS' : 'COMMIT_FAILED'
+          code: err.code || 'COMMIT_FAILED'
         }, { status: statusCode });
       }
     }
@@ -2829,13 +2834,37 @@ async function handleRequest(request, env, requestStart) {
         const oldConfig = JSON.parse(configData.raw);
         const newConfig = updateConfigWithMenu(oldConfig, input.menu);
         const content = `${JSON.stringify(newConfig, null, 2)}\n`;
-        const commitResult = await createDirectMainUpdateCommit(env, {
+        const configCommitResult = await createDirectMainUpdateCommit(env, {
           branch: repository.baseBranch,
           filePath: configData.filename,
           content,
           baseSha: input.baseSha || configData.sha,
           commitMessage: '[test-menu-update] update site menu'
         });
+        const targetPaths = [configData.filename];
+        const commits = [{
+          path: configData.filename,
+          commitSha: configCommitResult.commitSha,
+          commitUrl: configCommitResult.commitUrl
+        }];
+
+        const nextThemeConfig = await getNextThemeMenuConfigFromMain(env, repository.baseBranch);
+        if (nextThemeConfig) {
+          const nextThemeContent = updateNextThemeConfigWithMenu(nextThemeConfig.raw, input.menu);
+          const nextCommitResult = await createDirectMainUpdateCommit(env, {
+            branch: repository.baseBranch,
+            filePath: NEXT_THEME_MENU_CONFIG_PATH,
+            content: nextThemeContent,
+            baseSha: nextThemeConfig.sha,
+            commitMessage: '[test-menu-update] sync NexT theme menu'
+          });
+          targetPaths.push(NEXT_THEME_MENU_CONFIG_PATH);
+          commits.push({
+            path: NEXT_THEME_MENU_CONFIG_PATH,
+            commitSha: nextCommitResult.commitSha,
+            commitUrl: nextCommitResult.commitUrl
+          });
+        }
 
         await insertAuditLog(env, {
           action: 'test_menu_update',
@@ -2848,7 +2877,8 @@ async function handleRequest(request, env, requestStart) {
           detail: {
             target_repo: `${repository.owner}/${repository.repo}`,
             target_branch: repository.baseBranch,
-            commitSha: commitResult.commitSha
+            commitSha: configCommitResult.commitSha,
+            target_paths: targetPaths
           }
         });
 
@@ -2858,8 +2888,10 @@ async function handleRequest(request, env, requestStart) {
           targetRepo: `${repository.owner}/${repository.repo}`,
           targetBranch: repository.baseBranch,
           targetPath: configData.filename,
-          commitSha: commitResult.commitSha,
-          commitUrl: commitResult.commitUrl
+          targetPaths,
+          commits,
+          commitSha: configCommitResult.commitSha,
+          commitUrl: configCommitResult.commitUrl
         });
       } catch (err) {
         await insertAuditLog(env, {

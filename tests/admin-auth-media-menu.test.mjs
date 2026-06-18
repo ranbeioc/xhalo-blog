@@ -470,6 +470,29 @@ test('updateConfigWithMenu merges menu into config', async () => {
   assert.equal(updated.menu.length, 1);
 });
 
+test('updateNextThemeConfigWithMenu replaces the NexT runtime menu block', async () => {
+  const { updateNextThemeConfigWithMenu, NEXT_THEME_MENU_CONFIG_PATH } = await import('../packages/core/src/site-menu.js');
+  const raw = [
+    'scheme: Gemini',
+    'menu:',
+    '  home: / || fa fa-home',
+    '  about: /about/ || fa fa-user',
+    'menu_settings:',
+    '  icons: true',
+    ''
+  ].join('\n');
+  const updated = updateNextThemeConfigWithMenu(raw, [
+    { id: 'landing', label: 'Landing', path: '/landing/', icon: 'rocket', external: false, visible: true, order: 0 },
+    { id: 'hidden', label: 'Hidden', path: '/hidden/', icon: 'eye', external: false, visible: false, order: 5 },
+    { id: 'admin', label: 'Admin', path: '/admin/', icon: 'fa fa-lock', external: false, visible: true, order: 10 }
+  ]);
+
+  assert.equal(NEXT_THEME_MENU_CONFIG_PATH, 'themes/next/_config.yml');
+  assert.match(updated, /menu:\n  "Landing": \/landing\/ \|\| fa fa-rocket\n  "Admin": \/admin\/ \|\| fa fa-lock/);
+  assert.doesNotMatch(updated, /Hidden/);
+  assert.match(updated, /menu_settings:\n  icons: true/);
+});
+
 test('getConfigFromMain reads rb-blog.config.json when present', async () => {
   const { getConfigFromMain } = await import('../packages/core/src/site-menu.js');
   const mockFetch = async (url) => {

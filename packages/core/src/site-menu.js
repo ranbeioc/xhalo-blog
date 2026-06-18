@@ -1,5 +1,7 @@
-import { githubApiRequest, decodeBase64ToBytes } from './github-publishing.js';
+import { githubApiRequest, decodeBase64ToBytes, getFileContentFromBranch } from './github-publishing.js';
 import { generateUnifiedDiff } from './index.js';
+
+export const NEXT_THEME_MENU_CONFIG_PATH = 'themes/next/_config.yml';
 
 export function validateMenuItem(item, existingIds = []) {
   if (!item || typeof item !== 'object') {
@@ -198,4 +200,74 @@ export function updateConfigWithMenu(config, menuList) {
   }
 
   return newConfig;
+}
+
+export async function getNextThemeMenuConfigFromMain(env, branch = 'main') {
+  try {
+    return await getFileContentFromBranch(env, {
+      branch,
+      filePath: NEXT_THEME_MENU_CONFIG_PATH
+    });
+  } catch (error) {
+    if (error.status === 404) return null;
+    throw error;
+  }
+}
+
+export function normalizeNextMenuIcon(icon) {
+  const raw = String(icon || '').trim();
+  if (!raw) return 'fa fa-circle';
+  if (raw.startsWith('fa ')) return raw;
+  return `fa fa-${raw.replace(/^fa-/, '')}`;
+}
+
+export function formatNextMenuLabel(item) {
+  return String(item.label || item.id || 'Menu').trim().replace(/"/g, '\\"');
+}
+
+export function buildNextThemeMenuBlock(menuList) {
+  const lines = ['menu:'];
+  const visibleItems = [...menuList]
+    .filter((item) => item.visible !== false)
+    .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+  if (visibleItems.length === 0) {
+    lines.push('  # No visible menu items configured by xhalo-blog Admin.');
+    return lines.join('\n');
+  }
+
+  for (const item of visibleItems) {
+    const label = formatNextMenuLabel(item);
+    const path = String(item.path || '/').trim();
+    const icon = normalizeNextMenuIcon(item.icon);
+    lines.push(`  "${label}": ${path} || ${icon}`);
+  }
+  return lines.join('\n');
+}
+
+export function updateNextThemeConfigWithMenu(rawConfig, menuList) {
+  const source = String(rawConfig || '');
+  const lines = source.split(/\r?\n/);
+  const menuStart = lines.findIndex((line) => /^menu:\s*$/.test(line));
+  const nextBlock = buildNextThemeMenuBlock(menuList).split('\n');
+
+  if (menuStart === -1) {
+    const trimmed = source.endsWith('\n') ? source.trimEnd() : source;
+    return `${trimmed}\n\n${nextBlock.join('\n')}\n`;
+  }
+
+  let menuEnd = menuStart + 1;
+  while (menuEnd < lines.length) {
+    const line = lines[menuEnd];
+    if (/^\S/.test(line) && line.trim() !== '') break;
+    menuEnd += 1;
+  }
+
+  const updated = [
+    ...lines.slice(0, menuStart),
+    ...nextBlock,
+    ...lines.slice(menuEnd)
+  ].join('\n');
+
+  return updated.endsWith('\n') ? updated : `${updated}\n`;
 }
