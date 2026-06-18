@@ -156,13 +156,11 @@ describe('Admin GitHub OAuth Preview Login tests', () => {
     }
   });
 
-  it('markdown renderer in editor.js supports headers, blockquotes, lists, and links', () => {
+  it('editor.js uses Vditor built-in Markdown preview without the custom side preview', () => {
     const editorJs = fs.readFileSync(path.join(ADMIN_SRC_DIR, 'modules', 'editor.js'), 'utf8');
-    assert.ok(editorJs.includes('htmlBlocks.push'), 'Renderer must push html blocks');
-    assert.ok(editorJs.includes('h${level}'), 'Renderer must support headings');
-    assert.ok(editorJs.includes('blockquote'), 'Renderer must support blockquotes');
-    assert.ok(editorJs.includes('ul'), 'Renderer must support unordered lists');
-    assert.ok(editorJs.includes('ol'), 'Renderer must support ordered lists');
-    assert.ok(editorJs.includes('href'), 'Renderer must support links');
+    assert.ok(editorJs.includes('new Vditor'), 'Editor must mount Vditor');
+    assert.ok(editorJs.includes("'preview'"), 'Vditor toolbar must expose built-in preview');
+    assert.ok(!editorJs.includes('markdown-live-preview'), 'Custom side preview must not render');
+    assert.ok(!editorJs.includes("'emoji'"), 'Emoji toolbar must stay disabled to prevent startup overlay');
   });
 });

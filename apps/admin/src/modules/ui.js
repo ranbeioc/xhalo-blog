@@ -74,7 +74,7 @@ export function renderTopbar(container, { title, session, onLogin, onLogout, onL
 
   container.innerHTML = `
     <div class="topbar-left">
-      <button class="topbar-menu-btn" id="sidebar-toggle" aria-label="Toggle sidebar">Menu</button>
+      <button class="topbar-menu-btn" id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
       <h1 class="topbar-title">${escapeHtml(title)}</h1>
     </div>
     <div class="topbar-right" style="display: flex; align-items: center; gap: 15px;">

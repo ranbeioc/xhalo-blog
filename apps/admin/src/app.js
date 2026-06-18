@@ -8,7 +8,7 @@
 
 import { checkSession, logout, getLoginUrl } from './modules/auth.js';
 import { renderSidebar, renderTopbar, showToast, getRouteLabel } from './modules/ui.js';
-import { t } from './modules/i18n.js';
+import { applyLocaleToElement, t } from './modules/i18n.js';
 
 const ROUTES = [
   'dashboard',
@@ -57,18 +57,15 @@ const topbar = () => document.getElementById('topbar');
 const contentArea = () => document.getElementById('content-area');
 
 function loadRouteModule(route) {
-  if (!routeLoaders[route]) {
-    return loadRouteModule('dashboard');
+  const safeRoute = routeLoaders[route] ? route : 'dashboard';
+  if (!moduleCache.has(safeRoute)) {
+    moduleCache.set(safeRoute, routeLoaders[safeRoute]());
   }
-  if (!moduleCache.has(route)) {
-    moduleCache.set(route, routeLoaders[route]());
-  }
-  return moduleCache.get(route);
+  return moduleCache.get(safeRoute);
 }
 
 function navigateTo(route) {
-  if (!ROUTES.includes(route)) return;
-  if (appState.currentRoute === route) return;
+  if (!ROUTES.includes(route) || appState.currentRoute === route) return;
   appState.currentRoute = route;
   window.location.hash = route;
   render();
@@ -138,24 +135,19 @@ function renderLoginScreen() {
         <h2 class="login-card-title">${t('adminTitle')}</h2>
         <p class="login-card-subtitle">${t('adminSubtitle')}</p>
       </div>
-      <button class="login-btn-github" id="btn-login-card">
-        ${t('loginGithub')}
-      </button>
+      <button class="login-btn-github" id="btn-login-card">${t('loginGithub')}</button>
       <div class="login-card-info">
-        <p><strong>部署模式 / Deployment Mode:</strong> Test / PR-only</p>
-        <p><strong>目标仓库 / Target Repository:</strong> xhalo-blog-test</p>
-        <p><strong>管理员初始化 / Admin Bootstrap:</strong> 首个 GitHub 登录用户仅可在测试模式或显式 bootstrap 模式下成为管理员。</p>
-        <p><strong>安全 Gate / Security Gate:</strong> 生产直写保持阻断；测试写入仅允许指向 <code>ranbeioc/xhalo-blog-test@main</code>。</p>
+        <p><strong>${t('loginDeploymentMode')}:</strong> Test / PR-only</p>
+        <p><strong>${t('loginTargetRepo')}:</strong> xhalo-blog-test</p>
+        <p><strong>${t('loginAdminBootstrap')}:</strong> ${t('loginAdminBootstrapValue')}</p>
+        <p><strong>${t('loginSecurityGate')}:</strong> ${t('loginSecurityGateValue')}</p>
       </div>
     </div>
   `;
 
-  const btn = container.querySelector('#btn-login-card');
-  if (btn) {
-    btn.addEventListener('click', () => {
-      window.location.href = getLoginUrl();
-    });
-  }
+  container.querySelector('#btn-login-card')?.addEventListener('click', () => {
+    window.location.href = getLoginUrl();
+  });
 }
 
 async function renderContent() {
@@ -205,6 +197,7 @@ async function renderContent() {
     }
   } finally {
     if (token !== appState.renderToken) return;
+    applyLocaleToElement(container);
   }
 }
 
@@ -225,40 +218,28 @@ async function ensureDashboardData() {
   return appState.dashboardDataPromise;
 }
 
-async function renderConfigurationPanel(container) {
-  setLoading(container, '正在加载 Hexo/NexT 配置 / Loading Hexo/NexT config...');
-  try {
-    const { fetchSiteConfig, renderSiteConfiguration } = await loadRouteModule('configuration');
-    const config = await fetchSiteConfig();
-    renderSiteConfiguration(container, config);
-  } catch (err) {
-    showPanelError(container, '配置加载失败 / Failed to load config', err);
-  }
-}
-
-async function renderIntegrationsPanel(container) {
-  setLoading(container, '正在加载 GitHub/Cloudflare 状态 / Loading integration status...');
-  try {
-    const { fetchIntegrationStatus, renderIntegrationsManager } = await loadRouteModule('integrations');
-    const status = await fetchIntegrationStatus();
-    renderIntegrationsManager(container, status);
-  } catch (err) {
-    showPanelError(container, '集成状态加载失败 / Failed to load integrations', err);
-  }
-}
-
 async function renderDashboardPanel(container) {
-  setLoading(container, '正在加载仪表盘 / Loading dashboard...');
+  setLoading(container, t('loadingDashboard'));
   try {
     const { renderDashboard } = await loadRouteModule('dashboard');
     renderDashboard(container, await ensureDashboardData());
   } catch (err) {
-    showPanelError(container, '仪表盘加载失败 / Failed to load dashboard', err);
+    showPanelError(container, t('errorDashboard'), err);
+  }
+}
+
+async function renderStatsPanel(container) {
+  setLoading(container, t('loadingStats'));
+  try {
+    const { fetchBlogStats, renderBlogStats } = await loadRouteModule('stats');
+    renderBlogStats(container, await fetchBlogStats());
+  } catch (err) {
+    showPanelError(container, t('errorStats'), err);
   }
 }
 
 async function renderPostsPanel(container) {
-  setLoading(container, '正在加载文章 / Loading posts...');
+  setLoading(container, t('loadingPosts'));
   try {
     const { fetchPosts, renderPostsList } = await loadRouteModule('posts');
     appState.postsData = await fetchPosts({ page: appState.postsPage, pageSize: appState.postsPageSize });
@@ -274,23 +255,12 @@ async function renderPostsPanel(container) {
       }
     });
   } catch (err) {
-    showPanelError(container, '文章加载失败 / Failed to load posts', err);
-  }
-}
-
-async function renderStatsPanel(container) {
-  setLoading(container, '正在加载博客统计 / Loading blog stats...');
-  try {
-    const { fetchBlogStats, renderBlogStats } = await loadRouteModule('stats');
-    const stats = await fetchBlogStats();
-    renderBlogStats(container, stats);
-  } catch (err) {
-    showPanelError(container, '博客统计加载失败 / Failed to load blog stats', err);
+    showPanelError(container, t('errorPosts'), err);
   }
 }
 
 async function renderEditorPanel(container) {
-  setLoading(container, '正在加载 Markdown 编辑器 / Loading Markdown editor...');
+  setLoading(container, t('loadingEditor'));
   const [module, dashboardData] = await Promise.all([
     loadRouteModule('editor'),
     ensureDashboardData().catch(() => null)
@@ -308,14 +278,12 @@ async function renderEditorPanel(container) {
         }
       : undefined,
     dashboardData,
-    onSaveSuccess: () => {
-      showToast('草稿保存成功 / Draft saved successfully', 'success');
-    }
+    onSaveSuccess: () => showToast(t('working'), 'success')
   });
 }
 
 async function renderMediaPanel(container) {
-  setLoading(container, '正在加载媒体管理 / Loading media manager...');
+  setLoading(container, t('loadingMedia'));
   const [module, dashboardData] = await Promise.all([
     loadRouteModule('media'),
     ensureDashboardData().catch(() => null)
@@ -324,7 +292,7 @@ async function renderMediaPanel(container) {
 }
 
 async function renderMenusPanel(container) {
-  setLoading(container, '正在加载菜单 / Loading menu...');
+  setLoading(container, t('loadingMenu'));
   const { fetchSiteMenu, renderMenuManager } = await loadRouteModule('menus');
   try {
     const [menuData, dashboardData] = await Promise.all([
@@ -337,8 +305,28 @@ async function renderMenusPanel(container) {
   }
 }
 
+async function renderConfigurationPanel(container) {
+  setLoading(container, t('loadingConfig'));
+  try {
+    const { fetchSiteConfig, renderSiteConfiguration } = await loadRouteModule('configuration');
+    renderSiteConfiguration(container, await fetchSiteConfig());
+  } catch (err) {
+    showPanelError(container, t('errorConfig'), err);
+  }
+}
+
+async function renderIntegrationsPanel(container) {
+  setLoading(container, t('loadingIntegrations'));
+  try {
+    const { fetchIntegrationStatus, renderIntegrationsManager } = await loadRouteModule('integrations');
+    renderIntegrationsManager(container, await fetchIntegrationStatus());
+  } catch (err) {
+    showPanelError(container, t('errorIntegrations'), err);
+  }
+}
+
 async function renderPublishingPanel(container) {
-  setLoading(container, '正在加载发布安全中心 / Loading publishing safety center...');
+  setLoading(container, t('loadingPublishing'));
   const [module, dashboardData] = await Promise.all([
     loadRouteModule('publishing'),
     ensureDashboardData().catch(() => null)
@@ -347,7 +335,7 @@ async function renderPublishingPanel(container) {
 }
 
 async function renderAuditPanel(container) {
-  setLoading(container, '正在加载审计日志 / Loading audit logs...');
+  setLoading(container, t('loadingAudit'));
   const { fetchAuditLogs, fetchAuditSummary, renderAuditLogs } = await loadRouteModule('audit');
   try {
     const [logs, summary] = await Promise.all([fetchAuditLogs(), fetchAuditSummary()]);
@@ -358,7 +346,7 @@ async function renderAuditPanel(container) {
 }
 
 async function renderSettingsPanel(container) {
-  setLoading(container, '正在加载设置 / Loading settings...');
+  setLoading(container, t('loadingSettings'));
   const [module, dashboardData] = await Promise.all([
     loadRouteModule('settings'),
     ensureDashboardData().catch(() => null)
@@ -380,10 +368,10 @@ async function handleLogout() {
     appState.session = { authenticated: false };
     appState.dashboardData = null;
     appState.dashboardDataPromise = null;
-    showToast('已退出登录 / Logged out', 'info');
+    showToast(t('loggedOut'), 'info');
     render();
   } else {
-    showToast('退出登录失败 / Logout failed', 'error');
+    showToast(t('logoutFailed'), 'error');
   }
 }
 
@@ -403,7 +391,6 @@ function preloadLikelyRoutes() {
 
 async function init() {
   appState.currentRoute = getRouteFromHash();
-
   window.addEventListener('hashchange', () => {
     appState.currentRoute = getRouteFromHash();
     render();
@@ -412,6 +399,11 @@ async function init() {
   await initSession();
   render();
   preloadLikelyRoutes();
+  const container = contentArea();
+  if (container) {
+    const observer = new MutationObserver(() => applyLocaleToElement(container));
+    observer.observe(container, { childList: true, subtree: true });
+  }
 }
 
 document.addEventListener('DOMContentLoaded', init);
