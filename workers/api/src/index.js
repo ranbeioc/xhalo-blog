@@ -36,6 +36,7 @@ import {
   createDirectMainUpsertCommit,
   createDirectMainUpdateCommit,
   getPostFileFromMain,
+  listPostFilesFromMain,
   generateUnifiedDiff,
   createPullRequest,
   decodeBase64ToBytes,
@@ -51,6 +52,7 @@ import {
   getConfigFromMain,
   getNextRuntimeMenuConfigsFromMain,
   normalizeMenuFromConfig,
+  parseNextThemeMenu,
   updateConfigWithMenu,
   updateNextThemeConfigWithMenu
 } from '../../../packages/core/src/index.js';
@@ -534,6 +536,35 @@ function summarizePostRecord(item) {
     ...item,
     detail_primary: item.github_branch || null,
     detail_secondary: item.github_pr_url || null
+  };
+}
+
+async function getRuntimeMenuSnapshot(env) {
+  const repository = getGitHubRepository(env);
+  const nextThemeConfigs = await getNextRuntimeMenuConfigsFromMain(env, repository.baseBranch);
+  for (const config of nextThemeConfigs) {
+    const menu = parseNextThemeMenu(config.raw);
+    if (menu.length > 0) {
+      return {
+        ok: true,
+        source: config.filePath,
+        sourceType: 'next-runtime',
+        sha: config.sha,
+        raw: config.raw,
+        menu
+      };
+    }
+  }
+
+  const configData = await getConfigFromMain(env);
+  const config = JSON.parse(configData.raw);
+  return {
+    ok: true,
+    source: configData.filename,
+    sourceType: 'rb-blog-config',
+    sha: configData.sha,
+    raw: configData.raw,
+    menu: normalizeMenuFromConfig(config)
   };
 }
 
@@ -1225,16 +1256,33 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/posts') {
+      const requestedLimit = Math.max(1, Math.min(Number(url.searchParams.get('limit')) || 100, 200));
+      try {
+        const gitItems = await listPostFilesFromMain(env, { branch: getGitHubRepository(env).baseBranch, limit: requestedLimit });
+        if (gitItems.length > 0) {
+          return createJsonResponse({
+            items: gitItems.map(summarizePostRecord),
+            backend: 'github',
+            source_of_truth: 'git',
+            count: gitItems.length,
+            note: 'GitHub source/_posts listing from the configured test repository.'
+          });
+        }
+      } catch (err) {
+        logWarn('posts_git_listing_failed', { error: err.message, status: err.status || null });
+      }
+
       const items = await selectRows(
         env,
-        'SELECT id, slug, title, path, status, created_at, updated_at, published_at, github_branch, github_pr_url, preview_url, content FROM posts_index ORDER BY COALESCE(updated_at, created_at) DESC LIMIT 10'
+        'SELECT id, slug, title, path, status, created_at, updated_at, published_at, github_branch, github_pr_url, preview_url, content FROM posts_index ORDER BY COALESCE(updated_at, created_at) DESC LIMIT 100'
       );
 
+      const d1Items = Array.isArray(items) && items.length > 0 ? items : null;
       return createJsonResponse({
-        items: items ? items.map(summarizePostRecord) : createFallbackPosts().map(summarizePostRecord),
-        backend: items ? 'd1' : 'fallback',
+        items: d1Items ? d1Items.map(summarizePostRecord) : createFallbackPosts().map(summarizePostRecord),
+        backend: d1Items ? 'd1' : 'fallback',
         source_of_truth: 'git',
-        note: items ? 'Read-only posts_index prototype.' : 'D1 posts_index integration pending; showing fallback examples.'
+        note: d1Items ? 'Read-only posts_index prototype.' : 'GitHub listing and D1 posts_index unavailable; showing fallback examples.'
       });
     }
 
@@ -2692,14 +2740,13 @@ async function handleRequest(request, env, requestStart) {
     // ── Site Menu Manager Routes ────────────────────────────────────────────
     if (url.pathname === '/api/site/menu' && request.method === 'GET') {
       try {
-        const configData = await getConfigFromMain(env);
-        const config = JSON.parse(configData.raw);
-        const menuItems = normalizeMenuFromConfig(config);
+        const snapshot = await getRuntimeMenuSnapshot(env);
         return createJsonResponse({
           ok: true,
-          source: configData.filename,
-          sha: configData.sha,
-          menu: menuItems
+          source: snapshot.source,
+          sourceType: snapshot.sourceType,
+          sha: snapshot.sha,
+          menu: snapshot.menu
         });
       } catch (err) {
         return createJsonResponse({
@@ -2723,20 +2770,21 @@ async function handleRequest(request, env, requestStart) {
       }
 
       try {
-        const configData = await getConfigFromMain(env);
-        const oldConfig = JSON.parse(configData.raw);
-        const newConfig = updateConfigWithMenu(oldConfig, input.menu);
-
-        const oldJson = JSON.stringify(oldConfig, null, 2);
-        const newJson = JSON.stringify(newConfig, null, 2);
-
-        const diff = generateUnifiedDiff(oldJson, newJson, configData.filename);
+        const snapshot = await getRuntimeMenuSnapshot(env);
+        const oldText = snapshot.sourceType === 'next-runtime'
+          ? snapshot.raw
+          : JSON.stringify(JSON.parse(snapshot.raw), null, 2);
+        const newText = snapshot.sourceType === 'next-runtime'
+          ? updateNextThemeConfigWithMenu(snapshot.raw, input.menu)
+          : JSON.stringify(updateConfigWithMenu(JSON.parse(snapshot.raw), input.menu), null, 2);
+        const diff = generateUnifiedDiff(oldText, newText, snapshot.source);
 
         return createJsonResponse({
           ok: true,
           mode: 'preview',
-          source: configData.filename,
-          sha: configData.sha,
+          source: snapshot.source,
+          sourceType: snapshot.sourceType,
+          sha: snapshot.sha,
           diff
         });
       } catch (err) {
@@ -2837,7 +2885,7 @@ async function handleRequest(request, env, requestStart) {
           branch: repository.baseBranch,
           filePath: configData.filename,
           content,
-          baseSha: input.baseSha || configData.sha,
+          baseSha: configData.sha,
           commitMessage: '[test-menu-update] update site menu'
         });
         const targetPaths = [configData.filename];

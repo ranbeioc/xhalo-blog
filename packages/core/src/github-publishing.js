@@ -419,6 +419,56 @@ export async function getPostFileFromMain(env, { slug }) {
   };
 }
 
+export async function listPostFilesFromMain(env, { branch = 'main', limit = 100 } = {}) {
+  const { owner, repo, baseBranch } = getGitHubRepository(env);
+  const targetBranch = branch || baseBranch || 'main';
+  const headSha = await getBranchHeadSha(env, targetBranch);
+  const tree = await githubApiRequest(
+    env,
+    `/repos/${owner}/${repo}/git/trees/${encodeURIComponent(headSha)}?recursive=1`
+  );
+
+  const files = Array.isArray(tree?.tree)
+    ? tree.tree
+      .filter((item) => item.type === 'blob' && /^source\/_posts\/.+\.md$/i.test(item.path || ''))
+      .sort((a, b) => String(b.path || '').localeCompare(String(a.path || '')))
+      .slice(0, Math.max(1, Math.min(Number(limit) || 100, 200)))
+    : [];
+
+  const posts = [];
+  for (const file of files) {
+    const fileData = await getFileContentFromBranch(env, {
+      branch: targetBranch,
+      filePath: file.path
+    });
+    const { frontmatter, body } = parseDraftMarkdownDocument(fileData.raw);
+    const filename = file.path.split('/').pop() || '';
+    const slug = filename.replace(/\.md$/i, '');
+    const title = frontmatter.title || slug;
+    const date = frontmatter.updated || frontmatter.date || frontmatter.created || null;
+
+    posts.push({
+      id: `git-${slug}`,
+      slug,
+      title: String(title),
+      path: file.path,
+      filePath: file.path,
+      status: frontmatter.status || 'published',
+      created_at: date,
+      updated_at: frontmatter.updated || date,
+      published_at: frontmatter.date || date,
+      github_branch: targetBranch,
+      github_pr_url: null,
+      preview_url: `/posts/${slug}/`,
+      sha: fileData.sha,
+      excerpt: body ? body.split(/\r?\n/).find((line) => line.trim()) || '' : '',
+      frontmatter
+    });
+  }
+
+  return posts;
+}
+
 export async function createDirectMainUpdateCommit(env, { branch = 'main', filePath, content, baseSha, commitMessage }) {
   const { owner, repo } = getGitHubRepository(env);
 

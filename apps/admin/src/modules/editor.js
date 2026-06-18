@@ -40,6 +40,7 @@ export function renderEditor(container, { initialPost, dashboardData }) {
   let planHtml = '';
   let actionResultHtml = '';
   let loadingState = false;
+  let autoLoadAttempted = false;
 
   const readiness = dashboardData?.readiness || {};
   const isDirectPublishEnabled = dashboardData?.readiness?.ownerDirectPublishEnabled === true;
@@ -85,7 +86,7 @@ export function renderEditor(container, { initialPost, dashboardData }) {
       post = {
         title: data.frontmatter?.title || post.title || '',
         slug: post.slug,
-        category: data.frontmatter?.category || '',
+        category: data.frontmatter?.category || (Array.isArray(data.frontmatter?.categories) ? data.frontmatter.categories.join(', ') : data.frontmatter?.categories || ''),
         tags: Array.isArray(data.frontmatter?.tags) ? data.frontmatter.tags.join(', ') : '',
         body: data.body || '',
         sha: data.sha || ''
@@ -301,6 +302,12 @@ export function renderEditor(container, { initialPost, dashboardData }) {
     `;
 
     bindEvents();
+    if (!autoLoadAttempted && post.slug && !post.body && !loadingState) {
+      autoLoadAttempted = true;
+      setTimeout(() => {
+        loadExistingSource();
+      }, 0);
+    }
   }
 
   function renderTabContent() {

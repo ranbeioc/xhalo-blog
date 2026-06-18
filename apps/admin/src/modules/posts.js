@@ -4,15 +4,14 @@ import { escapeHtml } from './ui.js';
 
 export async function fetchPosts() {
   try {
-    const res = await apiFetch('/api/posts');
+    const res = await apiFetch('/api/posts?limit=100');
     if (!res.ok) {
       throw new Error(`API returned status ${res.status}`);
     }
     const data = await res.json();
-    return { items: data.items || [], isFallback: false };
+    return { items: data.items || [], isFallback: data.backend === 'fallback' };
   } catch (err) {
     console.warn('Failed to fetch posts, loading fallback demo data:', err);
-    // Fallback demo data
     const fallbackItems = [
       {
         title: 'Welcome to xhalo-blog (Demo)',
@@ -37,18 +36,18 @@ export async function fetchPosts() {
 
 export function renderPostsList(container, { items, isFallback, onSelectPost }) {
   const tableState = { query: '', filter: 'all', page: 1 };
-  
+
   function draw() {
     const bannerHtml = isFallback ? `
       <div class="alert alert-info">
-        <strong>演示模式 / Demo Mode:</strong> 实时文章 API 暂不可用，当前显示本地示例文章。
+        <strong>演示模式 / Demo Mode:</strong> 真实文章 API 暂不可用，当前显示本地示例文章。
       </div>
     ` : '';
 
     container.innerHTML = `
       <div class="posts-panel">
         <h2>文章管理 / Posts</h2>
-        <p class="lede">按标题、slug、路径或分支搜索文章，按发布状态筛选，并从表格中进入编辑。</p>
+        <p class="lede">按标题、slug、路径或分支搜索文章，按发布状态筛选，并从表格进入编辑。</p>
         ${bannerHtml}
         <div class="card table-card">
           ${renderDataTable({
@@ -64,7 +63,7 @@ export function renderPostsList(container, { items, isFallback, onSelectPost }) 
             emptyText: '没有文章匹配当前搜索或筛选条件。',
             filterOptions: uniqueStatuses(items).map((status) => ({ value: status, label: status })),
             getFilterValue: (post) => post.status || 'draft',
-            getSearchText: (post) => [post.title, post.slug, post.status, post.filePath, post.branchName].filter(Boolean).join(' '),
+            getSearchText: (post) => [post.title, post.slug, post.status, post.filePath, post.path, post.branchName, post.github_branch].filter(Boolean).join(' '),
             columns: [
               { label: '标题 / Title', minWidth: '220px', render: (post) => `<strong>${escapeHtml(post.title || post.slug || '-')}</strong><br/><code>${escapeHtml(post.slug || '-')}</code>` },
               { label: '状态 / Status', width: '130px', render: (post) => `<span class="status-badge" data-state="${post.status === 'published' ? 'ok' : 'warning'}">${escapeHtml(post.status || 'draft')}</span>` },
@@ -72,7 +71,7 @@ export function renderPostsList(container, { items, isFallback, onSelectPost }) 
               { label: '分支 / Branch', minWidth: '160px', render: (post) => `<code>${escapeHtml(post.branchName || post.github_branch || '-')}</code>` },
               { label: '操作 / Actions', width: '190px', render: (post) => `
                 <button class="button-small load-post-btn" data-slug="${escapeHtml(post.slug || '')}">编辑文章 / Edit Article</button>
-                ${post.previewUrl ? `<a href="${escapeHtml(post.previewUrl)}" target="_blank" class="button-small button-secondary">预览 / View Preview</a>` : ''}
+                ${post.previewUrl || post.preview_url ? `<a href="${escapeHtml(post.previewUrl || post.preview_url)}" target="_blank" class="button-small button-secondary">预览 / View Preview</a>` : ''}
               ` }
             ]
           })}
@@ -83,8 +82,8 @@ export function renderPostsList(container, { items, isFallback, onSelectPost }) 
     bindDataTableControls(container, 'posts', tableState, draw);
 
     container.querySelectorAll('.load-post-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const slug = e.target.getAttribute('data-slug');
+      btn.addEventListener('click', (event) => {
+        const slug = event.target.getAttribute('data-slug');
         const selected = items.find(post => post.slug === slug);
         if (selected && onSelectPost) {
           onSelectPost(selected);

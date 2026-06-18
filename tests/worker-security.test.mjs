@@ -51,6 +51,62 @@ test('GET /api/posts returns 401 without the required admin header', async () =>
   assert.match(json.error, /Unauthorized admin API request/);
 });
 
+test('GET /api/posts lists migrated GitHub source posts when available', async () => {
+  const rawPost = [
+    '---',
+    'title: "历史文章一"',
+    'date: 2020-01-02',
+    'tags:',
+    '  - imported',
+    'categories:',
+    '  - Blog',
+    '---',
+    '',
+    '历史正文第一段。'
+  ].join('\n');
+  const mockGithubFetch = async (url) => {
+    const decodedUrl = decodeURIComponent(String(url));
+    if (decodedUrl.includes('/git/ref/heads/main')) {
+      return new Response(JSON.stringify({ object: { sha: 'head-sha-123' } }), { status: 200 });
+    }
+    if (decodedUrl.includes('/git/trees/head-sha-123?recursive=1')) {
+      return new Response(JSON.stringify({
+        tree: [
+          { type: 'blob', path: 'source/_posts/2020-01-02-history-post.md' },
+          { type: 'blob', path: 'source/about/index.md' }
+        ]
+      }), { status: 200 });
+    }
+    if (decodedUrl.includes('/contents/source/_posts/2020-01-02-history-post.md')) {
+      return new Response(JSON.stringify({
+        sha: 'post-sha-123',
+        content: Buffer.from(rawPost).toString('base64')
+      }), { status: 200 });
+    }
+    return new Response('', { status: 404 });
+  };
+
+  const { response, json } = await requestJson('/api/posts', {
+    headers: {
+      'x-xhalo-admin-secret': adminSecret
+    }
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    GITHUB_OWNER: 'test-owner',
+    GITHUB_REPO: 'test-repo',
+    GITHUB_BRANCH: 'main',
+    GITHUB_FETCH: mockGithubFetch
+  });
+
+  assert.equal(response.status, 200);
+  assert.equal(json.backend, 'github');
+  assert.equal(json.source_of_truth, 'git');
+  assert.equal(json.count, 1);
+  assert.equal(json.items[0].title, '历史文章一');
+  assert.equal(json.items[0].slug, '2020-01-02-history-post');
+  assert.equal(json.items[0].filePath, 'source/_posts/2020-01-02-history-post.md');
+});
+
 test('POST /api/drafts/publish dry-run returns 401 without admin secret', async () => {
   const { response, json } = await requestJson('/api/drafts/publish', {
     method: 'POST',
