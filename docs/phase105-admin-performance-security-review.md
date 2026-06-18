@@ -18,6 +18,7 @@ The implementation remains within the existing safety boundary:
 - The authenticated Admin boot path no longer waits for dashboard API data before rendering the application frame.
 - Dashboard read-only stats and audit summary calls have short client-side timeouts so a GitHub source scan cannot block the first page indefinitely.
 - The `/api/blog/stats` Worker route now uses a short in-instance read-only cache with a default 60 second TTL and a hard maximum of 5 minutes.
+- GitHub source post scanning now reads Markdown files with bounded concurrency instead of sequential per-file requests.
 
 ## Security Fixes
 

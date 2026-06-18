@@ -441,8 +441,7 @@ export async function listPostFilesFromMain(env, { branch = 'main', limit = 100 
       .slice(0, Math.max(1, Math.min(Number(limit) || 100, 200)))
     : [];
 
-  const posts = [];
-  for (const file of files) {
+  return mapWithConcurrency(files, 8, async (file) => {
     const fileData = await getFileContentFromBranch(env, {
       branch: targetBranch,
       filePath: file.path
@@ -453,7 +452,7 @@ export async function listPostFilesFromMain(env, { branch = 'main', limit = 100 
     const title = frontmatter.title || slug;
     const date = frontmatter.updated || frontmatter.date || frontmatter.created || null;
 
-    posts.push({
+    return {
       id: `git-${slug}`,
       slug,
       title: String(title),
@@ -469,10 +468,28 @@ export async function listPostFilesFromMain(env, { branch = 'main', limit = 100 
       sha: fileData.sha,
       excerpt: body ? body.split(/\r?\n/).find((line) => line.trim()) || '' : '',
       frontmatter
-    });
+    };
+  });
+}
+
+async function mapWithConcurrency(items, concurrency, mapper) {
+  const limit = Math.max(1, Math.min(Number(concurrency) || 1, 16));
+  const results = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker() {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      results[currentIndex] = await mapper(items[currentIndex], currentIndex);
+    }
   }
 
-  return posts;
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, () => worker())
+  );
+
+  return results;
 }
 
 export async function createDirectMainUpdateCommit(env, { branch = 'main', filePath, content, baseSha, commitMessage }) {
