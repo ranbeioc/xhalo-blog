@@ -1,30 +1,36 @@
 import { apiFetch } from './api-client.js';
 import { escapeHtml } from './ui.js';
 
+const FAST_PANEL_TIMEOUT_MS = 1200;
+const OPTIONAL_STATS_TIMEOUT_MS = 900;
+
 export async function fetchDashboardData() {
+  const [health, readiness, stats, auditSummary] = await Promise.all([
+    fetchJsonOrNull('/api/health', FAST_PANEL_TIMEOUT_MS),
+    fetchJsonOrNull('/api/readiness', FAST_PANEL_TIMEOUT_MS),
+    fetchJsonOrNull('/api/blog/stats', OPTIONAL_STATS_TIMEOUT_MS),
+    fetchJsonOrNull('/api/audit-logs/summary', OPTIONAL_STATS_TIMEOUT_MS)
+  ]);
+
+  return {
+    health: health || { ok: false, note: 'Offline / connection failed' },
+    readiness,
+    stats,
+    auditSummary
+  };
+}
+
+async function fetchJsonOrNull(path, timeoutMs) {
+  const controller = new AbortController();
+  const timer = globalThis.setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const [healthRes, readinessRes, statsRes, auditSummaryRes] = await Promise.all([
-      apiFetch('/api/health').catch(() => null),
-      apiFetch('/api/readiness').catch(() => null),
-      apiFetch('/api/blog/stats').catch(() => null),
-      apiFetch('/api/audit-logs/summary').catch(() => null)
-    ]);
-
-    const health = healthRes && healthRes.ok
-      ? await healthRes.json()
-      : { ok: false, note: 'Offline / connection failed' };
-    const readiness = readinessRes && readinessRes.ok ? await readinessRes.json() : null;
-    const stats = statsRes && statsRes.ok ? await statsRes.json() : null;
-    const auditSummary = auditSummaryRes && auditSummaryRes.ok ? await auditSummaryRes.json() : null;
-
-    return { health, readiness, stats, auditSummary };
-  } catch (err) {
-    return {
-      health: { ok: false, note: err.message },
-      readiness: null,
-      stats: null,
-      auditSummary: null
-    };
+    const res = await apiFetch(path, { signal: controller.signal });
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  } finally {
+    globalThis.clearTimeout(timer);
   }
 }
 
@@ -73,6 +79,7 @@ export function renderDashboard(container, data) {
 
       <div class="card field-span-2">
         <h3>博客数据与操作 / Blog Data and Operations</h3>
+        ${stats ? '' : '<p class="info-text">统计数据会在专用“博客统计”页面分页加载；仪表盘首屏不会等待 GitHub 全量扫描。</p>'}
         <div class="readiness-grid">${statsCards}</div>
       </div>
 

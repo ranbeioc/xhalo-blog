@@ -71,6 +71,25 @@ const ALLOWED_MIME_TYPES = {
   'text/plain': ['.txt']
 };
 
+let blogStatsCache = null;
+
+function getBlogStatsCacheTtlMs(env) {
+  const configured = Number(env.BLOG_STATS_CACHE_TTL_MS || env.ADMIN_STATS_CACHE_TTL_MS || 60000);
+  if (!Number.isFinite(configured) || configured < 0) return 60000;
+  return Math.min(configured, 300000);
+}
+
+function getBlogStatsCacheKey(env) {
+  const repository = getGitHubRepository(env);
+  return [
+    repository.owner,
+    repository.repo,
+    repository.baseBranch,
+    Boolean(env.DB),
+    Boolean(env.GITHUB_TOKEN || (env.GITHUB_APP_ID && env.GITHUB_APP_PRIVATE_KEY && env.GITHUB_INSTALLATION_ID))
+  ].join(':');
+}
+
 function validateR2UploadInput(filename, contentType, scope, postSlug) {
   if (!contentType || typeof contentType !== 'string') {
     return 'Content-Type is required.';
@@ -853,7 +872,17 @@ function rejectUnauthorized() {
 }
 
 function isProtectedAdminRoute(pathname) {
-  if (pathname.startsWith('/api/posts') || pathname === '/api/readiness' || pathname === '/api/tasks' || pathname === '/api/tasks/example' || pathname === '/api/audit-logs' || pathname === '/api/audit-logs/summary' || pathname === '/api/blog/stats' || pathname.startsWith('/api/tasks/')) {
+  if (
+    pathname.startsWith('/api/posts') ||
+    pathname === '/api/readiness' ||
+    pathname === '/api/tasks' ||
+    pathname === '/api/tasks/example' ||
+    pathname === '/api/audit-logs' ||
+    pathname === '/api/audit-logs/summary' ||
+    pathname === '/api/blog/stats' ||
+    pathname.startsWith('/api/tasks/') ||
+    pathname.startsWith('/api/integrations/')
+  ) {
     return true;
   }
 
@@ -1697,6 +1726,25 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/blog/stats') {
+      const cacheKey = getBlogStatsCacheKey(env);
+      const cacheTtlMs = getBlogStatsCacheTtlMs(env);
+      const cacheNow = Date.now();
+      if (blogStatsCache && blogStatsCache.key === cacheKey && blogStatsCache.expiresAt > cacheNow) {
+        return createJsonResponse({
+          ...blogStatsCache.payload,
+          cache: {
+            state: 'hit',
+            ttlMs: cacheTtlMs,
+            expiresAt: new Date(blogStatsCache.expiresAt).toISOString()
+          }
+        }, {
+          headers: {
+            'cache-control': 'private, max-age=30',
+            'x-xhalo-cache': 'blog-stats-hit'
+          }
+        });
+      }
+
       const fallbackPosts = createFallbackPosts();
       let gitPosts = null;
       let gitPostsError = null;
@@ -1732,7 +1780,7 @@ async function handleRequest(request, env, requestStart) {
         }
       }
 
-      return createJsonResponse({
+      const payload = {
         ok: true,
         backend: gitPosts ? 'github' : postsRows ? 'd1' : 'fallback',
         sourceOfTruth: gitPosts ? 'git-source-posts' : 'd1-or-fallback',
@@ -1751,7 +1799,25 @@ async function handleRequest(request, env, requestStart) {
         topCategories: Object.entries(categories).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, count]) => ({ name, count })),
         topTags: Object.entries(tags).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, count]) => ({ name, count })),
         gitPostsError,
+        cache: {
+          state: 'miss',
+          ttlMs: cacheTtlMs,
+          expiresAt: new Date(cacheNow + cacheTtlMs).toISOString()
+        },
         note: 'Read-only blog statistics summary from GitHub source posts when available.'
+      };
+
+      blogStatsCache = {
+        key: cacheKey,
+        payload,
+        expiresAt: cacheNow + cacheTtlMs
+      };
+
+      return createJsonResponse(payload, {
+        headers: {
+          'cache-control': 'private, max-age=30',
+          'x-xhalo-cache': 'blog-stats-miss'
+        }
       });
     }
 

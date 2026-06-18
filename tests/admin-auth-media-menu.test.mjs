@@ -261,6 +261,29 @@ test('/api/auth/ routes require admin secret when not OAuth flow', async () => {
   assert.equal(response.status, 401);
 });
 
+test('/api/integrations/status requires admin secret and returns redacted status when authorized', async () => {
+  const blocked = await requestJson('/api/integrations/status', {}, {});
+  assert.equal(blocked.response.status, 401);
+
+  const allowed = await requestJson('/api/integrations/status', {
+    headers: adminHeaders()
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    GITHUB_OWNER: 'ranbeioc',
+    GITHUB_REPO: 'xhalo-blog-test',
+    GITHUB_TOKEN: 'test-token',
+    GITHUB_OAUTH_CLIENT_ID: 'client-id',
+    GITHUB_OAUTH_CLIENT_SECRET: 'client-secret'
+  });
+  assert.equal(allowed.response.status, 200);
+  assert.equal(allowed.json.ok, true);
+  assert.equal(allowed.json.github.tokenConfigured, true);
+  assert.equal(allowed.json.github.oauthConfigured, true);
+  assert.equal(allowed.json.github.owner, 'ranbeioc');
+  assert.equal(allowed.json.github.repo, 'xhalo-blog-test');
+  assert.equal(allowed.json.github.token, undefined);
+});
+
 // ── Core Module Unit Tests ──────────────────────────────────────────────────
 
 test('parseCookies parses standard cookie header', async () => {

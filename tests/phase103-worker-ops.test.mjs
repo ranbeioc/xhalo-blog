@@ -29,6 +29,27 @@ test('GET /api/blog/stats returns read-only fallback stats', async () => {
   assert.ok(json.counts.posts >= 0);
 });
 
+test('GET /api/blog/stats uses a short read-only Worker cache', async () => {
+  const env = {
+    GITHUB_OWNER: 'cache-owner',
+    GITHUB_REPO: 'cache-repo',
+    GITHUB_BRANCH: 'cache-branch',
+    BLOG_STATS_CACHE_TTL_MS: '60000'
+  };
+  const first = await requestJson('/api/blog/stats', {
+    headers: adminHeaders()
+  }, env);
+  const second = await requestJson('/api/blog/stats', {
+    headers: adminHeaders()
+  }, env);
+
+  assert.equal(first.response.status, 200);
+  assert.equal(second.response.status, 200);
+  assert.equal(first.json.cache.state, 'miss');
+  assert.equal(second.json.cache.state, 'hit');
+  assert.equal(second.response.headers.get('x-xhalo-cache'), 'blog-stats-hit');
+});
+
 test('GET /api/audit-logs/summary returns read-only summary without DB binding', async () => {
   const { response, json } = await requestJson('/api/audit-logs/summary', {
     headers: adminHeaders()
