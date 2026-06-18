@@ -120,6 +120,7 @@ p {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 9px;
   padding: 12px 24px;
   border-radius: 8px;
   font-family: var(--font-title);
@@ -129,6 +130,16 @@ p {
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   border: none;
+}
+
+.btn-icon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+.github-nav-btn {
+  padding-left: 18px;
 }
 
 .btn-primary {

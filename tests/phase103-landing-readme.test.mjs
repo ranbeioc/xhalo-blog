@@ -127,6 +127,10 @@ test('landing language selector and code blocks match the theme constraints', ()
   assert.match(html, /<option value="pt">/);
   assert.match(css, /\.language-select-wrap/);
   assert.match(css, /\.language-select/);
+  assert.match(html, /class="btn btn-secondary github-nav-btn"/);
+  assert.match(html, /class="btn-icon github-icon"/);
+  assert.match(css, /\.btn-icon[\s\S]*width: 18px/);
+  assert.match(css, /\.github-nav-btn[\s\S]*padding-left: 18px/);
   assert.match(css, /\.terminal-code[\s\S]*white-space: pre-wrap/);
   assert.match(css, /\.terminal-inline[\s\S]*overflow-wrap: anywhere/);
   assert.doesNotMatch(css, /\.terminal-inline[\s\S]{0,160}overflow-x: auto/);
