@@ -278,12 +278,28 @@ body {
 .content-area {
   flex: 1;
   padding: 28px 32px;
-  max-width: 1200px;
+  max-width: none;
   width: 100%;
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   scroll-behavior: auto;
+}
+
+.content-area > div,
+.dashboard-workspace,
+.stats-workspace,
+.posts-panel,
+.editor-workspace,
+.media-workspace,
+.menu-workspace,
+.config-workspace,
+.integrations-workspace,
+.publishing-workspace,
+.audit-workspace,
+.settings-workspace {
+  width: 100%;
+  max-width: none;
 }
 
 .content-area > * {
@@ -1108,6 +1124,91 @@ button, .button-small {
   margin-top: 12px;
   color: var(--text-secondary);
   font-size: 0.85rem;
+}
+
+.server-pagination {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.editor-tab-content {
+  width: 100%;
+}
+
+.markdown-editor-shell,
+.markdown-input-pane,
+.vditor-host {
+  width: 100%;
+}
+
+.markdown-editor-shell .markdown-input-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vditor-host {
+  min-height: 560px;
+}
+
+.vditor-panel--emoji {
+  display: none !important;
+}
+
+.config-dashboard-grid {
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+}
+
+.card-title-row,
+.plugin-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.config-editor-label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.config-editor {
+  width: 100%;
+  min-height: 280px;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-input);
+  color: var(--text-primary);
+  font: 0.82rem/1.55 var(--font-mono);
+}
+
+.config-editor:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-subtle);
+}
+
+.plugin-card {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--bg-inset);
+}
+
+.plugin-card button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .safety-table {

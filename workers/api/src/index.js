@@ -2917,8 +2917,151 @@ async function handleRequest(request, env, requestStart) {
         targetBranch: repository.baseBranch,
         configs,
         pluginCatalog: buildHexoNextPluginCatalog(),
-        note: 'Read-only Hexo/NexT configuration snapshot. Test-only editing will be wired through a guarded config update endpoint.'
+        note: 'Hexo/NexT configuration snapshot. Editable files can be saved through the guarded test-direct config update endpoint.'
       });
+    }
+
+    if (url.pathname === '/api/site/config/test-direct-update' && request.method === 'POST') {
+      const session = await verifySessionCookie(request, env);
+      const legacySecretOk = hasAdminRequestSecret(env) &&
+        request.headers.get('x-xhalo-admin-secret') === env.ADMIN_API_SHARED_SECRET;
+      if (!legacySecretOk && (!session || !(session.isAdmin === true || session.role === 'admin'))) {
+        await insertAuditLog(env, {
+          action: 'test_config_update_failed',
+          ...extractRequestMeta(request),
+          status_code: 401,
+          duration_ms: Date.now() - requestStart,
+          error: 'GitHub admin session is required.',
+          detail: { code: 'ADMIN_SESSION_REQUIRED' }
+        });
+        return createJsonResponse({
+          error: 'GitHub admin session is required.',
+          code: 'ADMIN_SESSION_REQUIRED'
+        }, { status: 401 });
+      }
+
+      if (!isTestDirectPublishEnabled(env)) {
+        await insertAuditLog(env, {
+          action: 'test_config_update_failed',
+          ...extractRequestMeta(request),
+          actor: session?.login || 'legacy-admin-secret',
+          status_code: 403,
+          duration_ms: Date.now() - requestStart,
+          error: 'Test direct config update is disabled.',
+          detail: { code: 'TEST_DIRECT_CONFIG_UPDATE_DISABLED' }
+        });
+        return createJsonResponse({
+          error: 'Test direct config update is disabled.',
+          code: 'TEST_DIRECT_CONFIG_UPDATE_DISABLED',
+          required_env: [
+            'DEPLOYMENT_ENV=test',
+            'PUBLISH_MODE=test_direct',
+            'TEST_DIRECT_PUBLISH_ENABLED=true'
+          ]
+        }, { status: 403 });
+      }
+
+      const repository = getGitHubRepository(env);
+      if (isForbiddenProductionContentTarget(repository)) {
+        return createJsonResponse({
+          error: 'Refusing to write to production content branch from test config update.',
+          code: 'PRODUCTION_BRANCH_FORBIDDEN'
+        }, { status: 403 });
+      }
+
+      const { input, error: parseError } = await readJsonBody(request);
+      if (parseError) return createJsonResponse({ error: parseError }, { status: 400 });
+      if (!Array.isArray(input.files) || input.files.length < 1) {
+        return createJsonResponse({ error: 'Request body must include a non-empty files array.' }, { status: 400 });
+      }
+
+      const allowedConfigPaths = new Set(['_config.yml', '_config.next.yml', 'themes/next/_config.yml', 'package.json']);
+      const seenPaths = new Set();
+      const files = [];
+
+      try {
+        for (const file of input.files) {
+          const filePath = String(file?.path || file?.filePath || '').trim();
+          const content = String(file?.content ?? '');
+          if (!allowedConfigPaths.has(filePath)) {
+            return createJsonResponse({ error: `Config path is not editable: ${filePath}` }, { status: 400 });
+          }
+          if (seenPaths.has(filePath)) {
+            return createJsonResponse({ error: `Duplicate config path: ${filePath}` }, { status: 400 });
+          }
+          if (content.length > 250000) {
+            return createJsonResponse({ error: `Config file is too large: ${filePath}` }, { status: 413 });
+          }
+          if (filePath === 'package.json') {
+            try {
+              JSON.parse(content);
+            } catch {
+              return createJsonResponse({ error: 'package.json content must be valid JSON.' }, { status: 400 });
+            }
+          }
+          const current = await getFileContentFromBranch(env, { branch: repository.baseBranch, filePath });
+          files.push({
+            filePath,
+            content: content.endsWith('\n') ? content : `${content}\n`,
+            baseSha: current.sha
+          });
+          seenPaths.add(filePath);
+        }
+
+        const commitResult = await createDirectMultiFileUpdateCommit(env, {
+          branch: repository.baseBranch,
+          files,
+          commitMessage: '[test-config-update] update Hexo NexT configuration'
+        });
+        await waitBeforePagesDeployHook(env);
+        const pagesDeploy = await triggerPagesDeployHook(env, {
+          reason: 'test_config_update',
+          commitSha: commitResult.commitSha,
+          targetRepo: `${repository.owner}/${repository.repo}`,
+          targetBranch: repository.baseBranch
+        });
+
+        await insertAuditLog(env, {
+          action: 'test_config_update',
+          ...extractRequestMeta(request),
+          actor: session?.login || 'legacy-admin-secret',
+          resource: 'site_config',
+          resource_id: Array.from(seenPaths).join(','),
+          status_code: 200,
+          duration_ms: Date.now() - requestStart,
+          detail: {
+            target_repo: `${repository.owner}/${repository.repo}`,
+            target_branch: repository.baseBranch,
+            commitSha: commitResult.commitSha,
+            target_paths: Array.from(seenPaths),
+            pages_deploy: pagesDeploy
+          }
+        });
+
+        return createJsonResponse({
+          ok: true,
+          mode: 'test-direct',
+          targetRepo: `${repository.owner}/${repository.repo}`,
+          targetBranch: repository.baseBranch,
+          targetPaths: Array.from(seenPaths),
+          commitSha: commitResult.commitSha,
+          commitUrl: commitResult.commitUrl,
+          pagesDeploy
+        });
+      } catch (err) {
+        await insertAuditLog(env, {
+          action: 'test_config_update_failed',
+          ...extractRequestMeta(request),
+          actor: session?.login || 'legacy-admin-secret',
+          status_code: err.status || 500,
+          duration_ms: Date.now() - requestStart,
+          error: err.message
+        });
+        return createJsonResponse({
+          error: `Failed to update test config: ${err.message}`,
+          code: err.code || 'TEST_CONFIG_UPDATE_FAILED'
+        }, { status: err.status || 500 });
+      }
     }
 
     if (url.pathname === '/api/integrations/status' && request.method === 'GET') {
