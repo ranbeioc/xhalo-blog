@@ -108,6 +108,21 @@ test('POST /api/site/menu/test-direct-update writes only to configured safe test
       assert.equal(body.sha, 'sha-menu-config');
       return new Response(JSON.stringify({ commit: { sha: 'commit-menu-config-1234567890' } }), { status: 200 });
     }
+    if (decodedUrl.includes('/contents/_config.next.yml') && (init.method || 'GET') === 'GET') {
+      return new Response(JSON.stringify({
+        sha: 'sha-runtime-next-config',
+        content: btoa('scheme: Gemini\nmenu:\n  old: /old/ || fa fa-home\nmenu_settings:\n  icons: true\n')
+      }), { status: 200 });
+    }
+    if (decodedUrl.includes('/contents/_config.next.yml') && init.method === 'PUT') {
+      const body = JSON.parse(init.body);
+      const decoded = Buffer.from(body.content, 'base64').toString('utf8');
+      assert.equal(body.branch, 'main');
+      assert.equal(body.sha, 'sha-runtime-next-config');
+      assert.match(decoded, /"Home": \/ \|\| fa fa-home/);
+      assert.match(decoded, /menu_settings:\n  icons: true/);
+      return new Response(JSON.stringify({ commit: { sha: 'commit-runtime-next-menu-1234567890' } }), { status: 200 });
+    }
     if (decodedUrl.includes('/contents/themes/next/_config.yml') && (init.method || 'GET') === 'GET') {
       return new Response(JSON.stringify({
         sha: 'sha-next-config',
@@ -151,8 +166,9 @@ test('POST /api/site/menu/test-direct-update writes only to configured safe test
   assert.equal(json.targetBranch, 'main');
   assert.equal(json.targetPath, 'rb-blog.config.json');
   assert.equal(json.commitSha, 'commit-menu-config-1234567890');
-  assert.deepEqual(json.targetPaths, ['rb-blog.config.json', 'themes/next/_config.yml']);
+  assert.deepEqual(json.targetPaths, ['rb-blog.config.json', '_config.next.yml', 'themes/next/_config.yml']);
   assert.ok(calls.some((call) => call.method === 'PUT' && call.url.includes('/contents/rb-blog.config.json')));
+  assert.ok(calls.some((call) => call.method === 'PUT' && decodeURIComponent(call.url).includes('/contents/_config.next.yml')));
   assert.ok(calls.some((call) => call.method === 'PUT' && decodeURIComponent(call.url).includes('/contents/themes/next/_config.yml')));
 });
 

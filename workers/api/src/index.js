@@ -49,11 +49,10 @@ import {
   generateMediaSnippet,
   validateMenuList,
   getConfigFromMain,
-  getNextThemeMenuConfigFromMain,
+  getNextRuntimeMenuConfigsFromMain,
   normalizeMenuFromConfig,
   updateConfigWithMenu,
-  updateNextThemeConfigWithMenu,
-  NEXT_THEME_MENU_CONFIG_PATH
+  updateNextThemeConfigWithMenu
 } from '../../../packages/core/src/index.js';
 
 
@@ -2848,19 +2847,19 @@ async function handleRequest(request, env, requestStart) {
           commitUrl: configCommitResult.commitUrl
         }];
 
-        const nextThemeConfig = await getNextThemeMenuConfigFromMain(env, repository.baseBranch);
-        if (nextThemeConfig) {
+        const nextThemeConfigs = await getNextRuntimeMenuConfigsFromMain(env, repository.baseBranch);
+        for (const nextThemeConfig of nextThemeConfigs) {
           const nextThemeContent = updateNextThemeConfigWithMenu(nextThemeConfig.raw, input.menu);
           const nextCommitResult = await createDirectMainUpdateCommit(env, {
             branch: repository.baseBranch,
-            filePath: NEXT_THEME_MENU_CONFIG_PATH,
+            filePath: nextThemeConfig.filePath,
             content: nextThemeContent,
             baseSha: nextThemeConfig.sha,
             commitMessage: '[test-menu-update] sync NexT theme menu'
           });
-          targetPaths.push(NEXT_THEME_MENU_CONFIG_PATH);
+          targetPaths.push(nextThemeConfig.filePath);
           commits.push({
-            path: NEXT_THEME_MENU_CONFIG_PATH,
+            path: nextThemeConfig.filePath,
             commitSha: nextCommitResult.commitSha,
             commitUrl: nextCommitResult.commitUrl
           });

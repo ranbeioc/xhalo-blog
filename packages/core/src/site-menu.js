@@ -2,6 +2,10 @@ import { githubApiRequest, decodeBase64ToBytes, getFileContentFromBranch } from 
 import { generateUnifiedDiff } from './index.js';
 
 export const NEXT_THEME_MENU_CONFIG_PATH = 'themes/next/_config.yml';
+export const NEXT_RUNTIME_MENU_CONFIG_PATHS = [
+  '_config.next.yml',
+  NEXT_THEME_MENU_CONFIG_PATH
+];
 
 export function validateMenuItem(item, existingIds = []) {
   if (!item || typeof item !== 'object') {
@@ -212,6 +216,19 @@ export async function getNextThemeMenuConfigFromMain(env, branch = 'main') {
     if (error.status === 404) return null;
     throw error;
   }
+}
+
+export async function getNextRuntimeMenuConfigsFromMain(env, branch = 'main') {
+  const configs = [];
+  for (const filePath of NEXT_RUNTIME_MENU_CONFIG_PATHS) {
+    try {
+      const config = await getFileContentFromBranch(env, { branch, filePath });
+      configs.push(config);
+    } catch (error) {
+      if (error.status !== 404) throw error;
+    }
+  }
+  return configs;
 }
 
 export function normalizeNextMenuIcon(icon) {
