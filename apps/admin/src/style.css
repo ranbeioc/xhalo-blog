@@ -82,7 +82,9 @@ body {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 18px 20px;
+  height: var(--topbar-height);
+  min-height: var(--topbar-height);
+  padding: 0 20px;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -390,6 +392,43 @@ body {
 
 .dashboard-grid .field-span-2 {
   grid-column: 1 / -1;
+}
+
+.stats-workspace h2 {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.stats-workspace .lede {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-bottom: 20px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+.stat-metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px !important;
+}
+
+.stat-label,
+.stat-note {
+  color: var(--text-secondary);
+  font-size: 0.78rem;
+}
+
+.stat-value {
+  color: var(--text-primary);
+  font-size: 1.85rem;
+  line-height: 1;
 }
 
 .readiness-grid {

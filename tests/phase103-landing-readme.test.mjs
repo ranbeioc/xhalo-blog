@@ -57,8 +57,8 @@ test('landing deployment docs use the standalone Pages project and no Worker dep
 test('landing sends no-transform headers to keep custom and test routes aligned', () => {
   const headers = read('apps/landing/src/_headers');
 
-  assert.match(headers, /\/\n\s+Cache-Control: public, max-age=0, must-revalidate, no-transform/);
-  assert.match(headers, /\/\*\.html\n\s+Cache-Control: public, max-age=0, must-revalidate, no-transform/);
+  assert.match(headers, /\/\r?\n\s+Cache-Control: public, max-age=0, must-revalidate, no-transform/);
+  assert.match(headers, /\/\*\.html\r?\n\s+Cache-Control: public, max-age=0, must-revalidate, no-transform/);
 });
 
 test('landing supports browser locale matching with English fallback', async () => {

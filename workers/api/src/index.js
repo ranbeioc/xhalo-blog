@@ -35,6 +35,7 @@ import {
   createDirectMainCommit,
   createDirectMainUpsertCommit,
   createDirectMainUpdateCommit,
+  createDirectMultiFileUpdateCommit,
   getPostFileFromMain,
   listPostFilesFromMain,
   generateUnifiedDiff,
@@ -1683,18 +1684,44 @@ async function handleRequest(request, env, requestStart) {
 
     if (url.pathname === '/api/blog/stats') {
       const fallbackPosts = createFallbackPosts();
-      const postsRows = await selectRows(env, 'SELECT status FROM posts_index LIMIT 10000');
+      let gitPosts = null;
+      let gitPostsError = null;
+      try {
+        if (!env.GITHUB_OWNER || !env.GITHUB_REPO) {
+          throw new Error('GitHub repository is not configured.');
+        }
+        gitPosts = await listPostFilesFromMain(env, {
+          branch: getGitHubRepository(env).baseBranch,
+          limit: 200
+        });
+      } catch (error) {
+        gitPostsError = error.message || String(error);
+      }
+      const postsRows = gitPosts ? null : await selectRows(env, 'SELECT status FROM posts_index LIMIT 10000');
       const taskRows = await selectRows(env, 'SELECT status, type FROM tasks LIMIT 10000');
       const auditRows = await selectRows(env, 'SELECT status_code, resource FROM audit_logs LIMIT 10000');
-      const posts = postsRows || fallbackPosts;
+      const posts = gitPosts || postsRows || fallbackPosts;
       const tasks = taskRows || [];
       const audit = auditRows || [];
       const mediaAssets = audit.filter((item) => item.resource === 'asset' || item.resource === 'media').length;
+      const categories = {};
+      const tags = {};
+      for (const post of posts) {
+        const category = post.frontmatter?.category || post.frontmatter?.categories || post.category || 'uncategorized';
+        const categoryList = Array.isArray(category) ? category : [category];
+        for (const item of categoryList.filter(Boolean)) {
+          categories[String(item)] = (categories[String(item)] || 0) + 1;
+        }
+        const tagList = Array.isArray(post.frontmatter?.tags) ? post.frontmatter.tags : [];
+        for (const item of tagList.filter(Boolean)) {
+          tags[String(item)] = (tags[String(item)] || 0) + 1;
+        }
+      }
 
       return createJsonResponse({
         ok: true,
-        backend: postsRows ? 'd1' : 'fallback',
-        sourceOfTruth: 'git',
+        backend: gitPosts ? 'github' : postsRows ? 'd1' : 'fallback',
+        sourceOfTruth: gitPosts ? 'git-source-posts' : 'd1-or-fallback',
         generatedAt: nowIso(),
         target: getGitHubRepository(env),
         counts: {
@@ -1703,9 +1730,14 @@ async function handleRequest(request, env, requestStart) {
           draftPosts: posts.filter((item) => item.status === 'draft').length,
           tasks: tasks.length,
           mediaAssets,
-          auditEvents: audit.length
+          auditEvents: audit.length,
+          categories: Object.keys(categories).length,
+          tags: Object.keys(tags).length
         },
-        note: 'Read-only blog statistics summary.'
+        topCategories: Object.entries(categories).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, count]) => ({ name, count })),
+        topTags: Object.entries(tags).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([name, count]) => ({ name, count })),
+        gitPostsError,
+        note: 'Read-only blog statistics summary from GitHub source posts when available.'
       });
     }
 
@@ -2881,37 +2913,35 @@ async function handleRequest(request, env, requestStart) {
         const oldConfig = JSON.parse(configData.raw);
         const newConfig = updateConfigWithMenu(oldConfig, input.menu);
         const content = `${JSON.stringify(newConfig, null, 2)}\n`;
-        const configCommitResult = await createDirectMainUpdateCommit(env, {
-          branch: repository.baseBranch,
+        const files = [{
           filePath: configData.filename,
           content,
-          baseSha: configData.sha,
-          commitMessage: '[test-menu-update] update site menu'
-        });
-        const targetPaths = [configData.filename];
-        const commits = [{
-          path: configData.filename,
-          commitSha: configCommitResult.commitSha,
-          commitUrl: configCommitResult.commitUrl
+          baseSha: configData.sha
         }];
+        const targetPaths = [configData.filename];
 
         const nextThemeConfigs = await getNextRuntimeMenuConfigsFromMain(env, repository.baseBranch);
         for (const nextThemeConfig of nextThemeConfigs) {
           const nextThemeContent = updateNextThemeConfigWithMenu(nextThemeConfig.raw, input.menu);
-          const nextCommitResult = await createDirectMainUpdateCommit(env, {
-            branch: repository.baseBranch,
+          files.push({
             filePath: nextThemeConfig.filePath,
             content: nextThemeContent,
-            baseSha: nextThemeConfig.sha,
-            commitMessage: '[test-menu-update] sync NexT theme menu'
+            baseSha: nextThemeConfig.sha
           });
           targetPaths.push(nextThemeConfig.filePath);
-          commits.push({
-            path: nextThemeConfig.filePath,
-            commitSha: nextCommitResult.commitSha,
-            commitUrl: nextCommitResult.commitUrl
-          });
         }
+
+        const commitResult = await createDirectMultiFileUpdateCommit(env, {
+          branch: repository.baseBranch,
+          files,
+          commitMessage: '[test-menu-update] update site menu and NexT runtime menu'
+        });
+        const pagesDeploy = await triggerPagesDeployHook(env, {
+          reason: 'test_menu_update',
+          commitSha: commitResult.commitSha,
+          targetRepo: `${repository.owner}/${repository.repo}`,
+          targetBranch: repository.baseBranch
+        });
 
         await insertAuditLog(env, {
           action: 'test_menu_update',
@@ -2924,8 +2954,9 @@ async function handleRequest(request, env, requestStart) {
           detail: {
             target_repo: `${repository.owner}/${repository.repo}`,
             target_branch: repository.baseBranch,
-            commitSha: configCommitResult.commitSha,
-            target_paths: targetPaths
+            commitSha: commitResult.commitSha,
+            target_paths: targetPaths,
+            pages_deploy: pagesDeploy
           }
         });
 
@@ -2936,9 +2967,14 @@ async function handleRequest(request, env, requestStart) {
           targetBranch: repository.baseBranch,
           targetPath: configData.filename,
           targetPaths,
-          commits,
-          commitSha: configCommitResult.commitSha,
-          commitUrl: configCommitResult.commitUrl
+          commits: targetPaths.map((path) => ({
+            path,
+            commitSha: commitResult.commitSha,
+            commitUrl: commitResult.commitUrl
+          })),
+          commitSha: commitResult.commitSha,
+          commitUrl: commitResult.commitUrl,
+          pagesDeploy
         });
       } catch (err) {
         await insertAuditLog(env, {
@@ -3050,3 +3086,53 @@ export default {
     }
   }
 };
+
+async function triggerPagesDeployHook(env, detail = {}) {
+  const hookUrl = env.CLOUDFLARE_PAGES_DEPLOY_HOOK_URL || env.PAGES_DEPLOY_HOOK_URL || '';
+  if (!hookUrl) {
+    return {
+      configured: false,
+      triggered: false,
+      note: 'CLOUDFLARE_PAGES_DEPLOY_HOOK_URL is not configured; Git commit was created but Pages rebuild was not explicitly triggered.'
+    };
+  }
+
+  if (!/^https:\/\/api\.cloudflare\.com\/client\/v4\/pages\/webhooks\/deploy_hooks\/[a-f0-9-]+$/i.test(hookUrl)) {
+    return {
+      configured: true,
+      triggered: false,
+      error: 'Configured deploy hook URL is not a Cloudflare Pages deploy hook URL.'
+    };
+  }
+
+  try {
+    const hookFetch = env.PAGES_DEPLOY_HOOK_FETCH || fetch;
+    const response = await hookFetch(hookUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(detail)
+    });
+    let payload = null;
+    try {
+      payload = await response.json();
+    } catch {
+      payload = null;
+    }
+
+    return {
+      configured: true,
+      triggered: response.ok,
+      status: response.status,
+      hook: 'cloudflare_pages_deploy_hook',
+      deploymentId: payload?.result?.id || payload?.result?.deployment_id || null,
+      deploymentUrl: payload?.result?.url || null,
+      error: response.ok ? null : (payload?.errors?.[0]?.message || payload?.error || 'Cloudflare deploy hook request failed.')
+    };
+  } catch (error) {
+    return {
+      configured: true,
+      triggered: false,
+      error: error.message || String(error)
+    };
+  }
+}

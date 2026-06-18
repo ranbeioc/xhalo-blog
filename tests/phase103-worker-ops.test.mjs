@@ -25,7 +25,7 @@ test('GET /api/blog/stats returns read-only fallback stats', async () => {
 
   assert.equal(response.status, 200);
   assert.equal(json.ok, true);
-  assert.equal(json.sourceOfTruth, 'git');
+  assert.equal(json.sourceOfTruth, 'd1-or-fallback');
   assert.ok(json.counts.posts >= 0);
 });
 
@@ -93,20 +93,42 @@ test('POST admin mutations require Turnstile unless test bypass is explicitly en
 
 test('POST /api/site/menu/test-direct-update writes only to configured safe test target', async () => {
   const calls = [];
+  const hookCalls = [];
   const mockGithubFetch = async (url, init = {}) => {
     const decodedUrl = decodeURIComponent(String(url));
     calls.push({ url: String(url), method: init.method || 'GET', body: init.body || '' });
+    if (decodedUrl.includes('/git/ref/heads/main')) {
+      return new Response(JSON.stringify({ object: { sha: 'head-sha-1' } }), { status: 200 });
+    }
+    if (decodedUrl.includes('/git/commits/head-sha-1') && (init.method || 'GET') === 'GET') {
+      return new Response(JSON.stringify({ tree: { sha: 'base-tree-sha' } }), { status: 200 });
+    }
+    if (decodedUrl.includes('/git/trees') && init.method === 'POST') {
+      const body = JSON.parse(init.body);
+      assert.equal(body.base_tree, 'base-tree-sha');
+      assert.equal(body.tree.length, 3);
+      assert.deepEqual(body.tree.map((item) => item.path), ['rb-blog.config.json', '_config.next.yml', 'themes/next/_config.yml']);
+      assert.ok(body.tree.every((item) => item.type === 'blob' && item.mode === '100644'));
+      return new Response(JSON.stringify({ sha: 'new-tree-sha' }), { status: 200 });
+    }
+    if (decodedUrl.includes('/git/commits') && init.method === 'POST') {
+      const body = JSON.parse(init.body);
+      assert.equal(body.tree, 'new-tree-sha');
+      assert.deepEqual(body.parents, ['head-sha-1']);
+      assert.match(body.message, /\[test-menu-update\]/);
+      return new Response(JSON.stringify({ sha: 'commit-menu-atomic-1234567890' }), { status: 200 });
+    }
+    if (decodedUrl.includes('/git/refs/heads/main') && init.method === 'PATCH') {
+      const body = JSON.parse(init.body);
+      assert.equal(body.sha, 'commit-menu-atomic-1234567890');
+      assert.equal(body.force, false);
+      return new Response(JSON.stringify({ object: { sha: body.sha } }), { status: 200 });
+    }
     if (decodedUrl.includes('/contents/rb-blog.config.json') && (init.method || 'GET') === 'GET') {
       return new Response(JSON.stringify({
         sha: 'sha-menu-config',
         content: btoa(JSON.stringify({ menu: [{ name: 'Home', path: '/' }] }))
       }), { status: 200 });
-    }
-    if (decodedUrl.includes('/contents/rb-blog.config.json') && init.method === 'PUT') {
-      const body = JSON.parse(init.body);
-      assert.equal(body.branch, 'main');
-      assert.equal(body.sha, 'sha-menu-config');
-      return new Response(JSON.stringify({ commit: { sha: 'commit-menu-config-1234567890' } }), { status: 200 });
     }
     if (decodedUrl.includes('/contents/_config.next.yml') && (init.method || 'GET') === 'GET') {
       return new Response(JSON.stringify({
@@ -114,31 +136,22 @@ test('POST /api/site/menu/test-direct-update writes only to configured safe test
         content: btoa('scheme: Gemini\nmenu:\n  old: /old/ || fa fa-home\nmenu_settings:\n  icons: true\n')
       }), { status: 200 });
     }
-    if (decodedUrl.includes('/contents/_config.next.yml') && init.method === 'PUT') {
-      const body = JSON.parse(init.body);
-      const decoded = Buffer.from(body.content, 'base64').toString('utf8');
-      assert.equal(body.branch, 'main');
-      assert.equal(body.sha, 'sha-runtime-next-config');
-      assert.match(decoded, /"Home": \/ \|\| fa fa-home/);
-      assert.match(decoded, /menu_settings:\n  icons: true/);
-      return new Response(JSON.stringify({ commit: { sha: 'commit-runtime-next-menu-1234567890' } }), { status: 200 });
-    }
     if (decodedUrl.includes('/contents/themes/next/_config.yml') && (init.method || 'GET') === 'GET') {
       return new Response(JSON.stringify({
         sha: 'sha-next-config',
         content: btoa('scheme: Gemini\nmenu:\n  old: /old/ || fa fa-home\nmenu_settings:\n  icons: true\n')
       }), { status: 200 });
     }
-    if (decodedUrl.includes('/contents/themes/next/_config.yml') && init.method === 'PUT') {
-      const body = JSON.parse(init.body);
-      const decoded = Buffer.from(body.content, 'base64').toString('utf8');
-      assert.equal(body.branch, 'main');
-      assert.equal(body.sha, 'sha-next-config');
-      assert.match(decoded, /"Home": \/ \|\| fa fa-home/);
-      assert.match(decoded, /menu_settings:\n  icons: true/);
-      return new Response(JSON.stringify({ commit: { sha: 'commit-next-menu-1234567890' } }), { status: 200 });
-    }
     return new Response('', { status: 404 });
+  };
+  const mockDeployHookFetch = async (url, init = {}) => {
+    hookCalls.push({ url: String(url), method: init.method || 'GET', body: init.body || '' });
+    return new Response(JSON.stringify({
+      result: {
+        id: 'deployment-123',
+        url: 'https://deployment-123.xhalo-blog-test.pages.dev'
+      }
+    }), { status: 200 });
   };
 
   const { response, json } = await requestJson('/api/site/menu/test-direct-update', {
@@ -157,7 +170,9 @@ test('POST /api/site/menu/test-direct-update writes only to configured safe test
     GITHUB_OWNER: 'ranbeioc',
     GITHUB_REPO: 'xhalo-blog-test',
     GITHUB_BRANCH: 'main',
-    GITHUB_FETCH: mockGithubFetch
+    GITHUB_FETCH: mockGithubFetch,
+    CLOUDFLARE_PAGES_DEPLOY_HOOK_URL: 'https://api.cloudflare.com/client/v4/pages/webhooks/deploy_hooks/00000000-0000-4000-8000-000000000001',
+    PAGES_DEPLOY_HOOK_FETCH: mockDeployHookFetch
   });
 
   assert.equal(response.status, 200);
@@ -165,11 +180,13 @@ test('POST /api/site/menu/test-direct-update writes only to configured safe test
   assert.equal(json.targetRepo, 'ranbeioc/xhalo-blog-test');
   assert.equal(json.targetBranch, 'main');
   assert.equal(json.targetPath, 'rb-blog.config.json');
-  assert.equal(json.commitSha, 'commit-menu-config-1234567890');
+  assert.equal(json.commitSha, 'commit-menu-atomic-1234567890');
   assert.deepEqual(json.targetPaths, ['rb-blog.config.json', '_config.next.yml', 'themes/next/_config.yml']);
-  assert.ok(calls.some((call) => call.method === 'PUT' && call.url.includes('/contents/rb-blog.config.json')));
-  assert.ok(calls.some((call) => call.method === 'PUT' && decodeURIComponent(call.url).includes('/contents/_config.next.yml')));
-  assert.ok(calls.some((call) => call.method === 'PUT' && decodeURIComponent(call.url).includes('/contents/themes/next/_config.yml')));
+  assert.equal(calls.filter((call) => call.method === 'PATCH' && decodeURIComponent(call.url).includes('/git/refs/heads/main')).length, 1);
+  assert.equal(calls.filter((call) => call.method === 'PUT').length, 0);
+  assert.equal(json.pagesDeploy.triggered, true);
+  assert.equal(json.pagesDeploy.deploymentId, 'deployment-123');
+  assert.equal(hookCalls.length, 1);
 });
 
 test('POST /api/site/menu/test-direct-update rejects hexo-blog main', async () => {
