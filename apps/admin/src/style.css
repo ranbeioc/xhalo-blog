@@ -63,6 +63,8 @@ body {
   min-height: 100vh;
   display: flex;
   overflow-x: hidden;
+  overflow-y: hidden;
+  height: 100vh;
 }
 
 /* ── Sidebar ────────────────────────────────────────────────────────────────── */
@@ -146,7 +148,6 @@ body {
 .sidebar-nav-btn:hover {
   background: rgba(56, 139, 253, 0.08);
   color: var(--text-primary);
-  transform: translateX(4px);
   border-left-color: rgba(56, 139, 253, 0.3);
 }
 
@@ -180,7 +181,8 @@ body {
   margin-left: var(--sidebar-width);
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 0;
+  height: 100vh;
   transition: margin-left var(--transition);
 }
 
@@ -278,6 +280,14 @@ body {
   padding: 28px 32px;
   max-width: 1200px;
   width: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-behavior: auto;
+}
+
+.content-area > * {
+  scroll-margin-top: 0;
 }
 
 /* ── Loading splash ─────────────────────────────────────────────────────────── */
@@ -747,6 +757,18 @@ button, .button-small {
   font-size: 0.78rem;
 }
 
+.vditor-host {
+  min-height: 520px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: #ffffff;
+}
+
+.vditor-host .vditor {
+  border: 0;
+}
+
 .markdown-rendered-body pre {
   overflow-x: auto;
   padding: 12px;
@@ -778,6 +800,52 @@ button, .button-small {
 .markdown-table td {
   border: 1px solid var(--border-color);
   padding: 8px 10px;
+}
+
+.server-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 16px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.server-pagination-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.config-file-list,
+.plugin-grid,
+.integration-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.config-file,
+.plugin-card,
+.integration-card {
+  padding: 16px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.config-preview {
+  max-height: 260px;
+  overflow: auto;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  background: var(--bg-inset);
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .editor-tab-content {

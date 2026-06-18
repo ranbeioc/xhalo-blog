@@ -386,7 +386,7 @@ export async function createDirectMainUpsertCommit(env, { branch = 'main', fileP
   };
 }
 
-export async function getPostFileFromMain(env, { slug }) {
+export async function getPostFileFromMain(env, { slug, filePath: explicitFilePath }) {
   const { owner, repo, baseBranch } = getGitHubRepository(env);
   if (baseBranch !== 'main') {
     const error = new Error('Owner direct publish requires GITHUB_BRANCH=main.');
@@ -395,7 +395,13 @@ export async function getPostFileFromMain(env, { slug }) {
     throw error;
   }
 
-  const filePath = `source/_posts/${slug}.md`;
+  const filePath = explicitFilePath || `source/_posts/${slug}.md`;
+  if (!/^source\/_posts\/[^/]+\.md$/i.test(filePath)) {
+    const error = new Error('Post file path must stay under source/_posts and end with .md.');
+    error.status = 400;
+    error.code = 'INVALID_POST_FILE_PATH';
+    throw error;
+  }
   const result = await githubApiRequest(env, `/repos/${owner}/${repo}/contents/${encodeURIComponent(filePath)}?ref=main`);
 
   if (!result || !result.content) {

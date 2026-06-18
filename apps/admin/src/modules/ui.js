@@ -8,6 +8,8 @@ export const ROUTES = [
   { id: 'editor', labelKey: 'editor', icon: 'ED' },
   { id: 'media', labelKey: 'media', icon: 'ME' },
   { id: 'menus', labelKey: 'menus', icon: 'MN' },
+  { id: 'configuration', labelKey: 'configuration', icon: 'CF' },
+  { id: 'integrations', labelKey: 'integrations', icon: 'GI' },
   { id: 'publishing', labelKey: 'publishing', icon: 'PB' },
   { id: 'audit', labelKey: 'audit', icon: 'AU' },
   { id: 'settings', labelKey: 'settings', icon: 'SE' }

@@ -1,6 +1,13 @@
 import { apiFetch } from './api-client.js';
 import { escapeHtml, showToast } from './ui.js';
 
+const MENU_LOCALES = [
+  ['zh-CN', '中文'],
+  ['en', 'English'],
+  ['ja', '日本語'],
+  ['ko', '한국어']
+];
+
 export async function fetchSiteMenu() {
   const res = await apiFetch('/api/site/menu');
   if (!res.ok) throw new Error(`Menu API returned status ${res.status}`);
@@ -11,6 +18,7 @@ function emptyMenuItem(order = 0) {
   return {
     id: `menu-${Date.now()}`,
     label: '',
+    labels: {},
     path: '/',
     external: false,
     visible: true,
@@ -19,11 +27,35 @@ function emptyMenuItem(order = 0) {
   };
 }
 
+function cloneMenu(menu) {
+  return structuredClone(Array.isArray(menu) ? menu : []).map((item, index) => ({
+    id: item.id || `menu-item-${index}`,
+    label: item.label || item.name || item.id || '',
+    labels: item.labels && typeof item.labels === 'object' ? { ...item.labels } : {},
+    path: item.path || '/',
+    external: Boolean(item.external),
+    visible: item.visible !== false,
+    order: Number.isInteger(Number(item.order)) ? Number(item.order) : index * 10,
+    icon: item.icon || ''
+  }));
+}
+
+function displayLabel(item) {
+  return item.labels?.['zh-CN'] || item.label || item.labels?.en || item.id;
+}
+
+function normalizeLabels(item) {
+  const labels = { ...(item.labels || {}) };
+  if (item.label && !labels.en) labels.en = item.label;
+  if (!labels['zh-CN']) labels['zh-CN'] = item.label || labels.en || item.id;
+  return Object.fromEntries(Object.entries(labels).filter(([, value]) => String(value || '').trim()));
+}
+
 export function renderMenuManager(container, { initialMenuData }) {
-  const originalMenu = Array.isArray(initialMenuData?.menu) ? structuredClone(initialMenuData.menu) : [];
-  let menuItems = structuredClone(originalMenu);
+  const originalMenu = cloneMenu(initialMenuData?.menu);
+  let menuItems = cloneMenu(originalMenu);
   let editingIndex = null;
-  let draftItem = emptyMenuItem(menuItems.length);
+  let draftItem = emptyMenuItem(menuItems.length * 10);
   let diffHtml = '';
   let actionResultHtml = '';
   let loadingState = false;
@@ -40,7 +72,7 @@ export function renderMenuManager(container, { initialMenuData }) {
       const res = await apiFetch('/api/site/menu/preview', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ menu: menuItems })
+        body: JSON.stringify({ menu: menuItems.map(prepareForSubmit) })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Diff generation failed');
@@ -72,7 +104,7 @@ export function renderMenuManager(container, { initialMenuData }) {
       const res = await apiFetch('/api/site/menu/test-direct-update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ menu: menuItems, baseSha: initialMenuData?.sha })
+        body: JSON.stringify({ menu: menuItems.map(prepareForSubmit), baseSha: initialMenuData?.sha })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || data.code || 'Test menu update failed');
@@ -102,14 +134,26 @@ export function renderMenuManager(container, { initialMenuData }) {
     }
   }
 
+  function prepareForSubmit(item) {
+    const labels = normalizeLabels(item);
+    return {
+      ...item,
+      label: labels['zh-CN'] || item.label || labels.en || item.id,
+      labels,
+      external: Boolean(item.external),
+      visible: item.visible !== false,
+      order: Number.isInteger(Number(item.order)) ? Number(item.order) : 0
+    };
+  }
+
   function startEdit(index) {
     editingIndex = index;
-    draftItem = { ...menuItems[index] };
+    draftItem = structuredClone(menuItems[index]);
     draw();
   }
 
   function deleteMenuItem(index) {
-    const deletedName = menuItems[index]?.label || menuItems[index]?.name || 'Item';
+    const deletedName = displayLabel(menuItems[index]) || 'Item';
     menuItems.splice(index, 1);
     normalizeOrder();
     diffHtml = '';
@@ -128,9 +172,9 @@ export function renderMenuManager(container, { initialMenuData }) {
   }
 
   function resetMenu() {
-    menuItems = structuredClone(originalMenu);
+    menuItems = cloneMenu(originalMenu);
     editingIndex = null;
-    draftItem = emptyMenuItem(menuItems.length);
+    draftItem = emptyMenuItem(menuItems.length * 10);
     diffHtml = '';
     actionResultHtml = '';
     showToast('菜单已重置为加载来源', 'info');
@@ -139,17 +183,15 @@ export function renderMenuManager(container, { initialMenuData }) {
 
   function submitDraft(event) {
     event.preventDefault();
-    if (!draftItem.label || !draftItem.path) {
-      showToast('请填写标签和路径', 'warning');
+    const normalized = prepareForSubmit({
+      ...draftItem,
+      id: draftItem.id || slugify(draftItem.label || draftItem.labels?.['zh-CN']),
+      order: Number.isInteger(Number(draftItem.order)) ? Number(draftItem.order) : menuItems.length * 10
+    });
+    if (!normalized.label || !normalized.path) {
+      showToast('请填写至少一个标签和路径', 'warning');
       return;
     }
-    const normalized = {
-      ...draftItem,
-      id: draftItem.id || slugify(draftItem.label),
-      external: Boolean(draftItem.external),
-      visible: draftItem.visible !== false,
-      order: Number.isInteger(Number(draftItem.order)) ? Number(draftItem.order) : menuItems.length * 10
-    };
     if (editingIndex == null) {
       menuItems.push(normalized);
       showToast('菜单项已在本地新增', 'success');
@@ -159,19 +201,27 @@ export function renderMenuManager(container, { initialMenuData }) {
     }
     normalizeOrder();
     editingIndex = null;
-    draftItem = emptyMenuItem(menuItems.length);
+    draftItem = emptyMenuItem(menuItems.length * 10);
     diffHtml = '';
     draw();
+  }
+
+  function renderLabels(item) {
+    const labels = item.labels || {};
+    return Object.entries(labels).length > 0
+      ? `<span>多语言：${Object.entries(labels).map(([locale, value]) => `<code>${escapeHtml(locale)}=${escapeHtml(value)}</code>`).join(' ')}</span>`
+      : '';
   }
 
   function draw() {
     const listHtml = menuItems.length > 0 ? menuItems.map((item, index) => `
       <div class="menu-item-row card">
         <div class="item-info">
-          <strong>${escapeHtml(item.label || item.name || item.id)}</strong>
+          <strong>${escapeHtml(displayLabel(item))}</strong>
           <span>路径：<code>${escapeHtml(item.path)}</code></span>
           <span>可见：<code>${item.visible === false ? 'false' : 'true'}</code></span>
           ${item.icon ? `<span>图标：<code>${escapeHtml(item.icon)}</code></span>` : ''}
+          ${renderLabels(item)}
         </div>
         <div class="inline-actions">
           <button class="button-small button-secondary btn-move-up" data-index="${index}">上移</button>
@@ -186,7 +236,7 @@ export function renderMenuManager(container, { initialMenuData }) {
       <div class="menu-workspace">
         <h2>站点菜单管理</h2>
         <div class="alert alert-info">
-          <strong>测试站持久化：</strong> 菜单修改先在本地编辑；预览 diff 后点击“保存到测试站”会写入 <code>ranbeioc/xhalo-blog-test@main</code> 并触发 Cloudflare Pages 构建。生产写入仍保持禁用。
+          <strong>测试站持久化：</strong> 菜单修改先在本地编辑；预览 diff 后点击“保存到测试站”会写入 <code>ranbeioc/xhalo-blog-test@main</code>，同时更新 NexT 菜单配置并触发 Cloudflare Pages 构建。生产写入仍保持禁用。
         </div>
 
         <div class="menu-layout-grid">
@@ -196,7 +246,10 @@ export function renderMenuManager(container, { initialMenuData }) {
             <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border-color);"/>
             <h3>${editingIndex == null ? '新增菜单项' : '编辑菜单项'}</h3>
             <form id="menu-item-form" class="inline-form">
-              <label><span>标签</span><input type="text" id="item-label" value="${escapeHtml(draftItem.label || draftItem.name || '')}" placeholder="例如：关于" /></label>
+              <label><span>默认标签</span><input type="text" id="item-label" value="${escapeHtml(draftItem.label || '')}" placeholder="例如：About" /></label>
+              ${MENU_LOCALES.map(([locale, label]) => `
+                <label><span>${label} 标签</span><input type="text" data-label-locale="${escapeHtml(locale)}" value="${escapeHtml(draftItem.labels?.[locale] || '')}" placeholder="${escapeHtml(locale)} label" /></label>
+              `).join('')}
               <label><span>路径</span><input type="text" id="item-path" value="${escapeHtml(draftItem.path || '/')}" placeholder="例如：/about/" /></label>
               <label><span>图标</span><input type="text" id="item-icon" value="${escapeHtml(draftItem.icon || '')}" placeholder="例如：user" /></label>
               <label><span>可见</span><select id="item-visible"><option value="true" ${draftItem.visible !== false ? 'selected' : ''}>true</option><option value="false" ${draftItem.visible === false ? 'selected' : ''}>false</option></select></label>
@@ -210,7 +263,7 @@ export function renderMenuManager(container, { initialMenuData }) {
               <button class="button-primary" id="btn-preview-menu-diff" style="width: 100%; margin-bottom: 15px;">预览菜单 Diff</button>
               <button class="button-secondary" id="btn-reset-menu" style="width: 100%; margin-bottom: 15px;">重置已加载菜单</button>
               <button class="button-primary" id="btn-save-menu-test" style="width: 100%;">保存到测试站</button>
-              <p class="help-text">保存会使用一次 GitHub 原子提交同时更新框架配置和 NexT 菜单配置，并通过 Pages deploy hook 触发测试站重建。</p>
+              <p class="help-text">保存会使用一次 GitHub 原子提交，同时更新框架配置和 NexT 菜单配置，并通过 Pages deploy hook 触发测试站重建。</p>
             </div>
             ${loadingState ? '<div class="info-text">处理中...</div>' : ''}
             ${actionResultHtml}
@@ -249,6 +302,12 @@ export function renderMenuManager(container, { initialMenuData }) {
           draftItem[key] = key === 'visible' ? event.target.value === 'true' : event.target.value;
         });
       }
+      container.querySelectorAll('[data-label-locale]').forEach((input) => {
+        input.addEventListener('input', (event) => {
+          const locale = event.target.getAttribute('data-label-locale');
+          draftItem.labels = { ...(draftItem.labels || {}), [locale]: event.target.value };
+        });
+      });
     }
 
     container.querySelector('#btn-preview-menu-diff')?.addEventListener('click', generateMenuDiff);

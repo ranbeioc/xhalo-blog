@@ -15,6 +15,8 @@ import { fetchPosts, renderPostsList } from './modules/posts.js';
 import { renderEditor } from './modules/editor.js';
 import { renderMediaManager } from './modules/media.js';
 import { fetchSiteMenu, renderMenuManager } from './modules/menus.js';
+import { fetchSiteConfig, renderSiteConfiguration } from './modules/configuration.js';
+import { fetchIntegrationStatus, renderIntegrationsManager } from './modules/integrations.js';
 import { renderPublishingSafetyCenter } from './modules/publishing.js';
 import { fetchAuditLogs, fetchAuditSummary, renderAuditLogs } from './modules/audit.js';
 import { renderSettings } from './modules/settings.js';
@@ -31,6 +33,8 @@ const appState = {
   session: null,
   dashboardData: null,
   postsData: null,
+  postsPage: 1,
+  postsPageSize: 20,
   selectedPost: null
 };
 
@@ -46,7 +50,7 @@ function navigateTo(route) {
 
 function getRouteFromHash() {
   const hash = window.location.hash.replace('#', '');
-  const validRoutes = ['dashboard', 'stats', 'posts', 'editor', 'media', 'menus', 'publishing', 'audit', 'settings'];
+  const validRoutes = ['dashboard', 'stats', 'posts', 'editor', 'media', 'menus', 'configuration', 'integrations', 'publishing', 'audit', 'settings'];
   return validRoutes.includes(hash) ? hash : 'dashboard';
 }
 
@@ -129,6 +133,12 @@ async function renderContent() {
     case 'menus':
       await renderMenusPanel(container);
       break;
+    case 'configuration':
+      await renderConfigurationPanel(container);
+      break;
+    case 'integrations':
+      await renderIntegrationsPanel(container);
+      break;
     case 'publishing':
       renderPublishingPanel(container);
       break;
@@ -140,6 +150,26 @@ async function renderContent() {
       break;
     default:
       await renderDashboardPanel(container);
+  }
+}
+
+async function renderConfigurationPanel(container) {
+  container.innerHTML = '<div class="loading-splash"><div class="spinner"></div><p>正在加载 Hexo/NexT 配置 / Loading Hexo/NexT config&hellip;</p></div>';
+  try {
+    const config = await fetchSiteConfig();
+    renderSiteConfiguration(container, config);
+  } catch (err) {
+    container.innerHTML = `<div class="alert alert-error">配置加载失败 / Failed to load config: ${err.message}</div>`;
+  }
+}
+
+async function renderIntegrationsPanel(container) {
+  container.innerHTML = '<div class="loading-splash"><div class="spinner"></div><p>正在加载 GitHub/Cloudflare 状态 / Loading integration status&hellip;</p></div>';
+  try {
+    const status = await fetchIntegrationStatus();
+    renderIntegrationsManager(container, status);
+  } catch (err) {
+    container.innerHTML = `<div class="alert alert-error">集成状态加载失败 / Failed to load integrations: ${err.message}</div>`;
   }
 }
 
@@ -156,9 +186,13 @@ async function renderDashboardPanel(container) {
 async function renderPostsPanel(container) {
   container.innerHTML = '<div class="loading-splash"><div class="spinner"></div><p>正在加载文章 / Loading posts&hellip;</p></div>';
   try {
-    appState.postsData = await fetchPosts();
+    appState.postsData = await fetchPosts({ page: appState.postsPage, pageSize: appState.postsPageSize });
     renderPostsList(container, {
       ...appState.postsData,
+      onPageChange: (page) => {
+        appState.postsPage = page;
+        renderPostsPanel(container);
+      },
       onSelectPost: (post) => {
         appState.selectedPost = post;
         navigateTo('editor');
@@ -188,7 +222,8 @@ function renderEditorPanel(container) {
           category: appState.selectedPost.category || '',
           tags: appState.selectedPost.tags || '',
           body: appState.selectedPost.body || '',
-          sha: appState.selectedPost.sha || ''
+          sha: appState.selectedPost.sha || '',
+          filePath: appState.selectedPost.filePath || appState.selectedPost.path || ''
         }
       : undefined,
     dashboardData: appState.dashboardData,
