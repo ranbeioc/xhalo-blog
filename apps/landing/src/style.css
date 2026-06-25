@@ -280,6 +280,21 @@ header {
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.language-icon {
+  width: 18px;
+  height: 18px;
+  stroke: var(--text-muted);
+  transition: stroke 0.25s ease;
+  display: block;
+}
+
+.language-select-wrap:hover .language-icon {
+  stroke: var(--text-primary);
 }
 
 .language-select {
@@ -416,7 +431,8 @@ header {
 }
 
 .alt-bg {
-  background-color: var(--bg-secondary);
+  background-color: rgba(17, 24, 39, 0.45);
+  backdrop-filter: var(--glass-blur);
 }
 
 .section-header {
@@ -727,3 +743,87 @@ footer {
     flex: 1;
   }
 }
+
+/* Background Canvas for Starry Sky */
+#bg-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -2;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, #0c1020 0%, #080b11 70%, #05070a 100%);
+}
+
+#three-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Scroll Reveal Animations */
+.reveal-on-scroll {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+
+.reveal-on-scroll.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Staggered Entrance Animations for Cards and List Items */
+
+/* Features Grid Card Entrance Stagger */
+.reveal-on-scroll .feature-card {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-on-scroll.revealed .feature-card {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-on-scroll.revealed .feature-card:nth-child(1) { transition-delay: 0.05s; }
+.reveal-on-scroll.revealed .feature-card:nth-child(2) { transition-delay: 0.15s; }
+.reveal-on-scroll.revealed .feature-card:nth-child(3) { transition-delay: 0.25s; }
+.reveal-on-scroll.revealed .feature-card:nth-child(4) { transition-delay: 0.35s; }
+.reveal-on-scroll.revealed .feature-card:nth-child(5) { transition-delay: 0.45s; }
+.reveal-on-scroll.revealed .feature-card:nth-child(6) { transition-delay: 0.55s; }
+
+/* Migration Cards Entrance Stagger */
+.reveal-on-scroll .migration-card {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-on-scroll.revealed .migration-card {
+  opacity: 1;
+  transform: translateY(0);
+}
+.reveal-on-scroll.revealed .migration-card:nth-child(1) { transition-delay: 0.1s; }
+.reveal-on-scroll.revealed .migration-card:nth-child(2) { transition-delay: 0.2s; }
+.reveal-on-scroll.revealed .migration-card:nth-child(3) { transition-delay: 0.3s; }
+
+/* Quickstart Steps Entrance Stagger */
+.reveal-on-scroll .setup-step {
+  opacity: 0;
+  transform: translateX(-20px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.reveal-on-scroll.revealed .setup-step {
+  opacity: 1;
+  transform: translateX(0);
+}
+.reveal-on-scroll.revealed .setup-step:nth-child(1) { transition-delay: 0.1s; }
+.reveal-on-scroll.revealed .setup-step:nth-child(2) { transition-delay: 0.25s; }
+.reveal-on-scroll.revealed .setup-step:nth-child(3) { transition-delay: 0.4s; }
+.reveal-on-scroll.revealed .setup-step:nth-child(4) { transition-delay: 0.55s; }
+

@@ -30,11 +30,21 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <script data-cfasync="false" src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script type="text/javascript">
+      (function(c,l,a,r,i,t,y){
+          c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+          t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+          y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+      })(window, document, "clarity", "script", "wjvx74gudw");
+  </script>
 </head>
 <body>
+  <canvas id="bg-canvas" aria-hidden="true"></canvas>
+  <canvas id="three-canvas" aria-hidden="true"></canvas>
   <header id="main-header" class="header-glass">
     <div class="container header-container">
-      <a href="#" id="brand-logo" class="logo"><span class="logo-accent">x</span>halo-blog</a>
+      <a href="#" id="brand-logo" class="logo"><span class="logo-accent">x</span>Halo-<span class="gradient-text">Blog</span></a>
       <button id="mobile-menu-toggle" class="mobile-menu-btn" type="button" aria-controls="navbar" aria-expanded="false" data-i18n="nav.menu">Menu</button>
       <nav id="navbar">
         <ul class="nav-links">
@@ -43,7 +53,14 @@
           <li><a href="#quickstart" id="nav-docs-link" data-i18n="nav.quickstart">Quickstart</a></li>
           <li>
             <label class="language-select-wrap" for="language-select">
-              <span class="language-select-label" data-i18n="language.label">Language</span>
+              <span class="language-select-label" aria-hidden="true" data-i18n="language.label" style="display: none;">Language</span>
+              <span class="language-icon-wrap" aria-hidden="true">
+                <svg class="language-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="2" y1="12" x2="22" y2="12"></line>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                </svg>
+              </span>
               <select id="language-select" class="language-select" aria-label="Language">
                 <option value="en">English</option>
                 <option value="zh-CN">简体中文</option>
@@ -105,7 +122,7 @@ $ npm run check:all
     </div>
   </section>
 
-  <section id="features" class="section-padding">
+  <section id="features" class="section-padding reveal-on-scroll">
     <div class="container">
       <div class="section-header">
         <h2 data-i18n-html="features.title">Powerful Capabilities, <span class="gradient-text">Zero Servers</span></h2>
@@ -122,7 +139,7 @@ $ npm run check:all
     </div>
   </section>
 
-  <section id="migration" class="section-padding migration-showcase alt-bg">
+  <section id="migration" class="section-padding migration-showcase alt-bg reveal-on-scroll">
     <div class="container">
       <div class="section-header">
         <h2 data-i18n-html="migration.title">Hexo/NexT Migration, <span class="gradient-text">Standardized</span></h2>
@@ -136,7 +153,7 @@ $ npm run check:all
     </div>
   </section>
 
-  <section id="architecture" class="section-padding alt-bg">
+  <section id="architecture" class="section-padding alt-bg reveal-on-scroll">
     <div class="container">
       <div class="section-header">
         <h2 data-i18n="architecture.title">Edge Architecture Overview</h2>
@@ -162,7 +179,7 @@ $ npm run check:all
     </div>
   </section>
 
-  <section id="quickstart" class="section-padding">
+  <section id="quickstart" class="section-padding reveal-on-scroll">
     <div class="container">
       <div class="section-header">
         <h2 data-i18n-html="quickstart.title">Get Started in <span class="gradient-text">2 Minutes</span></h2>

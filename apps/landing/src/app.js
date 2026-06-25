@@ -356,7 +356,397 @@ if (typeof document !== 'undefined') {
         }, 500);
       });
     });
+
+    initStarfield();
+    initScrollReveal();
+    initThreeHelix();
   });
+}
+
+function initStarfield() {
+  const canvas = document.getElementById('bg-canvas');
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  let animationFrameId;
+  let stars = [];
+  let width = 0;
+  let height = 0;
+  
+  const mouse = { x: -1000, y: -1000, targetX: -1000, targetY: -1000 };
+  const interactionRadius = 120;
+
+  function createStar() {
+    const layer = Math.random() < 0.6 ? 1 : Math.random() < 0.8 ? 2 : 3;
+    let size, speedMultiplier, baseAlpha;
+    
+    if (layer === 1) {
+      size = Math.random() * 0.8 + 0.4;
+      speedMultiplier = 0.03;
+      baseAlpha = Math.random() * 0.3 + 0.15;
+    } else if (layer === 2) {
+      size = Math.random() * 1.0 + 0.8;
+      speedMultiplier = 0.08;
+      baseAlpha = Math.random() * 0.4 + 0.35;
+    } else {
+      size = Math.random() * 1.4 + 1.2;
+      speedMultiplier = 0.15;
+      baseAlpha = Math.random() * 0.4 + 0.55;
+    }
+
+    return {
+      x: Math.random() * width,
+      y: Math.random() * height,
+      size,
+      layer,
+      baseAlpha,
+      alpha: baseAlpha,
+      twinkleSpeed: Math.random() * 0.015 + 0.005,
+      twinkleDir: Math.random() < 0.5 ? 1 : -1,
+      speedX: (Math.random() - 0.5) * speedMultiplier,
+      speedY: (Math.random() - 0.5) * speedMultiplier,
+      offsetX: 0,
+      offsetY: 0
+    };
+  }
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    width = window.innerWidth;
+    height = window.innerHeight;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    ctx.scale(dpr, dpr);
+
+    const isMobile = width < 768;
+    const starCount = isMobile ? 60 : 180;
+    
+    stars = [];
+    for (let i = 0; i < starCount; i++) {
+      stars.push(createStar());
+    }
+  }
+
+  let resizeTimeout;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(resize, 150);
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    mouse.targetX = e.clientX;
+    mouse.targetY = e.clientY;
+  });
+
+  window.addEventListener('mouseleave', () => {
+    mouse.targetX = -1000;
+    mouse.targetY = -1000;
+  });
+
+  resize();
+
+  function animate() {
+    if (document.hidden) {
+      animationFrameId = requestAnimationFrame(animate);
+      return;
+    }
+
+    ctx.clearRect(0, 0, width, height);
+
+    mouse.x += (mouse.targetX - mouse.x) * 0.1;
+    mouse.y += (mouse.targetY - mouse.y) * 0.1;
+
+    for (let i = 0; i < stars.length; i++) {
+      const s = stars[i];
+
+      s.alpha += s.twinkleSpeed * s.twinkleDir;
+      if (s.alpha >= s.baseAlpha * 1.3) {
+        s.alpha = s.baseAlpha * 1.3;
+        s.twinkleDir = -1;
+      } else if (s.alpha <= s.baseAlpha * 0.3) {
+        s.alpha = s.baseAlpha * 0.3;
+        s.twinkleDir = 1;
+      }
+
+      s.x += s.speedX;
+      s.y += s.speedY;
+
+      if (s.x < 0) s.x = width;
+      if (s.x > width) s.x = 0;
+      if (s.y < 0) s.y = height;
+      if (s.y > height) s.y = 0;
+
+      let renderX = s.x;
+      let renderY = s.y;
+
+      if (mouse.x > -500) {
+        const dx = s.x - mouse.x;
+        const dy = s.y - mouse.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist < interactionRadius) {
+          const force = (interactionRadius - dist) / interactionRadius;
+          const angle = Math.atan2(dy, dx);
+          const pushX = Math.cos(angle) * force * 15 * (s.layer * 0.5);
+          const pushY = Math.sin(angle) * force * 15 * (s.layer * 0.5);
+          
+          s.offsetX += (pushX - s.offsetX) * 0.1;
+          s.offsetY += (pushY - s.offsetY) * 0.1;
+        } else {
+          s.offsetX += (0 - s.offsetX) * 0.05;
+          s.offsetY += (0 - s.offsetY) * 0.05;
+        }
+      } else {
+        s.offsetX += (0 - s.offsetX) * 0.05;
+        s.offsetY += (0 - s.offsetY) * 0.05;
+      }
+
+      renderX += s.offsetX;
+      renderY += s.offsetY;
+
+      ctx.fillStyle = `rgba(255, 255, 255, ${s.alpha.toFixed(3)})`;
+      ctx.beginPath();
+      ctx.arc(renderX, renderY, s.size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    animationFrameId = requestAnimationFrame(animate);
+  }
+
+  animate();
+}
+
+function initScrollReveal() {
+  if (typeof IntersectionObserver === 'undefined') {
+    document.querySelectorAll('.reveal-on-scroll').forEach((el) => {
+      el.classList.add('revealed');
+    });
+    return;
+  }
+
+  const observer = new IntersectionObserver((entries, obs) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('revealed');
+        obs.unobserve(entry.target);
+      }
+    });
+  }, {
+    threshold: 0.1,
+    rootMargin: '0px 0px -80px 0px'
+  });
+
+  document.querySelectorAll('.reveal-on-scroll').forEach((el) => {
+    observer.observe(el);
+  });
+}
+
+function initThreeHelix() {
+  const canvas = document.getElementById('three-canvas');
+  if (!canvas) return;
+
+  if (typeof THREE === 'undefined') {
+    console.warn('Three.js is not loaded.');
+    return;
+  }
+
+  const renderer = new THREE.WebGLRenderer({
+    canvas: canvas,
+    alpha: true,
+    antialias: true
+  });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+  camera.position.z = 28;
+
+  function createParticleTexture() {
+    const c = document.createElement('canvas');
+    c.width = 32;
+    c.height = 32;
+    const ctx = c.getContext('2d');
+    const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    grad.addColorStop(0.25, 'rgba(255, 255, 255, 0.7)');
+    grad.addColorStop(0.5, 'rgba(255, 255, 255, 0.2)');
+    grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 32, 32);
+    return new THREE.CanvasTexture(c);
+  }
+
+  const helixGroup = new THREE.Group();
+  scene.add(helixGroup);
+
+  const radius = 2.5;
+  const helixLength = 110;
+  const turns = 10;
+  const pointsPerStrand = 1000;
+  const basePairsCount = 100;
+  const pointsPerBasePair = 8;
+  const edgeDistanceThreshold = 15;
+  const maxDispersion = 2.0;
+
+  const yStart = 12;
+  const points = [];
+  const colors = [];
+
+  for (let i = 0; i < pointsPerStrand; i++) {
+    const pct = i / pointsPerStrand;
+    const t = pct * turns * Math.PI * 2;
+    const y = yStart - pct * helixLength;
+
+    const distToEdge = Math.min(Math.abs(y - yStart), Math.abs(y - (yStart - helixLength)));
+    let dispersion = 0;
+    if (distToEdge < edgeDistanceThreshold) {
+      dispersion = Math.pow(1 - distToEdge / edgeDistanceThreshold, 2) * maxDispersion;
+    }
+
+    const baseR = radius * (1 + dispersion * 0.8);
+    const noiseX = (Math.random() - 0.5) * dispersion * 2.5;
+    const noiseY = (Math.random() - 0.5) * dispersion * 1.5;
+    const noiseZ = (Math.random() - 0.5) * dispersion * 2.5;
+
+    const x1 = Math.cos(t) * baseR + noiseX;
+    const z1 = Math.sin(t) * baseR + noiseZ;
+    const y1 = y + noiseY;
+    points.push(x1, y1, z1);
+
+    const c1 = new THREE.Color();
+    c1.lerpColors(new THREE.Color(0xf48220), new THREE.Color(0x8b5cf6), pct);
+    colors.push(c1.r, c1.g, c1.b);
+
+    const x2 = Math.cos(t + Math.PI) * baseR + noiseX;
+    const z2 = Math.sin(t + Math.PI) * baseR + noiseZ;
+    const y2 = y + noiseY;
+    points.push(x2, y2, z2);
+
+    const c2 = new THREE.Color();
+    c2.lerpColors(new THREE.Color(0x06b6d4), new THREE.Color(0x8b5cf6), pct);
+    colors.push(c2.r, c2.g, c2.b);
+  }
+
+  for (let i = 0; i < basePairsCount; i++) {
+    const pct = i / basePairsCount;
+    const t = pct * turns * Math.PI * 2;
+    const y = yStart - pct * helixLength;
+
+    const distToEdge = Math.min(Math.abs(y - yStart), Math.abs(y - (yStart - helixLength)));
+    let dispersion = 0;
+    if (distToEdge < edgeDistanceThreshold) {
+      dispersion = Math.pow(1 - distToEdge / edgeDistanceThreshold, 2) * maxDispersion;
+    }
+
+    const baseR = radius * (1 + dispersion * 0.8);
+    const noiseX = (Math.random() - 0.5) * dispersion * 2.5;
+    const noiseY = (Math.random() - 0.5) * dispersion * 1.5;
+    const noiseZ = (Math.random() - 0.5) * dispersion * 2.5;
+
+    for (let j = 0; j < pointsPerBasePair; j++) {
+      const tPair = j / (pointsPerBasePair - 1);
+      const rFactor = baseR * (1 - 2 * tPair);
+
+      const x = Math.cos(t) * rFactor + noiseX;
+      const z = Math.sin(t) * rFactor + noiseZ;
+      const yVal = y + noiseY;
+      points.push(x, yVal, z);
+
+      const c1 = new THREE.Color();
+      c1.lerpColors(new THREE.Color(0xf48220), new THREE.Color(0x8b5cf6), pct);
+      const c2 = new THREE.Color();
+      c2.lerpColors(new THREE.Color(0x06b6d4), new THREE.Color(0x8b5cf6), pct);
+
+      const c = new THREE.Color();
+      c.lerpColors(c1, c2, tPair);
+      colors.push(c.r, c.g, c.b);
+    }
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(points, 3));
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+
+  const isMobile = window.innerWidth < 768;
+  const particleSize = isMobile ? 1.0 : 1.6;
+
+  const material = new THREE.PointsMaterial({
+    size: particleSize,
+    map: createParticleTexture(),
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.85,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+
+  const particleSystem = new THREE.Points(geometry, material);
+  helixGroup.add(particleSystem);
+
+  let mouseX = 0;
+  let mouseY = 0;
+  window.addEventListener('mousemove', (e) => {
+    mouseX = (e.clientX / window.innerWidth) * 2 - 1;
+    mouseY = -(e.clientY / window.innerHeight) * 2 + 1;
+  });
+
+  let currentCameraY = 0;
+  let targetCameraY = 0;
+
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  });
+
+  function animate() {
+    if (document.hidden) {
+      requestAnimationFrame(animate);
+      return;
+    }
+
+    const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const scrollPercent = scrollHeight > 0 ? window.scrollY / scrollHeight : 0;
+
+    targetCameraY = -scrollPercent * (helixLength - yStart);
+    currentCameraY += (targetCameraY - currentCameraY) * 0.05;
+
+    const targetCameraX = mouseX * 3.5;
+    const targetCameraZ = 28 + mouseY * 1.5;
+
+    camera.position.x += (targetCameraX - camera.position.x) * 0.05;
+    camera.position.y = currentCameraY;
+    camera.position.z += (targetCameraZ - camera.position.z) * 0.05;
+
+    camera.lookAt(0, currentCameraY, 0);
+
+    const time = Date.now() * 0.001;
+    const posAttr = geometry.getAttribute('position');
+    const posArray = posAttr.array;
+    for (let i = 0; i < posArray.length; i += 3) {
+      const origX = points[i];
+      const origY = points[i + 1];
+      const origZ = points[i + 2];
+
+      const waveX = Math.sin(time + origY * 0.08) * 1.5;
+      const waveZ = Math.cos(time * 0.8 + origY * 0.06) * 1.2;
+
+      posArray[i] = origX + waveX;
+      posArray[i + 2] = origZ + waveZ;
+    }
+    posAttr.needsUpdate = true;
+
+    helixGroup.rotation.y = (Date.now() * 0.0003) + scrollPercent * Math.PI * 1.2;
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+  }
+
+  animate();
 }
 
 export { applyLocale, dictionaries, resolveLocale, supportedLocales };
