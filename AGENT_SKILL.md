@@ -78,6 +78,7 @@ Before editing, run:
 ```bash
 pwd
 git remote -v
+git fetch origin --quiet
 git status --short
 git branch -vv
 git worktree list || true
@@ -85,11 +86,13 @@ git worktree list || true
 
 Then confirm:
 - The task belongs to this repository.
+- This repo and branch are up to date with `origin` (fetched above, not just assumed from a clean `git status`) — if behind, or checked out on an already-merged feature branch, resolve that before planning or implementing.
 - The current branch is safe.
 - There are no unrelated uncommitted changes.
 - The task will not overwrite another branch's work.
 - Cloudflare production resources are not affected unless explicitly intended.
 - Cross-repository boundaries are respected.
+- If the task could affect another repository, a shared Cloudflare resource, or a Service Binding, the global registry in `xhalo-ai-workflow/docs/global-architecture/` has been checked (and re-verified against GitHub/Cloudflare directly if it looks more than a few days stale).
 
 ## Branch Safety Rules
 - Do not assume the current branch is correct.
