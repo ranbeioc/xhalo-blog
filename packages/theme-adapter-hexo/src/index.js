@@ -115,3 +115,56 @@ export function buildHexoCompatibilityFixtureManifest(baseUrl = '/2026/06/02/hex
     ]
   };
 }
+
+export function listSupportedThemes() {
+  return [
+    {
+      id: 'next',
+      name: 'NexT',
+      configFiles: ['themes/next/_config.yml', '_config.next.yml'],
+      schemes: ['Muse', 'Mist', 'Pisces', 'Gemini'],
+      defaultScheme: 'Gemini',
+      features: ['darkmode', 'pjax', 'local-search', 'waline', 'analytics', 'math', 'mermaid']
+    },
+    {
+      id: 'fluid',
+      name: 'Fluid',
+      configFiles: ['themes/fluid/_config.yml', '_config.fluid.yml'],
+      schemes: ['default'],
+      defaultScheme: 'default',
+      features: ['darkmode', 'local-search', 'waline', 'analytics', 'mermaid']
+    },
+    {
+      id: 'butterfly',
+      name: 'Butterfly',
+      configFiles: ['themes/butterfly/_config.yml', '_config.butterfly.yml'],
+      schemes: ['default'],
+      defaultScheme: 'default',
+      features: ['darkmode', 'pjax', 'local-search', 'waline', 'analytics', 'math', 'mermaid']
+    }
+  ];
+}
+
+export function getThemeAdapterProfile(themeName = 'next') {
+  const normalized = String(themeName || 'next').toLowerCase().trim();
+  const catalog = listSupportedThemes();
+  const found = catalog.find((t) => t.id === normalized);
+  return found || {
+    id: normalized,
+    name: normalized,
+    configFiles: [`themes/${normalized}/_config.yml`, `_config.${normalized}.yml`],
+    schemes: ['default'],
+    defaultScheme: 'default',
+    features: ['local-search']
+  };
+}
+
+export function detectThemeFromConfig(rawConfig) {
+  if (!rawConfig) return 'next';
+  if (typeof rawConfig === 'object') {
+    return rawConfig.theme?.name || rawConfig.theme || 'next';
+  }
+  const match = String(rawConfig).match(/^theme:\s*([^\s#]+)/m);
+  return match ? match[1].trim() : 'next';
+}
+

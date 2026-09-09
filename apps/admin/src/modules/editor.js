@@ -1,6 +1,7 @@
 import { apiFetch } from './api-client.js';
 import { getLanguage } from './i18n.js';
 import { escapeHtml, showToast } from './ui.js';
+import { saveLocalDraft, getLocalDraft, removeLocalDraft, hasUnsavedChanges } from './storage.js';
 
 export const FIRST_TEST_ARTICLE_TEMPLATE = {
   title: 'xHalo Blog 测试文章',
@@ -82,9 +83,16 @@ const copy = {
     editorLoading: 'Loading editor resources...',
     working: 'Processing request...',
     editorFallback: 'Vditor could not load. Plain textarea fallback is active.',
-    stats: 'Lines {lines} · Characters {chars} · Words {words}',
+    stats: 'Lines {lines} · Characters {chars} · Words {words} · Reading time {readTime}',
     pagesTriggered: 'Pages build triggered',
-    pagesNotTriggered: 'Pages build not triggered'
+    pagesNotTriggered: 'Pages build not triggered',
+    draftAutoSaved: 'Draft auto-saved locally at {time}',
+    draftRecoveryNotice: 'Unsaved local draft from {time} is available.',
+    restoreDraft: 'Restore Draft',
+    discardDraft: 'Discard Draft',
+    draftRestored: 'Local draft restored.',
+    draftDiscarded: 'Local draft discarded.',
+    pasteImageUploading: 'Uploading pasted/dropped image...'
   },
   'zh-CN': {
     title: '文章编辑器',
@@ -130,9 +138,16 @@ const copy = {
     editorLoading: '正在加载编辑器资源...',
     working: '正在处理请求...',
     editorFallback: 'Vditor 加载失败，已启用普通文本框回退。',
-    stats: '行数 {lines} · 字符 {chars} · Words {words}',
+    stats: '行数 {lines} · 字符 {chars} · 词数 {words} · 预估用时 {readTime}',
     pagesTriggered: 'Pages 构建已触发',
-    pagesNotTriggered: 'Pages 构建未触发'
+    pagesNotTriggered: 'Pages 构建未触发',
+    draftAutoSaved: '已于 {time} 自动暂存到本地',
+    draftRecoveryNotice: '检测到本地有未保存的草稿暂存（时间：{time}）。',
+    restoreDraft: '恢复草稿',
+    discardDraft: '放弃草稿',
+    draftRestored: '已恢复本地草稿。',
+    draftDiscarded: '已放弃本地草稿。',
+    pasteImageUploading: '正在上传粘贴/拖拽的图片...'
   },
   ko: {
     title: '글 편집기',
@@ -178,9 +193,16 @@ const copy = {
     editorLoading: '편집기 리소스를 불러오는 중...',
     working: '요청을 처리하는 중...',
     editorFallback: 'Vditor를 불러오지 못해 일반 텍스트 영역으로 전환했습니다.',
-    stats: '줄 {lines} · 문자 {chars} · 단어 {words}',
+    stats: '줄 {lines} · 문자 {chars} · 단어 {words} · 예상 시간 {readTime}',
     pagesTriggered: 'Pages 빌드가 트리거되었습니다',
-    pagesNotTriggered: 'Pages 빌드가 트리거되지 않았습니다'
+    pagesNotTriggered: 'Pages 빌드가 트리거되지 않았습니다',
+    draftAutoSaved: '{time}에 로컬에 자동 저장되었습니다',
+    draftRecoveryNotice: '로컬에 저장되지 않은 초안({time})이 있습니다.',
+    restoreDraft: '초안 복원',
+    discardDraft: '초안 삭제',
+    draftRestored: '로컬 초안을 복원했습니다.',
+    draftDiscarded: '로컬 초안을 삭제했습니다.',
+    pasteImageUploading: '붙여넣거나 드래그한 이미지를 업로드하는 중...'
   },
   ja: {
     title: '記事エディター',
@@ -226,9 +248,16 @@ const copy = {
     editorLoading: 'エディターリソースを読み込み中...',
     working: 'リクエストを処理しています...',
     editorFallback: 'Vditor を読み込めなかったため、通常のテキストエリアに切り替えました。',
-    stats: '行 {lines} · 文字 {chars} · Words {words}',
+    stats: '行 {lines} · 文字 {chars} · 単語 {words} · 読了目安 {readTime}',
     pagesTriggered: 'Pages ビルドをトリガーしました',
-    pagesNotTriggered: 'Pages ビルドはトリガーされていません'
+    pagesNotTriggered: 'Pages ビルドはトリガーされていません',
+    draftAutoSaved: '{time} にローカルへ自動保存しました',
+    draftRecoveryNotice: '未保存のローカル下書き（{time}）が見つかりました。',
+    restoreDraft: '下書きを復元',
+    discardDraft: '下書きを破棄',
+    draftRestored: 'ローカル下書きを復元しました。',
+    draftDiscarded: 'ローカル下書きを破棄しました。',
+    pasteImageUploading: '貼り付け/ドロップされた画像をアップロード中...'
   }
 };
 
@@ -273,6 +302,15 @@ function gateReason(key) {
 
 function interpolate(template, params) {
   return Object.entries(params).reduce((value, [key, replacement]) => value.replaceAll(`{${key}}`, String(replacement)), template);
+}
+
+function formatTime(timestamp) {
+  if (!timestamp) return '';
+  const d = new Date(timestamp);
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  return `${hh}:${mm}:${ss}`;
 }
 
 function mediaLabel(item) {
@@ -326,6 +364,29 @@ export function renderEditor(container, { initialPost, dashboardData }) {
   let actionResultHtml = '';
   let loadingState = false;
   let autoLoadAttempted = false;
+  let autoSaveTimer = null;
+  let autoSaveStatusText = '';
+  let localDraft = post.slug ? getLocalDraft(post.slug) : null;
+  let showRecoveryAlert = Boolean(localDraft && hasUnsavedChanges(post, localDraft));
+
+  function scheduleAutoSave() {
+    if (autoSaveTimer) clearTimeout(autoSaveTimer);
+    const statusEl = container.querySelector('#editor-autosave-status');
+    if (statusEl) {
+      statusEl.classList.add('is-saving');
+    }
+    autoSaveTimer = setTimeout(() => {
+      syncFromForm();
+      if (!post.slug) return;
+      saveLocalDraft(post.slug, post);
+      autoSaveStatusText = interpolate(c('draftAutoSaved'), { time: formatTime(Date.now()) });
+      const currentStatusEl = container.querySelector('#editor-autosave-status');
+      if (currentStatusEl) {
+        currentStatusEl.textContent = autoSaveStatusText;
+        currentStatusEl.classList.remove('is-saving');
+      }
+    }, 2000);
+  }
 
   const readiness = dashboardData?.readiness || {};
   const isTestDirectPublishEnabled = readiness.deploymentEnv === 'test' &&
@@ -409,7 +470,7 @@ export function renderEditor(container, { initialPost, dashboardData }) {
             <span>Status: <strong>${escapeHtml(diff.status || 'modified')}</strong></span>
           </div>
           <div class="diff-code-view">
-            <pre class="diff-diff">${escapeHtml(diff.diffText || 'No modifications detected.')}</pre>
+            <pre class="diff-diff">${formatUnifiedDiffHtml(diff.diffText)}</pre>
           </div>
         </div>
       `;
@@ -478,6 +539,11 @@ export function renderEditor(container, { initialPost, dashboardData }) {
         actionResultHtml = `<div class="alert alert-warning"><strong>${escapeHtml(c('blocked'))}:</strong> <code>${escapeHtml(data.error || 'Live writes are disabled')}</code></div>`;
         showToast(c('blocked'), 'warning');
       } else if (res.ok) {
+        if (post.slug) {
+          removeLocalDraft(post.slug);
+          localDraft = null;
+          showRecoveryAlert = false;
+        }
         actionResultHtml = `<div class="alert alert-success"><strong>${escapeHtml(c('dispatched'))}:</strong> Task ID: <code>${escapeHtml(data.task_id || '')}</code></div>`;
         showToast(c('dispatched'), 'success');
       } else {
@@ -504,6 +570,11 @@ export function renderEditor(container, { initialPost, dashboardData }) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || data.code || 'Test publish failed');
+      if (post.slug) {
+        removeLocalDraft(post.slug);
+        localDraft = null;
+        showRecoveryAlert = false;
+      }
       actionResultHtml = `
         <div class="alert alert-success">
           <strong>${escapeHtml(c('published'))}:</strong>
@@ -550,13 +621,28 @@ export function renderEditor(container, { initialPost, dashboardData }) {
     container.innerHTML = `
       <div class="editor-workspace">
         <div class="editor-top-actions">
-          <h2>${escapeHtml(c('title'))}</h2>
+          <div class="editor-title-row">
+            <h2>${escapeHtml(c('title'))}</h2>
+            <span class="editor-autosave-status" id="editor-autosave-status">${escapeHtml(autoSaveStatusText)}</span>
+          </div>
           <div class="source-loader-block">
             <button class="button-small button-secondary" id="btn-template-first">${escapeHtml(c('template'))}</button>
             <button class="button-small button-secondary" id="btn-template-empty">${escapeHtml(c('blank'))}</button>
             <button class="button-small button-secondary" id="btn-load-source" ${post.slug ? '' : 'disabled'}>${escapeHtml(c('loadSource'))}</button>
           </div>
         </div>
+
+        ${showRecoveryAlert && localDraft ? `
+          <div class="draft-recovery-alert" id="draft-recovery-bar">
+            <div class="draft-recovery-text">
+              <strong>${escapeHtml(interpolate(c('draftRecoveryNotice'), { time: formatTime(localDraft.savedAt) }))}</strong>
+            </div>
+            <div class="draft-recovery-actions">
+              <button type="button" class="button-small button-primary" id="btn-restore-draft">${escapeHtml(c('restoreDraft'))}</button>
+              <button type="button" class="button-small button-secondary" id="btn-discard-draft">${escapeHtml(c('discardDraft'))}</button>
+            </div>
+          </div>
+        ` : ''}
 
         <div class="alert alert-info">
           ${escapeHtml(interpolate(c('notice'), { path: post.filePath || `source/_posts/${post.slug || 'slug'}.md` }))}
@@ -640,6 +726,33 @@ export function renderEditor(container, { initialPost, dashboardData }) {
     container.querySelector('#btn-plan')?.addEventListener('click', fetchPublishPlan);
     container.querySelector('#btn-create-pr')?.addEventListener('click', handleCreatePR);
     container.querySelector('#btn-publish-test')?.addEventListener('click', handlePublishToTest);
+    container.querySelector('#btn-restore-draft')?.addEventListener('click', () => {
+      if (!localDraft) return;
+      post = {
+        ...post,
+        title: localDraft.title || post.title,
+        category: localDraft.category || post.category,
+        tags: localDraft.tags || post.tags,
+        body: localDraft.body || post.body,
+        filePath: localDraft.filePath || post.filePath
+      };
+      showRecoveryAlert = false;
+      showToast(c('draftRestored'), 'success');
+      draw();
+    });
+    container.querySelector('#btn-discard-draft')?.addEventListener('click', () => {
+      if (post.slug) removeLocalDraft(post.slug);
+      localDraft = null;
+      showRecoveryAlert = false;
+      showToast(c('draftDiscarded'), 'info');
+      draw();
+    });
+    container.querySelectorAll('#edit-title, #edit-slug, #edit-category, #edit-tags, #edit-file-path').forEach((input) => {
+      input.addEventListener('input', () => {
+        syncFromForm();
+        scheduleAutoSave();
+      });
+    });
     container.querySelectorAll('[data-media-snippet]').forEach((button) => {
       button.addEventListener('click', () => {
         const item = MEDIA_SNIPPETS.find((candidate) => candidate.id === button.getAttribute('data-media-snippet'));
@@ -647,15 +760,30 @@ export function renderEditor(container, { initialPost, dashboardData }) {
         openMediaPicker(item);
       });
     });
+
+    const handlePastedOrDroppedImage = (e) => {
+      const transfer = e.clipboardData || e.dataTransfer;
+      const files = Array.from(transfer?.files || []);
+      const imageFile = files.find((f) => f.type && f.type.startsWith('image/'));
+      if (imageFile) {
+        e.preventDefault();
+        showToast(c('pasteImageUploading'), 'info');
+        void uploadAndInsertMedia(imageFile, MEDIA_SNIPPETS.find((s) => s.kind === 'image'));
+      }
+    };
+
     const bodyInput = container.querySelector('#edit-body');
     bodyInput?.addEventListener('input', () => {
       post.body = bodyInput.value;
       updateStatus();
+      scheduleAutoSave();
     });
-    mountVditor();
+    bodyInput?.addEventListener('paste', handlePastedOrDroppedImage);
+    bodyInput?.addEventListener('drop', handlePastedOrDroppedImage);
+    mountVditor(handlePastedOrDroppedImage);
   }
 
-  function mountVditor() {
+  function mountVditor(handlePastedOrDroppedImage) {
     const host = container.querySelector('#vditor-editor');
     const textarea = container.querySelector('#edit-body');
     const loading = container.querySelector('#vditor-loading');
@@ -681,12 +809,17 @@ export function renderEditor(container, { initialPost, dashboardData }) {
             host.querySelector('[contenteditable="true"]');
           editable?.addEventListener('pointerdown', () => closeVditorFloatingPanels(host), true);
           editable?.addEventListener('focusin', () => closeVditorFloatingPanels(host), true);
+          if (typeof handlePastedOrDroppedImage === 'function') {
+            editable?.addEventListener('paste', handlePastedOrDroppedImage);
+            editable?.addEventListener('drop', handlePastedOrDroppedImage);
+          }
           setTimeout(() => closeVditorFloatingPanels(host), 0);
         },
         input(value) {
           post.body = value;
           textarea.value = value;
           updateStatus();
+          scheduleAutoSave();
         },
         upload: {
           accept: 'image/*,audio/*,video/*,.pdf,.txt,.zip',
@@ -822,6 +955,31 @@ function renderMarkdownStats(markdown) {
   const text = String(markdown || '');
   const lines = text ? text.split(/\r?\n/).length : 0;
   const chars = text.length;
-  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-  return escapeHtml(interpolate(c('stats'), { lines, chars, words }));
+  const cjkMatches = text.match(/[\u4e00-\u9fa5\u3040-\u30ff\uac00-\ud7af]/g) || [];
+  const nonCjkWords = text.replace(/[\u4e00-\u9fa5\u3040-\u30ff\uac00-\ud7af]/g, ' ').trim().split(/\s+/).filter(Boolean);
+  const words = cjkMatches.length + nonCjkWords.length;
+  const readMinutes = Math.max(1, Math.ceil(words / 250));
+  const readTime = words === 0 ? '0 min' : `~${readMinutes} min`;
+  return escapeHtml(interpolate(c('stats'), { lines, chars, words, readTime }));
+}
+
+function formatUnifiedDiffHtml(diffText) {
+  if (!diffText) return `<span class="diff-line-common">No modifications detected.</span>`;
+  const lines = String(diffText).split(/\r?\n/);
+  return lines.map((line) => {
+    const escaped = escapeHtml(line);
+    if (line.startsWith('+++') || line.startsWith('---')) {
+      return `<span class="diff-line-header">${escaped}</span>`;
+    }
+    if (line.startsWith('@@')) {
+      return `<span class="diff-line-hunk">${escaped}</span>`;
+    }
+    if (line.startsWith('+')) {
+      return `<span class="diff-line-add">${escaped}</span>`;
+    }
+    if (line.startsWith('-')) {
+      return `<span class="diff-line-del">${escaped}</span>`;
+    }
+    return `<span class="diff-line-common">${escaped}</span>`;
+  }).join('\n');
 }

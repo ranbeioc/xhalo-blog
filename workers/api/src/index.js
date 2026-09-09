@@ -61,21 +61,63 @@ import {
   updateNextThemeConfigWithMenu,
   updateNextThemeConfigWithSocialLinks
 } from '../../../packages/core/src/index.js';
-
-
-const ALLOWED_MIME_TYPES = {
-  'image/png': ['.png'],
-  'image/jpeg': ['.jpg', '.jpeg'],
-  'image/webp': ['.webp'],
-  'image/gif': ['.gif'],
-  'application/pdf': ['.pdf'],
-  'video/mp4': ['.mp4'],
-  'video/webm': ['.webm'],
-  'audio/mpeg': ['.mp3', '.mpeg'],
-  'audio/wav': ['.wav'],
-  'audio/ogg': ['.ogg'],
-  'text/plain': ['.txt']
-};
+import {
+  createStructuredLog,
+  logInfo,
+  logWarn,
+  logError,
+  logSecurity,
+  extractRequestMeta,
+  insertAuditLog
+} from './lib/logger.js';
+import { handleCors } from './lib/cors.js';
+import {
+  triggerPagesDeployHook,
+  waitBeforePagesDeployHook,
+  buildHexoPostUrl,
+  buildHexoNextPluginCatalog
+} from './lib/deploy-hooks.js';
+import {
+  ALLOWED_MIME_TYPES,
+  validateR2UploadInput,
+  buildR2UploadBody,
+  encodeJsonBase64Url,
+  decodeBase64UrlToText,
+  decodeBase64UrlToBytes,
+  getAssetsSigningKey,
+  signUploadToken,
+  verifyUploadToken,
+  putAssetObject,
+  buildSignedUploadUrl,
+  isTestMediaUploadEnabled,
+  isTestTurnstileBypassEnabled,
+  getTestMediaUploadPrefix,
+  applyTestMediaUploadPrefix
+} from './lib/r2.js';
+import {
+  selectRows,
+  isFirstGithubLoginAdminEnabled,
+  getAllowedGithubLogins,
+  dbFirst,
+  dbRun,
+  countAdminUsers,
+  getAdminUser,
+  touchAdminLogin,
+  createFirstAdminUser,
+  resolveGithubAdminIdentity,
+  hasAdminRequestSecret,
+  verifyAccessJwt,
+  verifyAdminRequest,
+  verifyTurnstileToken
+} from './lib/auth.js';
+import {
+  insertTaskRecord,
+  upsertPostIndexRecord,
+  updatePostByBranchOrSlug,
+  parseJsonSafe,
+  summarizeTaskRecord,
+  summarizePostRecord
+} from './lib/models.js';
 
 let blogStatsCache = null;
 
@@ -95,214 +137,6 @@ function getBlogStatsCacheKey(env) {
     Boolean(env.GITHUB_TOKEN || (env.GITHUB_APP_ID && env.GITHUB_APP_PRIVATE_KEY && env.GITHUB_INSTALLATION_ID))
   ].join(':');
 }
-
-function validateR2UploadInput(filename, contentType, scope, postSlug) {
-  if (!contentType || typeof contentType !== 'string') {
-    return 'Content-Type is required.';
-  }
-  const cleanContentType = contentType.trim().toLowerCase();
-  const allowedExtensions = ALLOWED_MIME_TYPES[cleanContentType];
-  if (!allowedExtensions) {
-    return `MIME type '${contentType}' is not allowed.`;
-  }
-
-  if (!filename || typeof filename !== 'string') {
-    return 'Filename is required.';
-  }
-  const cleanFilename = filename.trim().toLowerCase();
-  
-  if (cleanFilename.includes('..') || cleanFilename.includes('/') || cleanFilename.includes('\\')) {
-    return 'Filename contains invalid path traversal characters.';
-  }
-
-  const hasValidExtension = allowedExtensions.some(ext => cleanFilename.endsWith(ext));
-  if (!hasValidExtension) {
-    return `Filename extension does not match the Content-Type '${contentType}'.`;
-  }
-
-  if (scope && (typeof scope !== 'string' || scope.includes('..') || scope.includes('/') || scope.includes('\\'))) {
-    return 'Scope contains invalid path traversal characters.';
-  }
-
-  if (postSlug && (typeof postSlug !== 'string' || postSlug.includes('..') || postSlug.includes('/') || postSlug.includes('\\'))) {
-    return 'postSlug contains invalid path traversal characters.';
-  }
-
-  return null;
-}
-
-function buildR2UploadBody(input = {}) {
-  const encoding = String(input.encoding || defaultR2UploadTemplate.defaults.encoding).trim().toLowerCase() === 'base64'
-    ? 'base64'
-    : defaultR2UploadTemplate.defaults.encoding;
-  const cacheControl = String(input.cacheControl || defaultR2UploadTemplate.defaults.cacheControl).trim()
-    || defaultR2UploadTemplate.defaults.cacheControl;
-  const rawContent = input.content == null || String(input.content).length === 0
-    ? `Prototype asset written at ${nowIso()}\n`
-    : String(input.content);
-  const body = encoding === 'base64'
-    ? decodeBase64ToBytes(rawContent)
-    : new TextEncoder().encode(rawContent);
-
-  return {
-    body,
-    encoding,
-    cacheControl,
-    byteLength: body.byteLength
-  };
-}
-
-function encodeJsonBase64Url(value) {
-  return encodeBase64Url(JSON.stringify(value));
-}
-
-function decodeBase64UrlToText(input) {
-  const normalized = String(input || '').replace(/-/g, '+').replace(/_/g, '/');
-  const padded = normalized + '==='.slice((normalized.length + 3) % 4);
-  const bytes = decodeBase64ToBytes(padded);
-  return new TextDecoder().decode(bytes);
-}
-
-function decodeBase64UrlToBytes(input) {
-  const normalized = String(input || '').replace(/-/g, '+').replace(/_/g, '/');
-  const padded = normalized + '==='.slice((normalized.length + 3) % 4);
-  return decodeBase64ToBytes(padded);
-}
-
-async function getAssetsSigningKey(env) {
-  if (env.__assetsSigningKey) return env.__assetsSigningKey;
-  env.__assetsSigningKey = await crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(String(env.ASSETS_SIGNING_SECRET || '')),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign', 'verify']
-  );
-  return env.__assetsSigningKey;
-}
-
-async function signUploadToken(env, payload) {
-  const encodedPayload = encodeJsonBase64Url(payload);
-  const signature = new Uint8Array(
-    await crypto.subtle.sign(
-      'HMAC',
-      await getAssetsSigningKey(env),
-      new TextEncoder().encode(encodedPayload)
-    )
-  );
-
-  return `${encodedPayload}.${encodeBase64Url(signature)}`;
-}
-
-async function verifyUploadToken(env, token) {
-  const [encodedPayload, encodedSignature] = String(token || '').split('.');
-  if (!encodedPayload || !encodedSignature) throw new Error('Malformed upload token.');
-  const signature = decodeBase64UrlToBytes(encodedSignature);
-  const verified = await crypto.subtle.verify(
-    'HMAC',
-    await getAssetsSigningKey(env),
-    signature,
-    new TextEncoder().encode(encodedPayload)
-  );
-
-  if (!verified) throw new Error('Invalid upload token signature.');
-  return JSON.parse(decodeBase64UrlToText(encodedPayload));
-}
-
-
-async function selectRows(env, sql) {
-  if (!env.DB || typeof env.DB.prepare !== 'function') return null;
-  const result = await env.DB.prepare(sql).all();
-  return Array.isArray(result?.results) ? result.results : [];
-}
-
-function isFirstGithubLoginAdminEnabled(env) {
-  return env.DEPLOYMENT_ENV === 'test' || String(env.FIRST_GITHUB_LOGIN_ADMIN_ENABLED || '').toLowerCase() === 'true';
-}
-
-function getAllowedGithubLogins(env) {
-  return (env.GITHUB_OAUTH_ALLOWED_LOGINS || '')
-    .split(',')
-    .map((login) => login.trim().toLowerCase())
-    .filter(Boolean);
-}
-
-async function dbFirst(env, sql, ...params) {
-  if (!env.DB || typeof env.DB.prepare !== 'function') return null;
-  const prepared = env.DB.prepare(sql).bind(...params);
-  if (typeof prepared.first === 'function') return await prepared.first();
-  const result = typeof prepared.all === 'function' ? await prepared.all() : null;
-  return Array.isArray(result?.results) ? result.results[0] || null : null;
-}
-
-async function dbRun(env, sql, ...params) {
-  if (!env.DB || typeof env.DB.prepare !== 'function') return false;
-  await env.DB.prepare(sql).bind(...params).run();
-  return true;
-}
-
-async function countAdminUsers(env) {
-  const row = await dbFirst(env, 'SELECT COUNT(*) AS count FROM admin_users WHERE role = ?', 'admin');
-  return Number(row?.count || 0);
-}
-
-async function getAdminUser(env, login) {
-  if (!login) return null;
-  return dbFirst(env, 'SELECT login, github_id, role, bootstrap_source, created_at, last_login_at FROM admin_users WHERE lower(login) = lower(?)', login);
-}
-
-async function touchAdminLogin(env, login) {
-  if (!login) return false;
-  return dbRun(env, 'UPDATE admin_users SET last_login_at = ?, updated_at = ? WHERE lower(login) = lower(?)', nowIso(), nowIso(), login);
-}
-
-async function createFirstAdminUser(env, ghUser) {
-  const timestamp = nowIso();
-  await dbRun(
-    env,
-    `INSERT INTO admin_users (login, github_id, role, bootstrap_source, created_at, updated_at, last_login_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    ghUser.login,
-    String(ghUser.id || ''),
-    'admin',
-    'github_first_login',
-    timestamp,
-    timestamp,
-    timestamp
-  );
-  return getAdminUser(env, ghUser.login);
-}
-
-async function resolveGithubAdminIdentity(env, ghUser) {
-  const login = ghUser?.login ? String(ghUser.login).trim() : '';
-  if (!login) return { allowed: false, role: null, isAdmin: false, source: 'missing_login' };
-
-  const allowedLogins = getAllowedGithubLogins(env);
-  const isWhitelisted = allowedLogins.includes(login.toLowerCase());
-
-  let adminUser = null;
-  try {
-    adminUser = await getAdminUser(env, login);
-    if (!adminUser && isFirstGithubLoginAdminEnabled(env) && (await countAdminUsers(env)) === 0) {
-      adminUser = await createFirstAdminUser(env, { ...ghUser, login });
-    } else if (adminUser) {
-      await touchAdminLogin(env, login);
-    }
-  } catch (err) {
-    logError('admin_identity_lookup_failed', { login, error: err.message });
-  }
-
-  if (adminUser?.role === 'admin') {
-    return { allowed: true, role: 'admin', isAdmin: true, source: adminUser.bootstrap_source || 'd1_admin_users' };
-  }
-
-  if (isWhitelisted) {
-    return { allowed: true, role: 'admin', isAdmin: true, source: 'github_oauth_allowed_logins' };
-  }
-
-  return { allowed: false, role: null, isAdmin: false, source: 'not_authorized' };
-}
-
 function isTestDirectPublishEnabled(env) {
   return env.DEPLOYMENT_ENV === 'test' &&
     env.PUBLISH_MODE === 'test_direct' &&
@@ -313,257 +147,6 @@ function isForbiddenProductionContentTarget(repository) {
   return repository.owner.toLowerCase() === 'ranbeioc' &&
     repository.repo.toLowerCase() === 'hexo-blog' &&
     repository.baseBranch.toLowerCase() === 'main';
-}
-
-async function insertTaskRecord(env, task) {
-  if (!env.DB || typeof env.DB.prepare !== 'function') return false;
-
-  await env.DB.prepare(
-    'INSERT INTO tasks (id, type, status, payload, error, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).bind(
-    task.id,
-    task.type,
-    task.status,
-    JSON.stringify(task.payload),
-    null,
-    task.created_at,
-    task.updated_at
-  ).run();
-
-  return true;
-}
-
-// ── Structured Logging ──────────────────────────────────────────────────────
-
-function createStructuredLog(level, action, fields = {}) {
-  return {
-    level,
-    action,
-    timestamp: nowIso(),
-    ...fields
-  };
-}
-
-function logInfo(action, fields = {}) {
-  const entry = createStructuredLog('info', action, fields);
-  console.log(JSON.stringify(entry));
-  return entry;
-}
-
-function logWarn(action, fields = {}) {
-  const entry = createStructuredLog('warn', action, fields);
-  console.warn(JSON.stringify(entry));
-  return entry;
-}
-
-function logError(action, fields = {}) {
-  const entry = createStructuredLog('error', action, fields);
-  console.error(JSON.stringify(entry));
-  return entry;
-}
-
-function logSecurity(action, fields = {}) {
-  return logWarn(action, { ...fields, category: 'security' });
-}
-
-// ── Audit Log Persistence ───────────────────────────────────────────────────
-
-async function insertAuditLog(env, entry) {
-  if (!env.DB || typeof env.DB.prepare !== 'function') return false;
-  try {
-    await env.DB.prepare(
-      `INSERT INTO audit_logs (id, timestamp, action, actor, resource, resource_id, method, path, status_code, detail, ip, user_agent, duration_ms, error)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(
-      entry.id || crypto.randomUUID(),
-      entry.timestamp || nowIso(),
-      entry.action,
-      entry.actor || null,
-      entry.resource || null,
-      entry.resource_id || null,
-      entry.method || null,
-      entry.path || null,
-      entry.status_code || null,
-      typeof entry.detail === 'object' ? JSON.stringify(entry.detail) : (entry.detail || null),
-      entry.ip || null,
-      entry.user_agent || null,
-      entry.duration_ms || null,
-      entry.error || null
-    ).run();
-    return true;
-  } catch (err) {
-    console.error(JSON.stringify(createStructuredLog('error', 'audit_log_write_failed', { error: err.message })));
-    return false;
-  }
-}
-
-function extractRequestMeta(request) {
-  return {
-    ip: request.headers.get('cf-connecting-ip') || request.headers.get('x-forwarded-for') || null,
-    user_agent: request.headers.get('user-agent') || null,
-    method: request.method,
-    path: new URL(request.url).pathname
-  };
-}
-
-async function upsertPostIndexRecord(env, record) {
-  if (!env.DB || typeof env.DB.prepare !== 'function') return false;
-
-  await env.DB.prepare(
-    `INSERT INTO posts_index
-    (id, slug, title, path, status, created_at, updated_at, published_at, github_branch, github_pr_url, preview_url, content)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(id) DO UPDATE SET
-      slug = excluded.slug,
-      title = excluded.title,
-      path = excluded.path,
-      status = excluded.status,
-      updated_at = excluded.updated_at,
-      published_at = COALESCE(excluded.published_at, posts_index.published_at),
-      github_branch = COALESCE(excluded.github_branch, posts_index.github_branch),
-      github_pr_url = COALESCE(excluded.github_pr_url, posts_index.github_pr_url),
-      preview_url = COALESCE(excluded.preview_url, posts_index.preview_url),
-      content = COALESCE(excluded.content, posts_index.content)`
-  ).bind(
-    record.id,
-    record.slug,
-    record.title,
-    record.path,
-    record.status,
-    record.created_at,
-    record.updated_at,
-    record.published_at || null,
-    record.github_branch || null,
-    record.github_pr_url || null,
-    record.preview_url || null,
-    record.content || null
-  ).run();
-
-  return true;
-}
-
-async function putAssetObject(env, preview, uploadBody) {
-  if (!env.ASSETS || typeof env.ASSETS.put !== 'function') return null;
-
-  return env.ASSETS.put(preview.objectKey, uploadBody.body, {
-    httpMetadata: {
-      contentType: preview.contentType,
-      cacheControl: uploadBody.cacheControl
-    },
-    customMetadata: {
-      scope: preview.scope,
-      filename: preview.filename,
-      ...(preview.postSlug ? { postSlug: preview.postSlug } : {})
-    }
-  });
-}
-
-function buildSignedUploadUrl(requestUrl, token) {
-  const url = new URL(requestUrl);
-  url.pathname = `/api/assets/r2-upload/${token}`;
-  url.search = '';
-  return url.toString();
-}
-
-async function updatePostByBranchOrSlug(env, match = {}, patch = {}) {
-  if (!env.DB || typeof env.DB.prepare !== 'function') return false;
-
-  const matchClauses = [];
-  const matchArgs = [];
-
-  if (match.github_branch) {
-    matchClauses.push('github_branch = ?');
-    matchArgs.push(match.github_branch);
-  }
-
-  if (match.slug) {
-    matchClauses.push('slug = ?');
-    matchArgs.push(match.slug);
-  }
-
-  if (matchClauses.length === 0) return false;
-
-  const setClauses = [];
-  const setArgs = [];
-
-  if ('status' in patch) {
-    setClauses.push('status = ?');
-    setArgs.push(patch.status);
-  }
-  if ('updated_at' in patch) {
-    setClauses.push('updated_at = ?');
-    setArgs.push(patch.updated_at);
-  }
-  if ('github_pr_url' in patch) {
-    setClauses.push('github_pr_url = ?');
-    setArgs.push(patch.github_pr_url);
-  }
-  if ('published_at' in patch) {
-    setClauses.push('published_at = ?');
-    setArgs.push(patch.published_at);
-  }
-  if ('preview_url' in patch) {
-    setClauses.push('preview_url = ?');
-    setArgs.push(patch.preview_url);
-  }
-  if ('previewUrl' in patch) {
-    setClauses.push('preview_url = ?');
-    setArgs.push(patch.previewUrl);
-  }
-
-  if (setClauses.length === 0) return false;
-
-  await env.DB.prepare(
-    `UPDATE posts_index SET ${setClauses.join(', ')} WHERE ${matchClauses.join(' OR ')}`
-  ).bind(...setArgs, ...matchArgs).run();
-
-  return true;
-}
-
-function parseJsonSafe(value) {
-  if (value == null) return null;
-  if (typeof value !== 'string') return value;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return null;
-  }
-}
-
-function summarizeTaskRecord(item) {
-  const payload = parseJsonSafe(item.payload) || {};
-  const reconciliation = payload.reconciliation || {};
-  const summary = reconciliation.summary || {};
-  const branch = summary.branch || payload.branch || payload.preview?.branchName || null;
-  const lastError = item.error || reconciliation.last_error || null;
-  const retryCount = reconciliation.retry_count ?? 0;
-
-  return {
-    ...item,
-    payload,
-    branch,
-    last_error: lastError,
-    retry_count: retryCount,
-    detail_primary: summary.outcome || item.status || 'unknown',
-    detail_secondary:
-      lastError ||
-      summary.pull_request?.url ||
-      summary.previewUrl ||
-      branch ||
-      summary.key ||
-      summary.channel ||
-      summary.commentId ||
-      summary.note ||
-      null
-  };
-}
-
-function summarizePostRecord(item) {
-  return {
-    ...item,
-    detail_primary: item.github_branch || null,
-    detail_secondary: item.github_pr_url || null
-  };
 }
 
 async function getRuntimeMenuSnapshot(env) {
@@ -656,36 +239,6 @@ async function verifyPreviewWebhookSecret(env, request) {
 function isLiveWritesEnabled(env) {
   return String(env.LIVE_WRITES_ENABLED || '').toLowerCase() === 'true';
 }
-
-function isTestMediaUploadEnabled(env) {
-  return env.DEPLOYMENT_ENV === 'test' &&
-    String(env.TEST_MEDIA_UPLOAD_ENABLED || '').toLowerCase() === 'true';
-}
-
-function isTestTurnstileBypassEnabled(env) {
-  return env.DEPLOYMENT_ENV === 'test' &&
-    String(env.TEST_TURNSTILE_BYPASS_ENABLED || '').toLowerCase() === 'true';
-}
-
-function getTestMediaUploadPrefix(env) {
-  const rawPrefix = String(env.TEST_MEDIA_UPLOAD_PREFIX || 'xhalo-blog-test/').trim();
-  const safePrefix = rawPrefix.replace(/^\/+/, '').replace(/\.\./g, '').replace(/\/+$/, '');
-  return safePrefix ? `${safePrefix}/` : 'xhalo-blog-test/';
-}
-
-function applyTestMediaUploadPrefix(preview, env) {
-  const prefix = getTestMediaUploadPrefix(env);
-  if (preview.objectKey.startsWith(prefix)) return preview;
-  const objectKey = `${prefix}${preview.objectKey}`;
-  const publicBaseUrl = String(env.ASSETS_PUBLIC_BASE_URL || defaultR2UploadTemplate.publicBaseUrl).replace(/\/$/, '');
-  return {
-    ...preview,
-    objectKey,
-    publicUrl: `${publicBaseUrl}/${objectKey}`,
-    testMediaUploadPrefix: prefix
-  };
-}
-
 function rejectLiveWriteDisabled() {
   return createJsonResponse({
     error: 'Live writes are disabled.',
@@ -693,170 +246,6 @@ function rejectLiveWriteDisabled() {
     required_env: 'LIVE_WRITES_ENABLED=true'
   }, { status: 403 });
 }
-
-function hasAdminRequestSecret(env) {
-  return Boolean(env.ADMIN_API_SHARED_SECRET);
-}
-
-async function verifyAccessJwt(request, env) {
-  const token = request.headers.get('cf-access-jwt-assertion');
-  if (!token) return false;
-
-  const parts = token.split('.');
-  if (parts.length !== 3) return false;
-
-  try {
-    const base64UrlDecode = (str) => {
-      let base64 = str.replace(/-/g, '+').replace(/_/g, '/');
-      while (base64.length % 4) base64 += '=';
-      return atob(base64);
-    };
-
-    const header = JSON.parse(base64UrlDecode(parts[0]));
-    const payload = JSON.parse(base64UrlDecode(parts[1]));
-
-    // 1. Verify algorithm — MUST be RS256
-    if (header.alg !== 'RS256') {
-      return false;
-    }
-
-    // 2. Verify kid — MUST exist in header
-    if (!header.kid) {
-      return false;
-    }
-
-    // 3. Verify expiration — MUST exist and not be expired
-    if (typeof payload.exp !== 'number') {
-      return false;
-    }
-    const nowSec = Date.now() / 1000;
-    if (nowSec >= payload.exp) {
-      return false;
-    }
-
-    // 4. Verify issuer — MUST exist and match expected format
-    if (!payload.iss) {
-      return false;
-    }
-    if (env.ACCESS_TEAM_DOMAIN) {
-      const expectedIss = `https://${env.ACCESS_TEAM_DOMAIN}.cloudflareaccess.com`;
-      if (payload.iss !== expectedIss) {
-        return false;
-      }
-    }
-
-    // 5. Verify audience — MUST match; supports both string and array
-    if (env.ACCESS_AUDIENCE_TAG) {
-      if (Array.isArray(payload.aud)) {
-        if (!payload.aud.includes(env.ACCESS_AUDIENCE_TAG)) {
-          return false;
-        }
-      } else if (payload.aud !== env.ACCESS_AUDIENCE_TAG) {
-        return false;
-      }
-    }
-
-    // 6. Verify signature (bypass available for testing only)
-    if (env.ACCESS_BYPASS_SIGNATURE_FOR_TESTING === 'true') {
-      return true;
-    }
-
-    const teamDomain = env.ACCESS_TEAM_DOMAIN;
-    if (!teamDomain) {
-      return false;
-    }
-
-    const certsUrl = `https://${teamDomain}.cloudflareaccess.com/cdn-cgi/access/certs`;
-    const fetchFn = env.ACCESS_FETCH || fetch;
-    const res = await fetchFn(certsUrl);
-    if (!res.ok) return false;
-
-    const jwks = await res.json();
-    if (!jwks.keys || !Array.isArray(jwks.keys)) return false;
-
-    const jwk = jwks.keys.find(key => key.kid === header.kid);
-    if (!jwk) return false;
-
-    const publicKey = await crypto.subtle.importKey(
-      'jwk',
-      jwk,
-      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-      false,
-      ['verify']
-    );
-
-    const encoder = new TextEncoder();
-    const data = encoder.encode(parts[0] + '.' + parts[1]);
-    const signatureBytes = new Uint8Array(
-      Array.from(base64UrlDecode(parts[2]), c => c.charCodeAt(0))
-    );
-
-    return await crypto.subtle.verify(
-      'RSASSA-PKCS1-v1_5',
-      publicKey,
-      signatureBytes,
-      data
-    );
-  } catch (error) {
-    return false;
-  }
-}
-
-async function verifyAdminRequest(request, env) {
-  if (request.headers.has('cf-access-jwt-assertion')) {
-    const isJwtValid = await verifyAccessJwt(request, env);
-    if (isJwtValid) return true;
-  }
-
-  const isOAuthConfigured = Boolean(env.GITHUB_OAUTH_CLIENT_ID) && Boolean(env.GITHUB_OAUTH_CLIENT_SECRET) && Boolean(env.ADMIN_SESSION_SECRET);
-  if (isOAuthConfigured) {
-    const session = await verifySessionCookie(request, env);
-    if (session) return true;
-  }
-
-  if (!hasAdminRequestSecret(env)) return false;
-  const provided = request.headers.get('x-xhalo-admin-secret') || '';
-  return Boolean(provided) && provided === env.ADMIN_API_SHARED_SECRET;
-}
-
-async function verifyTurnstileToken(request, env) {
-  if (!env.TURNSTILE_SECRET_KEY) {
-    return true;
-  }
-
-  const token = request.headers.get('x-xhalo-turnstile-token') || request.headers.get('cf-turnstile-token');
-  if (!token) {
-    return false;
-  }
-
-  const fetchFn = env.TURNSTILE_FETCH || fetch;
-  try {
-    const ip = request.headers.get('cf-connecting-ip') || '';
-    const body = new URLSearchParams({
-      secret: env.TURNSTILE_SECRET_KEY,
-      response: token,
-      remoteip: ip
-    });
-
-    const res = await fetchFn('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-      method: 'POST',
-      body: body.toString(),
-      headers: {
-        'content-type': 'application/x-www-form-urlencoded'
-      }
-    });
-
-    if (!res.ok) {
-      return false;
-    }
-
-    const outcome = await res.json();
-    return Boolean(outcome.success);
-  } catch (error) {
-    return false;
-  }
-}
-
 async function readJsonBody(request) {
   try {
     const input = await request.json();
@@ -1667,7 +1056,76 @@ async function handleRequest(request, env, requestStart) {
       });
     }
 
-    if (url.pathname.startsWith('/api/tasks/')) {
+    if (url.pathname.startsWith('/api/tasks/') && url.pathname.endsWith('/retry') && request.method === 'POST') {
+      const taskId = url.pathname.slice('/api/tasks/'.length, -'/retry'.length);
+      if (!taskId) {
+        return createJsonResponse({ error: 'Task ID is required.', code: 'TASK_ID_REQUIRED' }, { status: 400 });
+      }
+
+      if (!env.DB || typeof env.DB.prepare !== 'function') {
+        return createJsonResponse({
+          error: 'Database is unavailable for task retry.',
+          code: 'DB_UNAVAILABLE'
+        }, { status: 503 });
+      }
+
+      const task = await env.DB.prepare(
+        'SELECT id, type, status, payload, error, created_at, updated_at FROM tasks WHERE id = ?'
+      ).bind(taskId).first();
+
+      if (!task) {
+        return createJsonResponse({ error: 'Task not found.', code: 'TASK_NOT_FOUND' }, { status: 404 });
+      }
+
+      if (task.status === 'completed') {
+        return createJsonResponse({
+          error: 'Cannot retry a completed task.',
+          code: 'TASK_ALREADY_COMPLETED'
+        }, { status: 400 });
+      }
+
+      const payload = parseJsonSafe(task.payload) || {};
+      payload.reconciliation = payload.reconciliation || {};
+      const retryCount = (payload.reconciliation.retry_count || 0) + 1;
+      payload.reconciliation.retry_count = retryCount;
+      payload.reconciliation.retried_at = nowIso();
+      payload.reconciliation.last_error = null;
+
+      if (env.TASK_QUEUE && typeof env.TASK_QUEUE.send === 'function') {
+        await env.TASK_QUEUE.send(payload);
+      }
+
+      const now = nowIso();
+      await env.DB.prepare(
+        'UPDATE tasks SET status = ?, error = NULL, payload = ?, updated_at = ? WHERE id = ?'
+      ).bind('queued', JSON.stringify(payload), now, taskId).run();
+
+      await insertAuditLog(env, {
+        action: 'task_retry',
+        ...extractRequestMeta(request),
+        resource: 'task',
+        resource_id: taskId,
+        status_code: 200,
+        duration_ms: Date.now() - requestStart,
+        detail: { retry_count: retryCount, previous_status: task.status }
+      });
+
+      return createJsonResponse({
+        ok: true,
+        retried: true,
+        task_id: taskId,
+        retry_count: retryCount,
+        task: summarizeTaskRecord({
+          ...task,
+          status: 'queued',
+          error: null,
+          payload: JSON.stringify(payload),
+          updated_at: now
+        })
+      });
+    }
+
+    if (url.pathname.startsWith('/api/tasks/') && request.method === 'GET') {
       const taskId = url.pathname.slice('/api/tasks/'.length);
       if (taskId && taskId !== 'example') {
         if (!env.DB || typeof env.DB.prepare !== 'function') {
@@ -3360,40 +2818,6 @@ async function handleRequest(request, env, requestStart) {
       }, { status: 500 });
     }
 }
-
-function handleCors(request, response, env) {
-  const origin = request.headers.get('Origin');
-  if (!origin) return response;
-
-  const allowedOrigins = [];
-  if (env.ADMIN_FRONTEND_BASE_URL) {
-    allowedOrigins.push(env.ADMIN_FRONTEND_BASE_URL.replace(/\/$/, ''));
-  }
-  // Allow localhost for local development
-  if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
-    allowedOrigins.push(origin);
-  }
-  if (env.ADMIN_AUTH_BASE_URL) {
-    allowedOrigins.push(env.ADMIN_AUTH_BASE_URL.replace(/\/$/, ''));
-  }
-
-  const isAllowed = allowedOrigins.includes(origin);
-  if (isAllowed) {
-    const newHeaders = new Headers(response.headers);
-    newHeaders.set('Access-Control-Allow-Origin', origin);
-    newHeaders.set('Access-Control-Allow-Credentials', 'true');
-    newHeaders.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    newHeaders.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-xhalo-admin-secret, x-xhalo-turnstile-token, cf-turnstile-token, cf-access-jwt-assertion');
-    newHeaders.set('Vary', 'Origin');
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: newHeaders
-    });
-  }
-  return response;
-}
-
 export default {
   async fetch(request, env) {
     const requestStart = Date.now();
@@ -3433,84 +2857,3 @@ export default {
   }
 };
 
-async function triggerPagesDeployHook(env, detail = {}) {
-  const hookUrl = env.CLOUDFLARE_PAGES_DEPLOY_HOOK_URL || env.PAGES_DEPLOY_HOOK_URL || '';
-  if (!hookUrl) {
-    return {
-      configured: false,
-      triggered: false,
-      note: 'CLOUDFLARE_PAGES_DEPLOY_HOOK_URL is not configured; Git commit was created but Pages rebuild was not explicitly triggered.'
-    };
-  }
-
-  if (!/^https:\/\/api\.cloudflare\.com\/client\/v4\/pages\/webhooks\/deploy_hooks\/[a-f0-9-]+$/i.test(hookUrl)) {
-    return {
-      configured: true,
-      triggered: false,
-      error: 'Configured deploy hook URL is not a Cloudflare Pages deploy hook URL.'
-    };
-  }
-
-  try {
-    const hookFetch = env.PAGES_DEPLOY_HOOK_FETCH || fetch;
-    const response = await hookFetch(hookUrl, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify(detail)
-    });
-    let payload = null;
-    try {
-      payload = await response.json();
-    } catch {
-      payload = null;
-    }
-
-    return {
-      configured: true,
-      triggered: response.ok,
-      status: response.status,
-      hook: 'cloudflare_pages_deploy_hook',
-      deploymentId: payload?.result?.id || payload?.result?.deployment_id || null,
-      deploymentUrl: payload?.result?.url || null,
-      error: response.ok ? null : (payload?.errors?.[0]?.message || payload?.error || 'Cloudflare deploy hook request failed.')
-    };
-  } catch (error) {
-    return {
-      configured: true,
-      triggered: false,
-      error: error.message || String(error)
-    };
-  }
-}
-
-async function waitBeforePagesDeployHook(env) {
-  const hookUrl = env.CLOUDFLARE_PAGES_DEPLOY_HOOK_URL || env.PAGES_DEPLOY_HOOK_URL || '';
-  if (!hookUrl) return;
-  const rawDelay = env.CLOUDFLARE_PAGES_DEPLOY_HOOK_DELAY_MS || env.PAGES_DEPLOY_HOOK_DELAY_MS;
-  const delayMs = rawDelay == null || rawDelay === '' ? 1500 : Number(rawDelay);
-  if (!Number.isFinite(delayMs) || delayMs <= 0) return;
-  await new Promise((resolve) => setTimeout(resolve, Math.min(delayMs, 5000)));
-}
-
-function buildHexoPostUrl(slug, publishedAt) {
-  const date = new Date(publishedAt || Date.now());
-  const year = String(date.getUTCFullYear()).padStart(4, '0');
-  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-  const day = String(date.getUTCDate()).padStart(2, '0');
-  return `/${year}/${month}/${day}/${slug}/`;
-}
-
-function buildHexoNextPluginCatalog() {
-  return [
-    { id: 'next-theme', name: 'NexT Theme', configFiles: ['themes/next/_config.yml', '_config.next.yml'], category: 'theme', supportsToggle: true },
-    { id: 'feed', name: 'hexo-generator-feed', configKeys: ['feed'], category: 'seo', supportsToggle: true },
-    { id: 'sitemap', name: 'hexo-generator-sitemap', configKeys: ['sitemap'], category: 'seo', supportsToggle: true },
-    { id: 'search', name: 'hexo-generator-searchdb', configKeys: ['search'], category: 'search', supportsToggle: true },
-    { id: 'waline', name: 'Waline comments', configKeys: ['waline'], category: 'comments', supportsToggle: true },
-    { id: 'analytics', name: 'Analytics providers', configKeys: ['google_analytics', 'baidu_analytics', 'clarity'], category: 'analytics', supportsToggle: true },
-    { id: 'math', name: 'Math rendering', configKeys: ['math', 'katex', 'mathjax'], category: 'content', supportsToggle: true },
-    { id: 'mermaid', name: 'Mermaid diagrams', configKeys: ['mermaid'], category: 'content', supportsToggle: true },
-    { id: 'pjax', name: 'NexT PJAX', configKeys: ['pjax'], category: 'performance', supportsToggle: true },
-    { id: 'lazyload', name: 'Image lazy loading', configKeys: ['lazyload'], category: 'performance', supportsToggle: true }
-  ];
-}

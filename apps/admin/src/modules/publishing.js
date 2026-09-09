@@ -1,5 +1,7 @@
 import { getLanguage } from './i18n.js';
 import { renderDataTable, bindDataTableControls } from './table.js';
+import { apiFetch } from './api-client.js';
+import { escapeHtml, showToast } from './ui.js';
 
 const copy = {
   en: {
@@ -37,7 +39,25 @@ const copy = {
     dryRun: 'Dry-run / gated test',
     previewOnly: 'Preview then test gate',
     active: 'Active',
-    bypassed: 'Bypassed in staging'
+    bypassed: 'Bypassed in staging',
+    tasksTitle: 'Queue Tasks & Operations',
+    tasksDesc: 'Inspect recent background publication, object upload, and reconciliation tasks with manual retry controls.',
+    taskSearch: 'Search task ID, type, or detail...',
+    taskFilter: 'Task status filter',
+    taskAll: 'All statuses',
+    taskQueued: 'Queued',
+    taskCompleted: 'Completed',
+    taskFailed: 'Failed',
+    taskId: 'Task ID',
+    taskType: 'Type',
+    taskStatus: 'Status',
+    taskDetail: 'Detail / Error',
+    taskAction: 'Action',
+    taskRetry: 'Retry',
+    taskRetrying: 'Retrying...',
+    retrySuccess: 'Task successfully re-enqueued for processing.',
+    retryFailed: 'Failed to retry task: ',
+    noTasks: 'No background tasks recorded.'
   },
   'zh-CN': {
     title: '发布安全中心',
@@ -74,7 +94,25 @@ const copy = {
     dryRun: 'Dry-run / 测试 gate',
     previewOnly: '预览后测试 gate',
     active: '已启用',
-    bypassed: '测试环境绕过'
+    bypassed: '测试环境绕过',
+    tasksTitle: '队列任务与运行状态',
+    tasksDesc: '查看近期后台发布、对象上传与状态对齐任务，并支持异常任务一键重试。',
+    taskSearch: '搜索任务 ID、类型或详情...',
+    taskFilter: '任务状态筛选',
+    taskAll: '全部状态',
+    taskQueued: '已排队',
+    taskCompleted: '已完成',
+    taskFailed: '失败',
+    taskId: '任务 ID',
+    taskType: '类型',
+    taskStatus: '状态',
+    taskDetail: '详情 / 错误信息',
+    taskAction: '操作',
+    taskRetry: '重试',
+    taskRetrying: '重试中...',
+    retrySuccess: '任务已成功重新加入执行队列。',
+    retryFailed: '重试任务失败: ',
+    noTasks: '暂无后台任务记录。'
   },
   ko: {
     title: '게시 안전 센터',
@@ -111,7 +149,25 @@ const copy = {
     dryRun: 'Dry-run / 테스트 게이트',
     previewOnly: '미리보기 후 테스트 게이트',
     active: '활성',
-    bypassed: '스테이징에서 우회'
+    bypassed: '스테이징에서 우회',
+    tasksTitle: '대기열 작업 및 운영 상태',
+    tasksDesc: '최근 백그라운드 게시, 객체 업로드 및 동기화 작업을 확인하고 실패한 작업을 재시도합니다.',
+    taskSearch: '작업 ID, 유형 또는 세부정보 검색...',
+    taskFilter: '작업 상태 필터',
+    taskAll: '전체 상태',
+    taskQueued: '대기 중',
+    taskCompleted: '완료됨',
+    taskFailed: '실패',
+    taskId: '작업 ID',
+    taskType: '유형',
+    taskStatus: '상태',
+    taskDetail: '세부정보 / 오류',
+    taskAction: '작업',
+    taskRetry: '재시도',
+    taskRetrying: '재시도 중...',
+    retrySuccess: '작업이 대기열에 다시 추가되었습니다.',
+    retryFailed: '작업 재시도 실패: ',
+    noTasks: '기록된 백그라운드 작업이 없습니다.'
   },
   ja: {
     title: '公開安全センター',
@@ -148,7 +204,25 @@ const copy = {
     dryRun: 'Dry-run / テストゲート',
     previewOnly: 'プレビュー後テストゲート',
     active: '有効',
-    bypassed: 'ステージングでバイパス'
+    bypassed: 'ステージングでバイパス',
+    tasksTitle: 'キュータスクと実行ステータス',
+    tasksDesc: '最近のバックグラウンド公開、オブジェクトアップロード、調整タスクを確認し、失敗したタスクを手動で再試行できます。',
+    taskSearch: 'タスクID、タイプ、詳細を検索...',
+    taskFilter: 'タスクステータス絞り込み',
+    taskAll: 'すべてのステータス',
+    taskQueued: '待機中',
+    taskCompleted: '完了',
+    taskFailed: '失敗',
+    taskId: 'タスクID',
+    taskType: 'タイプ',
+    taskStatus: 'ステータス',
+    taskDetail: '詳細 / エラー',
+    taskAction: '操作',
+    taskRetry: '再試行',
+    taskRetrying: '再試行中...',
+    retrySuccess: 'タスクが正常に再キューイングされました。',
+    retryFailed: 'タスクの再試行に失敗しました: ',
+    noTasks: 'バックグラウンドタスクの記録はありません。'
   }
 };
 
@@ -160,6 +234,10 @@ function c(key) {
 export function renderPublishingSafetyCenter(container, { dashboardData }) {
   const readiness = dashboardData?.readiness || {};
   const tableState = { query: '', filter: 'all', page: 1 };
+  const tasksTableState = { query: '', filter: 'all', page: 1 };
+
+  let tasks = dashboardData?.recentTasks || [];
+  let tasksLoaded = Boolean(dashboardData?.recentTasks);
 
   const rows = [
     { capability: c('draft'), workflow: c('draftWorkflow'), gate: readiness.ownerDirectPublishEnabled, mode: c('prOnly') },
@@ -171,6 +249,41 @@ export function renderPublishingSafetyCenter(container, { dashboardData }) {
   const gateBadge = (enabled) => enabled
     ? `<span class="status-badge" data-state="error">${c('enabled')}</span>`
     : `<span class="status-badge" data-state="ok">${c('gated')}</span>`;
+
+  async function loadTasks() {
+    try {
+      const res = await apiFetch('/api/tasks');
+      if (res.ok) {
+        const data = await res.json();
+        tasks = Array.isArray(data.items) ? data.items : [];
+        tasksLoaded = true;
+        draw();
+      }
+    } catch {
+      tasksLoaded = true;
+    }
+  }
+
+  async function handleRetry(taskId, button) {
+    button.disabled = true;
+    const originalText = button.textContent;
+    button.textContent = c('taskRetrying');
+    try {
+      const res = await apiFetch(`/api/tasks/${encodeURIComponent(taskId)}/retry`, {
+        method: 'POST'
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed');
+      }
+      showToast(c('retrySuccess'), 'success');
+      await loadTasks();
+    } catch (err) {
+      showToast(`${c('retryFailed')}${err.message}`, 'error');
+      button.disabled = false;
+      button.textContent = originalText;
+    }
+  }
 
   function draw() {
     container.innerHTML = `
@@ -222,11 +335,75 @@ export function renderPublishingSafetyCenter(container, { dashboardData }) {
               <button class="button-danger" disabled>${c('directConfig')}</button>
             </div>
           </div>
+          <div class="card tasks-card field-span-2" style="margin-top: 20px;">
+            <h3>${c('tasksTitle')}</h3>
+            <p class="help-text">${c('tasksDesc')}</p>
+            ${renderDataTable({
+              id: 'publishing-tasks',
+              rows: tasks,
+              query: tasksTableState.query,
+              filter: tasksTableState.filter,
+              page: tasksTableState.page,
+              pageSize: 5,
+              searchPlaceholder: c('taskSearch'),
+              filterLabel: c('taskFilter'),
+              allLabel: c('taskAll'),
+              filterOptions: [
+                { value: 'queued', label: c('taskQueued') },
+                { value: 'completed', label: c('taskCompleted') },
+                { value: 'failed', label: c('taskFailed') }
+              ],
+              getFilterValue: (row) => row.status || 'unknown',
+              getSearchText: (row) => `${row.id} ${row.type} ${row.status} ${row.detail_secondary || ''} ${row.last_error || ''}`,
+              columns: [
+                { label: c('taskId'), minWidth: '130px', render: (row) => `<code>${escapeHtml(row.id || '')}</code>` },
+                { label: c('taskType'), minWidth: '140px', render: (row) => escapeHtml(row.type || '') },
+                {
+                  label: c('taskStatus'),
+                  minWidth: '120px',
+                  render: (row) => {
+                    const state = row.status === 'completed' ? 'ok' : row.status === 'failed' ? 'error' : 'warning';
+                    const retryBadge = row.retry_count > 0 ? ` <small>(#${row.retry_count})</small>` : '';
+                    return `<span class="status-badge" data-state="${state}">${escapeHtml(row.status || '')}</span>${retryBadge}`;
+                  }
+                },
+                {
+                  label: c('taskDetail'),
+                  minWidth: '220px',
+                  render: (row) => escapeHtml(row.last_error || row.detail_secondary || row.detail_primary || '-')
+                },
+                {
+                  label: c('taskAction'),
+                  width: '100px',
+                  render: (row) => {
+                    if (row.status === 'failed' || row.status === 'queued') {
+                      return `<button class="button-secondary btn-retry-task" data-task-id="${escapeHtml(row.id || '')}" style="padding: 4px 8px; font-size: 12px;">${c('taskRetry')}</button>`;
+                    }
+                    return '-';
+                  }
+                }
+              ]
+            })}
+          </div>
         </div>
       </div>
     `;
     bindDataTableControls(container, 'publishing-safety', tableState, draw);
+    bindDataTableControls(container, 'publishing-tasks', tasksTableState, draw);
+
+    container.querySelectorAll('.btn-retry-task').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const taskId = btn.getAttribute('data-task-id');
+        if (taskId) {
+          handleRetry(taskId, btn);
+        }
+      });
+    });
   }
 
   draw();
+
+  if (!tasksLoaded) {
+    loadTasks();
+  }
 }

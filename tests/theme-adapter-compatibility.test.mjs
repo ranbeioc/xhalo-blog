@@ -4,7 +4,10 @@ import assert from 'node:assert/strict';
 import {
   buildHexoCompatibilityFixtureManifest,
   buildHexoCompatibilityProfile,
-  mapSiteConfigToHexo
+  mapSiteConfigToHexo,
+  listSupportedThemes,
+  getThemeAdapterProfile,
+  detectThemeFromConfig
 } from '../packages/theme-adapter-hexo/src/index.js';
 
 test('theme adapter preserves Hexo permalink and post asset conventions', () => {
@@ -47,3 +50,29 @@ test('theme adapter fixture manifest keeps the runtime compatibility sample stab
   assert.ok(manifest.expectedHtmlMarkers.some((marker) => marker.includes('fixture-document.pdf')));
   assert.ok(manifest.expectedHtmlMarkers.some((marker) => marker === 'compatibility fixture'));
 });
+
+test('theme adapter lists supported themes and retrieves theme profiles', () => {
+  const themes = listSupportedThemes();
+  assert.ok(Array.isArray(themes));
+  assert.ok(themes.some((t) => t.id === 'next'));
+  assert.ok(themes.some((t) => t.id === 'fluid'));
+  assert.ok(themes.some((t) => t.id === 'butterfly'));
+
+  const nextProfile = getThemeAdapterProfile('next');
+  assert.equal(nextProfile.id, 'next');
+  assert.ok(nextProfile.configFiles.includes('themes/next/_config.yml'));
+  assert.ok(nextProfile.schemes.includes('Gemini'));
+
+  const customProfile = getThemeAdapterProfile('my-custom-theme');
+  assert.equal(customProfile.id, 'my-custom-theme');
+  assert.ok(customProfile.configFiles.includes('themes/my-custom-theme/_config.yml'));
+});
+
+test('theme adapter detects theme name from config string or object', () => {
+  assert.equal(detectThemeFromConfig('theme: fluid\n'), 'fluid');
+  assert.equal(detectThemeFromConfig({ theme: { name: 'butterfly' } }), 'butterfly');
+  assert.equal(detectThemeFromConfig({ theme: 'next' }), 'next');
+  assert.equal(detectThemeFromConfig(''), 'next');
+  assert.equal(detectThemeFromConfig(null), 'next');
+});
+
