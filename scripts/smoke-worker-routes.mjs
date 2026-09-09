@@ -3,7 +3,7 @@ import { exec } from 'child_process';
 /**
  * xhalo-blog API Worker Smoke Testing Script
  * This script runs an expanded suite of API request assertions against a running Worker instance.
- * Covers 17 distinct endpoints, query types, authentication blocks, and boundary conditions.
+ * Covers 19 distinct endpoints, query types, authentication blocks, and boundary conditions.
  *
  * NOTE: The 'dummy-token' value is ONLY valid for staging environments configured with
  * Cloudflare Turnstile's official test credentials (sitekey/secret = '1x0000000000000000000000000000000AA').
@@ -401,6 +401,32 @@ async function main() {
       if (!json || !json.error || !json.error.includes('invalid path traversal')) {
         return `Expected 'invalid path traversal' error, got ${JSON.stringify(json)}`;
       }
+      return null;
+    }
+  );
+
+  // Test 18: Task Listing Endpoint (Queue Tasks Listing)
+  await runTest(
+    'GET /api/tasks (Queue Tasks Listing)',
+    '/api/tasks',
+    { method: 'GET' },
+    (status, json) => {
+      if (status !== 200) return `Expected status 200, got ${status}`;
+      if (!json || !Array.isArray(json.items)) {
+        return `Expected JSON with items array, got ${JSON.stringify(json)}`;
+      }
+      return null;
+    }
+  );
+
+  // Test 19: Task Retry Auth Rejection (Verify protection on retry endpoint)
+  await runTest(
+    'POST /api/tasks/smoke-task-1/retry (Rejection: Missing admin authentication)',
+    '/api/tasks/smoke-task-1/retry',
+    { method: 'POST' },
+    (status, json) => {
+      if (status !== 401) return `Expected status 401, got ${status}`;
+      if (!json || !json.error) return `Expected auth rejection, got ${JSON.stringify(json)}`;
       return null;
     }
   );

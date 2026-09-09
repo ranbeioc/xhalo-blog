@@ -83,7 +83,7 @@ const copy = {
     editorLoading: 'Loading editor resources...',
     working: 'Processing request...',
     editorFallback: 'Vditor could not load. Plain textarea fallback is active.',
-    stats: 'Lines {lines} · Characters {chars} · Words {words}',
+    stats: 'Lines {lines} · Characters {chars} · Words {words} · Reading time {readTime}',
     pagesTriggered: 'Pages build triggered',
     pagesNotTriggered: 'Pages build not triggered',
     draftAutoSaved: 'Draft auto-saved locally at {time}',
@@ -138,7 +138,7 @@ const copy = {
     editorLoading: '正在加载编辑器资源...',
     working: '正在处理请求...',
     editorFallback: 'Vditor 加载失败，已启用普通文本框回退。',
-    stats: '行数 {lines} · 字符 {chars} · Words {words}',
+    stats: '行数 {lines} · 字符 {chars} · 词数 {words} · 预估用时 {readTime}',
     pagesTriggered: 'Pages 构建已触发',
     pagesNotTriggered: 'Pages 构建未触发',
     draftAutoSaved: '已于 {time} 自动暂存到本地',
@@ -193,7 +193,7 @@ const copy = {
     editorLoading: '편집기 리소스를 불러오는 중...',
     working: '요청을 처리하는 중...',
     editorFallback: 'Vditor를 불러오지 못해 일반 텍스트 영역으로 전환했습니다.',
-    stats: '줄 {lines} · 문자 {chars} · 단어 {words}',
+    stats: '줄 {lines} · 문자 {chars} · 단어 {words} · 예상 시간 {readTime}',
     pagesTriggered: 'Pages 빌드가 트리거되었습니다',
     pagesNotTriggered: 'Pages 빌드가 트리거되지 않았습니다',
     draftAutoSaved: '{time}에 로컬에 자동 저장되었습니다',
@@ -248,7 +248,7 @@ const copy = {
     editorLoading: 'エディターリソースを読み込み中...',
     working: 'リクエストを処理しています...',
     editorFallback: 'Vditor を読み込めなかったため、通常のテキストエリアに切り替えました。',
-    stats: '行 {lines} · 文字 {chars} · Words {words}',
+    stats: '行 {lines} · 文字 {chars} · 単語 {words} · 読了目安 {readTime}',
     pagesTriggered: 'Pages ビルドをトリガーしました',
     pagesNotTriggered: 'Pages ビルドはトリガーされていません',
     draftAutoSaved: '{time} にローカルへ自動保存しました',
@@ -955,6 +955,10 @@ function renderMarkdownStats(markdown) {
   const text = String(markdown || '');
   const lines = text ? text.split(/\r?\n/).length : 0;
   const chars = text.length;
-  const words = text.trim() ? text.trim().split(/\s+/).length : 0;
-  return escapeHtml(interpolate(c('stats'), { lines, chars, words }));
+  const cjkMatches = text.match(/[\u4e00-\u9fa5\u3040-\u30ff\uac00-\ud7af]/g) || [];
+  const nonCjkWords = text.replace(/[\u4e00-\u9fa5\u3040-\u30ff\uac00-\ud7af]/g, ' ').trim().split(/\s+/).filter(Boolean);
+  const words = cjkMatches.length + nonCjkWords.length;
+  const readMinutes = Math.max(1, Math.ceil(words / 250));
+  const readTime = words === 0 ? '0 min' : `~${readMinutes} min`;
+  return escapeHtml(interpolate(c('stats'), { lines, chars, words, readTime }));
 }
