@@ -470,7 +470,7 @@ export function renderEditor(container, { initialPost, dashboardData }) {
             <span>Status: <strong>${escapeHtml(diff.status || 'modified')}</strong></span>
           </div>
           <div class="diff-code-view">
-            <pre class="diff-diff">${escapeHtml(diff.diffText || 'No modifications detected.')}</pre>
+            <pre class="diff-diff">${formatUnifiedDiffHtml(diff.diffText)}</pre>
           </div>
         </div>
       `;
@@ -961,4 +961,25 @@ function renderMarkdownStats(markdown) {
   const readMinutes = Math.max(1, Math.ceil(words / 250));
   const readTime = words === 0 ? '0 min' : `~${readMinutes} min`;
   return escapeHtml(interpolate(c('stats'), { lines, chars, words, readTime }));
+}
+
+function formatUnifiedDiffHtml(diffText) {
+  if (!diffText) return `<span class="diff-line-common">No modifications detected.</span>`;
+  const lines = String(diffText).split(/\r?\n/);
+  return lines.map((line) => {
+    const escaped = escapeHtml(line);
+    if (line.startsWith('+++') || line.startsWith('---')) {
+      return `<span class="diff-line-header">${escaped}</span>`;
+    }
+    if (line.startsWith('@@')) {
+      return `<span class="diff-line-hunk">${escaped}</span>`;
+    }
+    if (line.startsWith('+')) {
+      return `<span class="diff-line-add">${escaped}</span>`;
+    }
+    if (line.startsWith('-')) {
+      return `<span class="diff-line-del">${escaped}</span>`;
+    }
+    return `<span class="diff-line-common">${escaped}</span>`;
+  }).join('\n');
 }

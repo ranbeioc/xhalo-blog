@@ -934,6 +934,11 @@ button, .button-small {
   max-height: 400px;
   line-height: 1.6;
 }
+.diff-line-header { color: var(--text-muted, #94a3b8); font-weight: 600; display: block; }
+.diff-line-hunk { color: #0284c7; background: rgba(14, 165, 233, 0.08); display: block; }
+.diff-line-add { color: #16a34a; background: rgba(22, 163, 74, 0.08); display: block; }
+.diff-line-del { color: #dc2626; background: rgba(220, 38, 38, 0.08); display: block; }
+.diff-line-common { color: var(--text-primary); display: block; }
 
 /* ── Plan view ──────────────────────────────────────────────────────────────── */
 .plan-container p { margin-bottom: 14px; font-size: 0.85rem; color: var(--text-secondary); }
