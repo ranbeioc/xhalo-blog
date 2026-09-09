@@ -1927,3 +1927,47 @@ body.unauthenticated .content-area {
   50% { transform: scale(1.1); opacity: 1; filter: drop-shadow(0 0 10px rgba(88, 166, 255, 0.4)); }
   100% { transform: scale(1); opacity: 0.8; }
 }
+
+/* ── Draft Auto-Save & Recovery ─────────────────────────────────────────────── */
+.editor-title-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.editor-autosave-status {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.editor-autosave-status.is-saving {
+  color: var(--primary, #58a6ff);
+}
+
+.draft-recovery-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: var(--radius-md);
+}
+
+.draft-recovery-text {
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.draft-recovery-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}

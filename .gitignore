@@ -12,3 +12,4 @@ db.json
 
 # Local Wrangler configurations
 **/wrangler.toml
+scratch/
