@@ -59,7 +59,10 @@ import {
   parseNextThemeSocialLinks,
   updateConfigWithMenu,
   updateNextThemeConfigWithMenu,
-  updateNextThemeConfigWithSocialLinks
+  updateNextThemeConfigWithSocialLinks,
+  parseCookies,
+  signSessionPayload,
+  appendSetCookie
 } from '../../../packages/core/src/index.js';
 import {
   createStructuredLog,
@@ -118,6 +121,7 @@ import {
   summarizeTaskRecord,
   summarizePostRecord
 } from './lib/models.js';
+import { guardTestDirectPublish, triggerDeployAfterCommit, enqueueTask } from './lib/routes-shared.js';
 
 let blogStatsCache = null;
 
@@ -357,9 +361,8 @@ async function handleRequest(request, env, requestStart) {
       }
 
       // Verify state cookie
-      const { parseCookies: parseCk } = await import('../../../packages/core/src/auth-github-oauth.js');
       const cookieHeader = request.headers.get('Cookie') || '';
-      const cookies = parseCk(cookieHeader);
+      const cookies = parseCookies(cookieHeader);
       const expectedState = cookies['xhalo_oauth_state'];
       if (!expectedState || expectedState !== state) {
         logSecurity('oauth_state_mismatch', extractRequestMeta(request));
@@ -425,7 +428,6 @@ async function handleRequest(request, env, requestStart) {
       }
 
       // Sign session cookie
-      const { signSessionPayload, appendSetCookie } = await import('../../../packages/core/src/auth-github-oauth.js');
       const ttl = parseInt(env.ADMIN_SESSION_TTL_SECONDS || '86400', 10);
       const sessionPayload = {
         login: ghUser.login,
@@ -1345,8 +1347,6 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/drafts/tasks' && request.method === 'POST') {
-      if (!env.TASK_QUEUE) return createJsonResponse({ error: 'TASK_QUEUE is not bound' }, { status: 500 });
-
       const { input, error: jsonError } = await readJsonBody(request);
       if (jsonError) {
         return createJsonResponse({ error: jsonError }, { status: 400 });
@@ -1362,8 +1362,8 @@ async function handleRequest(request, env, requestStart) {
         stage: '3-prototype'
       });
 
-      await env.TASK_QUEUE.send(prototype.queuedTask);
-      const persisted = await insertTaskRecord(env, prototype.taskRecord);
+      const { error: queueError, persisted } = await enqueueTask(env, prototype);
+      if (queueError) return queueError;
 
       return createJsonResponse({
         queued: true,
@@ -1437,10 +1437,6 @@ async function handleRequest(request, env, requestStart) {
         return rejectLiveWriteDisabled();
       }
 
-      if (!env.TASK_QUEUE) {
-        return createJsonResponse({ error: 'TASK_QUEUE is not bound' }, { status: 500 });
-      }
-
       const prototype = buildDraftPublishTaskPrototype(input, {
         repoOwner: repository.owner,
         repoName: repository.repo,
@@ -1464,8 +1460,8 @@ async function handleRequest(request, env, requestStart) {
         content: markdown
       });
 
-      await env.TASK_QUEUE.send(prototype.queuedTask);
-      const persistedTask = await insertTaskRecord(env, prototype.taskRecord);
+      const { error: queueError, persisted: persistedTask } = await enqueueTask(env, prototype);
+      if (queueError) return queueError;
 
       const authMode = hasGitHubAppConfig(env) ? 'app' : env.GITHUB_TOKEN ? 'token' : 'none';
 
@@ -1512,30 +1508,8 @@ async function handleRequest(request, env, requestStart) {
         return createJsonResponse({ error: jsonError }, { status: 400 });
       }
 
-      if (!isTestDirectPublishEnabled(env)) {
-        await insertAuditLog(env, {
-          action: 'test_direct_publish_failed',
-          ...extractRequestMeta(request),
-          actor: session.login,
-          status_code: 403,
-          duration_ms: Date.now() - requestStart,
-          error: 'Test direct publish is disabled.',
-          detail: {
-            code: 'TEST_DIRECT_PUBLISH_DISABLED',
-            deployment_env: env.DEPLOYMENT_ENV || null,
-            publish_mode: env.PUBLISH_MODE || null
-          }
-        });
-        return createJsonResponse({
-          error: 'Test direct publish is disabled.',
-          code: 'TEST_DIRECT_PUBLISH_DISABLED',
-          required_env: [
-            'DEPLOYMENT_ENV=test',
-            'PUBLISH_MODE=test_direct',
-            'TEST_DIRECT_PUBLISH_ENABLED=true'
-          ]
-        }, { status: 403 });
-      }
+      const guard = await guardTestDirectPublish(env, request, requestStart, 'publish', session?.login || 'legacy-admin-secret', { isTestDirectPublishEnabled, isForbiddenProductionContentTarget, getGitHubRepository });
+      if (!guard.allowed) return guard.response;
 
       const validationInput = {
         ...firstTestArticleTemplate,
@@ -1556,22 +1530,7 @@ async function handleRequest(request, env, requestStart) {
         return createJsonResponse({ error: 'Validation failed.', details: validationErrors }, { status: 400 });
       }
 
-      const repository = getGitHubRepository(env);
-      if (isForbiddenProductionContentTarget(repository)) {
-        await insertAuditLog(env, {
-          action: 'test_direct_publish_failed',
-          ...extractRequestMeta(request),
-          actor: session.login,
-          status_code: 403,
-          duration_ms: Date.now() - requestStart,
-          error: 'Refusing to write to production content branch from test direct publish.',
-          detail: { code: 'PRODUCTION_BRANCH_FORBIDDEN', target_repo: `${repository.owner}/${repository.repo}`, target_branch: repository.baseBranch }
-        });
-        return createJsonResponse({
-          error: 'Refusing to write to production content branch from test direct publish.',
-          code: 'PRODUCTION_BRANCH_FORBIDDEN'
-        }, { status: 403 });
-      }
+      const repository = guard.repository;
 
       const filePath = validationInput.targetPath || validationInput.filePath || `source/_posts/${validationInput.slug}.md`;
       if (!/^source\/_posts\/[^/]+\.md$/i.test(filePath)) {
@@ -1625,14 +1584,7 @@ async function handleRequest(request, env, requestStart) {
             operation: commitResult.operation
           }
         });
-        await waitBeforePagesDeployHook(env);
-        const pagesDeploy = await triggerPagesDeployHook(env, {
-          reason: 'test_direct_publish',
-          commitSha: commitResult.commitSha,
-          targetRepo: `${repository.owner}/${repository.repo}`,
-          targetBranch: repository.baseBranch,
-          targetPath: filePath
-        });
+        const pagesDeploy = await triggerDeployAfterCommit(env, 'test_direct_publish', commitResult, repository, { targetPath: filePath });
 
         return createJsonResponse({
           ok: true,
@@ -2151,8 +2103,6 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/assets/r2-tasks' && request.method === 'POST') {
-      if (!env.TASK_QUEUE) return createJsonResponse({ error: 'TASK_QUEUE is not bound' }, { status: 500 });
-
       const { input, error: jsonError } = await readJsonBody(request);
       if (jsonError) return createJsonResponse({ error: jsonError }, { status: 400 });
       const prototype = buildR2UploadTaskPrototype(input, {
@@ -2162,8 +2112,8 @@ async function handleRequest(request, env, requestStart) {
         stage: '3-prototype'
       });
 
-      await env.TASK_QUEUE.send(prototype.queuedTask);
-      const persisted = await insertTaskRecord(env, prototype.taskRecord);
+      const { error: queueError, persisted } = await enqueueTask(env, prototype);
+      if (queueError) return queueError;
 
       return createJsonResponse({
         queued: true,
@@ -2197,8 +2147,6 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/publish/notifications/tasks' && request.method === 'POST') {
-      if (!env.TASK_QUEUE) return createJsonResponse({ error: 'TASK_QUEUE is not bound' }, { status: 500 });
-
       const { input, error: jsonError } = await readJsonBody(request);
       if (jsonError) return createJsonResponse({ error: jsonError }, { status: 400 });
       const prototype = buildPublishNotificationTaskPrototype(input, {
@@ -2206,8 +2154,8 @@ async function handleRequest(request, env, requestStart) {
         stage: '3-prototype'
       });
 
-      await env.TASK_QUEUE.send(prototype.queuedTask);
-      const persisted = await insertTaskRecord(env, prototype.taskRecord);
+      const { error: queueError, persisted } = await enqueueTask(env, prototype);
+      if (queueError) return queueError;
 
       return createJsonResponse({
         queued: true,
@@ -2241,8 +2189,6 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/moderation/tasks' && request.method === 'POST') {
-      if (!env.TASK_QUEUE) return createJsonResponse({ error: 'TASK_QUEUE is not bound' }, { status: 500 });
-
       const { input, error: jsonError } = await readJsonBody(request);
       if (jsonError) return createJsonResponse({ error: jsonError }, { status: 400 });
       const prototype = buildModerationTaskPrototype(input, {
@@ -2250,8 +2196,8 @@ async function handleRequest(request, env, requestStart) {
         stage: '3-prototype'
       });
 
-      await env.TASK_QUEUE.send(prototype.queuedTask);
-      const persisted = await insertTaskRecord(env, prototype.taskRecord);
+      const { error: queueError, persisted } = await enqueueTask(env, prototype);
+      if (queueError) return queueError;
 
       return createJsonResponse({
         queued: true,
@@ -2448,34 +2394,9 @@ async function handleRequest(request, env, requestStart) {
         }, { status: 401 });
       }
 
-      if (!isTestDirectPublishEnabled(env)) {
-        await insertAuditLog(env, {
-          action: 'test_config_update_failed',
-          ...extractRequestMeta(request),
-          actor: session?.login || 'legacy-admin-secret',
-          status_code: 403,
-          duration_ms: Date.now() - requestStart,
-          error: 'Test direct config update is disabled.',
-          detail: { code: 'TEST_DIRECT_CONFIG_UPDATE_DISABLED' }
-        });
-        return createJsonResponse({
-          error: 'Test direct config update is disabled.',
-          code: 'TEST_DIRECT_CONFIG_UPDATE_DISABLED',
-          required_env: [
-            'DEPLOYMENT_ENV=test',
-            'PUBLISH_MODE=test_direct',
-            'TEST_DIRECT_PUBLISH_ENABLED=true'
-          ]
-        }, { status: 403 });
-      }
-
-      const repository = getGitHubRepository(env);
-      if (isForbiddenProductionContentTarget(repository)) {
-        return createJsonResponse({
-          error: 'Refusing to write to production content branch from test config update.',
-          code: 'PRODUCTION_BRANCH_FORBIDDEN'
-        }, { status: 403 });
-      }
+      const guard = await guardTestDirectPublish(env, request, requestStart, 'config_update', session?.login || 'legacy-admin-secret', { isTestDirectPublishEnabled, isForbiddenProductionContentTarget, getGitHubRepository });
+      if (!guard.allowed) return guard.response;
+      const repository = guard.repository;
 
       const { input, error: parseError } = await readJsonBody(request);
       if (parseError) return createJsonResponse({ error: parseError }, { status: 400 });
@@ -2521,13 +2442,7 @@ async function handleRequest(request, env, requestStart) {
           files,
           commitMessage: '[test-config-update] update Hexo NexT configuration'
         });
-        await waitBeforePagesDeployHook(env);
-        const pagesDeploy = await triggerPagesDeployHook(env, {
-          reason: 'test_config_update',
-          commitSha: commitResult.commitSha,
-          targetRepo: `${repository.owner}/${repository.repo}`,
-          targetBranch: repository.baseBranch
-        });
+        const pagesDeploy = await triggerDeployAfterCommit(env, 'test_config_update', commitResult, repository);
 
         await insertAuditLog(env, {
           action: 'test_config_update',
@@ -2695,34 +2610,9 @@ async function handleRequest(request, env, requestStart) {
         }, { status: 401 });
       }
 
-      if (!isTestDirectPublishEnabled(env)) {
-        await insertAuditLog(env, {
-          action: 'test_menu_update_failed',
-          ...extractRequestMeta(request),
-          actor: session?.login || 'legacy-admin-secret',
-          status_code: 403,
-          duration_ms: Date.now() - requestStart,
-          error: 'Test direct menu update is disabled.',
-          detail: { code: 'TEST_DIRECT_MENU_UPDATE_DISABLED' }
-        });
-        return createJsonResponse({
-          error: 'Test direct menu update is disabled.',
-          code: 'TEST_DIRECT_MENU_UPDATE_DISABLED',
-          required_env: [
-            'DEPLOYMENT_ENV=test',
-            'PUBLISH_MODE=test_direct',
-            'TEST_DIRECT_PUBLISH_ENABLED=true'
-          ]
-        }, { status: 403 });
-      }
-
-      const repository = getGitHubRepository(env);
-      if (isForbiddenProductionContentTarget(repository)) {
-        return createJsonResponse({
-          error: 'Refusing to write to production content branch from test menu update.',
-          code: 'PRODUCTION_BRANCH_FORBIDDEN'
-        }, { status: 403 });
-      }
+      const guard = await guardTestDirectPublish(env, request, requestStart, 'menu_update', session?.login || 'legacy-admin-secret', { isTestDirectPublishEnabled, isForbiddenProductionContentTarget, getGitHubRepository });
+      if (!guard.allowed) return guard.response;
+      const repository = guard.repository;
 
       const { input, error: parseError } = await readJsonBody(request);
       if (parseError) return createJsonResponse({ error: parseError }, { status: 400 });
@@ -2777,13 +2667,7 @@ async function handleRequest(request, env, requestStart) {
           files,
           commitMessage: '[test-menu-update] update site menu and NexT runtime menu'
         });
-        await waitBeforePagesDeployHook(env);
-        const pagesDeploy = await triggerPagesDeployHook(env, {
-          reason: 'test_menu_update',
-          commitSha: commitResult.commitSha,
-          targetRepo: `${repository.owner}/${repository.repo}`,
-          targetBranch: repository.baseBranch
-        });
+        const pagesDeploy = await triggerDeployAfterCommit(env, 'test_menu_update', commitResult, repository);
 
         await insertAuditLog(env, {
           action: 'test_menu_update',
