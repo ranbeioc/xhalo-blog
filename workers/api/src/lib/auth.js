@@ -196,7 +196,15 @@ export async function verifyAdminRequest(request, env) {
 
   if (!hasAdminRequestSecret(env)) return false;
   const provided = request.headers.get('x-xhalo-admin-secret') || '';
-  return Boolean(provided) && provided === env.ADMIN_API_SHARED_SECRET;
+  if (!provided || !env.ADMIN_API_SHARED_SECRET) return false;
+  const encoder = new TextEncoder();
+  const aBuf = encoder.encode(provided);
+  const bBuf = encoder.encode(env.ADMIN_API_SHARED_SECRET);
+  if (aBuf.byteLength !== bBuf.byteLength) return false;
+  if (crypto.subtle && crypto.subtle.timingSafeEqual) return crypto.subtle.timingSafeEqual(aBuf, bBuf);
+  let result = 0;
+  for (let i = 0; i < aBuf.byteLength; i++) result |= aBuf[i] ^ bBuf[i];
+  return result === 0;
 }
 
 export async function verifyTurnstileToken(request, env) {

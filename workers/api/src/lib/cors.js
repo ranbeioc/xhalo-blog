@@ -6,9 +6,11 @@ export function handleCors(request, response, env) {
   if (env.ADMIN_FRONTEND_BASE_URL) {
     allowedOrigins.push(env.ADMIN_FRONTEND_BASE_URL.replace(/\/$/, ''));
   }
-  // Allow localhost for local development
-  if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
-    allowedOrigins.push(origin);
+  // Allow localhost for local development only (not in production)
+  if (env.DEPLOYMENT_ENV !== 'production') {
+    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+      allowedOrigins.push(origin);
+    }
   }
   if (env.ADMIN_AUTH_BASE_URL) {
     allowedOrigins.push(env.ADMIN_AUTH_BASE_URL.replace(/\/$/, ''));

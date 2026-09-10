@@ -18,8 +18,9 @@ export const ROUTES = [
 export function renderSidebar(container, { activeRoute, onNavigate }) {
   const navItems = ROUTES.map((route) => {
     const active = route.id === activeRoute ? 'active' : '';
+    const ariaCurrent = route.id === activeRoute ? ' aria-current="page"' : '';
     return `<li>
-      <button class="sidebar-nav-btn ${active}" data-route="${route.id}">
+      <button class="sidebar-nav-btn ${active}" data-route="${route.id}"${ariaCurrent}>
         <span class="sidebar-icon">${route.icon}</span>
         <span class="sidebar-label">${escapeHtml(t(route.labelKey))}</span>
       </button>
@@ -72,9 +73,10 @@ export function renderTopbar(container, { title, session, onLogin, onLogout, onL
       </div>`;
   }
 
+  const isCollapsed = document.body.classList.contains('sidebar-collapsed');
   container.innerHTML = `
     <div class="topbar-left">
-      <button class="topbar-menu-btn" id="sidebar-toggle" aria-label="Toggle sidebar">☰</button>
+      <button class="topbar-menu-btn" id="sidebar-toggle" aria-label="Toggle sidebar" aria-expanded="${!isCollapsed}">☰</button>
       <h1 class="topbar-title">${escapeHtml(title)}</h1>
     </div>
     <div class="topbar-right" style="display: flex; align-items: center; gap: 15px;">
@@ -97,9 +99,11 @@ export function renderTopbar(container, { title, session, onLogin, onLogout, onL
 
   container.querySelector('#btn-logout')?.addEventListener('click', () => onLogout?.());
   container.querySelector('#btn-login-github')?.addEventListener('click', () => onLogin?.());
-  container.querySelector('#sidebar-toggle')?.addEventListener('click', () => {
+  container.querySelector('#sidebar-toggle')?.addEventListener('click', (e) => {
     document.body.classList.toggle('sidebar-collapsed');
     document.querySelector('.sidebar')?.classList.toggle('open');
+    const nowCollapsed = document.body.classList.contains('sidebar-collapsed');
+    e.target.setAttribute('aria-expanded', !nowCollapsed);
   });
 }
 

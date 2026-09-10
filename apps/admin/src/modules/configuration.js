@@ -451,7 +451,7 @@ function normalizeConfig(file) {
 function validateConfigFiles(files) {
   for (const file of files) {
     const content = String(file.content || '');
-    if (!content.trim()) return `${file.path}: ${copy.en.emptyFile}`;
+    if (!content.trim()) return `${file.path}: ${c('emptyFile')}`;
     if (file.path === 'package.json') {
       try {
         JSON.parse(content);

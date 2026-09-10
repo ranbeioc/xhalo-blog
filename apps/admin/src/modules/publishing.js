@@ -57,7 +57,14 @@ const copy = {
     taskRetrying: 'Retrying...',
     retrySuccess: 'Task successfully re-enqueued for processing.',
     retryFailed: 'Failed to retry task: ',
-    noTasks: 'No background tasks recorded.'
+    noTasks: 'No background tasks recorded.',
+    layer_cloudflare: 'Cloudflare Access',
+    layer_turnstile: 'Turnstile CAPTCHA',
+    layer_audit: 'Audit logging',
+    status_queued: 'queued',
+    status_processing: 'processing',
+    status_completed: 'completed',
+    status_failed: 'failed'
   },
   'zh-CN': {
     title: '发布安全中心',
@@ -112,7 +119,14 @@ const copy = {
     taskRetrying: '重试中...',
     retrySuccess: '任务已成功重新加入执行队列。',
     retryFailed: '重试任务失败: ',
-    noTasks: '暂无后台任务记录。'
+    noTasks: '暂无后台任务记录。',
+    layer_cloudflare: 'Cloudflare 访问控制',
+    layer_turnstile: 'Turnstile 验证码',
+    layer_audit: '审计日志',
+    status_queued: '已排队',
+    status_processing: '处理中',
+    status_completed: '已完成',
+    status_failed: '失败'
   },
   ko: {
     title: '게시 안전 센터',
@@ -167,7 +181,14 @@ const copy = {
     taskRetrying: '재시도 중...',
     retrySuccess: '작업이 대기열에 다시 추가되었습니다.',
     retryFailed: '작업 재시도 실패: ',
-    noTasks: '기록된 백그라운드 작업이 없습니다.'
+    noTasks: '기록된 백그라운드 작업이 없습니다.',
+    layer_cloudflare: 'Cloudflare 액세스',
+    layer_turnstile: 'Turnstile CAPTCHA',
+    layer_audit: '감사 로그',
+    status_queued: '대기 중',
+    status_processing: '처리 중',
+    status_completed: '완료됨',
+    status_failed: '실패'
   },
   ja: {
     title: '公開安全センター',
@@ -222,7 +243,14 @@ const copy = {
     taskRetrying: '再試行中...',
     retrySuccess: 'タスクが正常に再キューイングされました。',
     retryFailed: 'タスクの再試行に失敗しました: ',
-    noTasks: 'バックグラウンドタスクの記録はありません。'
+    noTasks: 'バックグラウンドタスクの記録はありません。',
+    layer_cloudflare: 'Cloudflare Access',
+    layer_turnstile: 'Turnstile CAPTCHA',
+    layer_audit: '監査ログ',
+    status_queued: '待機中',
+    status_processing: '処理中',
+    status_completed: '完了',
+    status_failed: '失敗'
   }
 };
 
@@ -321,9 +349,9 @@ export function renderPublishingSafetyCenter(container, { dashboardData }) {
           <div class="card security-layers-card">
             <h3>${c('layers')}</h3>
             <div class="meta-grid">
-              <div class="meta-row"><span>Cloudflare Access</span><span class="status-badge" data-state="ok">${c('active')}</span></div>
-              <div class="meta-row"><span>Turnstile CAPTCHA</span><span class="status-badge" data-state="${readiness.turnstileSiteKey ? 'ok' : 'warning'}">${readiness.turnstileSiteKey ? c('active') : c('bypassed')}</span></div>
-              <div class="meta-row"><span>Audit logging</span><span class="status-badge" data-state="ok">${c('active')}</span></div>
+              <div class="meta-row"><span>${c('layer_cloudflare')}</span><span class="status-badge" data-state="ok">${c('active')}</span></div>
+              <div class="meta-row"><span>${c('layer_turnstile')}</span><span class="status-badge" data-state="${readiness.turnstileSiteKey ? 'ok' : 'warning'}">${readiness.turnstileSiteKey ? c('active') : c('bypassed')}</span></div>
+              <div class="meta-row"><span>${c('layer_audit')}</span><span class="status-badge" data-state="ok">${c('active')}</span></div>
             </div>
           </div>
           <div class="card gated-actions-card">
@@ -364,7 +392,8 @@ export function renderPublishingSafetyCenter(container, { dashboardData }) {
                   render: (row) => {
                     const state = row.status === 'completed' ? 'ok' : row.status === 'failed' ? 'error' : 'warning';
                     const retryBadge = row.retry_count > 0 ? ` <small>(#${row.retry_count})</small>` : '';
-                    return `<span class="status-badge" data-state="${state}">${escapeHtml(row.status || '')}</span>${retryBadge}`;
+                    const translatedStatus = c(`status_${row.status}`) || row.status;
+                    return `<span class="status-badge" data-state="${state}">${escapeHtml(translatedStatus)}</span>${retryBadge}`;
                   }
                 },
                 {

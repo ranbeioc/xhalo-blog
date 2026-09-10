@@ -161,40 +161,55 @@ async function renderContent() {
     switch (route) {
       case 'dashboard':
         await renderDashboardPanel(container);
+        if (token !== appState.renderToken) return;
         break;
       case 'posts':
         await renderPostsPanel(container);
+        if (token !== appState.renderToken) return;
         break;
       case 'stats':
         await renderStatsPanel(container);
+        if (token !== appState.renderToken) return;
         break;
       case 'editor':
         await renderEditorPanel(container);
+        if (token !== appState.renderToken) return;
         break;
       case 'media':
         await renderMediaPanel(container);
+        if (token !== appState.renderToken) return;
         break;
       case 'menus':
         await renderMenusPanel(container);
+        if (token !== appState.renderToken) return;
         break;
       case 'configuration':
         await renderConfigurationPanel(container);
+        if (token !== appState.renderToken) return;
         break;
       case 'integrations':
         await renderIntegrationsPanel(container);
+        if (token !== appState.renderToken) return;
         break;
       case 'publishing':
         await renderPublishingPanel(container);
+        if (token !== appState.renderToken) return;
         break;
       case 'audit':
         await renderAuditPanel(container);
+        if (token !== appState.renderToken) return;
         break;
       case 'settings':
         await renderSettingsPanel(container);
+        if (token !== appState.renderToken) return;
         break;
       default:
         await renderDashboardPanel(container);
+        if (token !== appState.renderToken) return;
     }
+  } catch (err) {
+    console.error('Panel render error:', err);
+    container.innerHTML = `<div class="alert alert-error"><strong>${escapeError('Panel failed to load')}</strong><p>${escapeError(String(err.message || err))}</p></div>`;
   } finally {
     if (token !== appState.renderToken) return;
     applyLocaleToElement(container);

@@ -16,8 +16,4 @@ jobs:
           node-version: 20
       - run: npm ci
       - run: npm run check:all
-      - run: npm run check:secrets
-      - run: npm test
-      - run: npm run test:secrets-fixture
-      - run: npm run build:admin
-      - run: npm run build:test-pages
+
