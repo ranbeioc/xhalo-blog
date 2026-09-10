@@ -35,7 +35,7 @@ export function renderDataTable({
   const colgroup = columns.map((column) => (
     `<col style="width:${escapeHtml(column.width || 'auto')}; min-width:${escapeHtml(column.minWidth || '120px')};" />`
   )).join('');
-  const header = columns.map((column) => `<th>${escapeHtml(column.label)}</th>`).join('');
+  const header = columns.map((column) => `<th scope="col">${escapeHtml(column.label)}</th>`).join('');
   const body = pageRows.length > 0
     ? pageRows.map((row) => `<tr>${columns.map((column) => `<td>${column.render(row)}</td>`).join('')}</tr>`).join('')
     : `<tr><td colspan="${columns.length}" class="text-center info-text">${escapeHtml(emptyText || 'No matching data.')}</td></tr>`;
@@ -83,12 +83,40 @@ export function bindDataTableControls(container, id, state, draw) {
     search.addEventListener('input', (event) => {
       state.query = event.target.value;
       state.page = 1;
+      
+      const origInnerHTML = Object.getOwnPropertyDescriptor(Element.prototype, 'innerHTML');
+      let newHtml = '';
+      Object.defineProperty(container, 'innerHTML', {
+        set(val) { newHtml = val; },
+        configurable: true
+      });
+      
       draw();
-      const next = container.querySelector(`[data-table-search="${id}"]`);
-      if (next) {
-        next.focus();
-        next.setSelectionRange(next.value.length, next.value.length);
-      }
+      
+      delete container.innerHTML;
+      
+      const temp = document.createElement('div');
+      temp.innerHTML = newHtml;
+      
+      const updateEl = (selector) => {
+        const oldEl = container.querySelector(selector);
+        const newEl = temp.querySelector(selector);
+        if (oldEl && newEl) {
+          if (oldEl.tagName === 'TBODY') {
+             oldEl.innerHTML = newEl.innerHTML;
+          } else {
+             oldEl.outerHTML = newEl.outerHTML;
+          }
+        } else if (oldEl && !newEl) {
+          oldEl.remove();
+        } else if (!oldEl && newEl) {
+          container.querySelector('.table-container')?.after(newEl);
+        }
+      };
+      
+      updateEl('tbody');
+      updateEl('.table-pagination');
+      updateEl('.table-count');
     });
   }
 

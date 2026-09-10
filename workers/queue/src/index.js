@@ -12,6 +12,20 @@ import {
   nowIso
 } from '../../../packages/core/src/index.js';
 
+function isTransientError(error) {
+  const message = String(error.message || '').toLowerCase();
+  const status = error.status || error.statusCode || 0;
+  // HTTP 429 (rate limit), 502/503/504 (gateway errors) are transient
+  if ([429, 502, 503, 504].includes(status)) return true;
+  // Network/timeout errors are transient
+  if (message.includes('timeout') || message.includes('network') ||
+      message.includes('econnreset') || message.includes('econnrefused') ||
+      message.includes('rate limit') || message.includes('too many requests') ||
+      message.includes('temporarily unavailable') || message.includes('service unavailable')) {
+    return true;
+  }
+  return false;
+}
 async function updateTaskStatus(env, taskId, patch = {}) {
   if (!env.DB || typeof env.DB.prepare !== 'function' || !taskId) return false;
 
@@ -305,7 +319,7 @@ function buildTaskSummary(task) {
 
 export default {
   async queue(batch, env, ctx) {
-    for (const message of batch.messages) {
+    await Promise.allSettled(batch.messages.map(async (message) => {
       const task = buildQueueTaskEnvelope(message.body);
       const taskId = task.idempotency_key || task.payload?.idempotency_key || null;
       const retryCount = Math.max((message.attempts || 1) - 1, 0);
@@ -349,26 +363,40 @@ export default {
 
         message.ack();
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        await updateTaskStatus(env, taskId, {
-          status: 'failed',
-          error: errorMessage,
-          payload: {
-            ...task,
-            reconciliation: {
-              phase: 'failed',
-              retry_count: retryCount,
-              last_error: errorMessage
+        const transient = isTransientError(error);
+        const attempts = message.attempts || 1;
+        if (transient && attempts < 3) {
+          console.error(JSON.stringify({
+            level: 'warn',
+            action: 'task_transient_retry',
+            task_id: taskId,
+            attempt: attempts,
+            error: error.message || String(error),
+            next_retry_delay_seconds: Math.pow(2, attempts) * 10
+          }));
+          message.retry({ delaySeconds: Math.pow(2, attempts) * 10 });
+        } else {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          await updateTaskStatus(env, taskId, {
+            status: 'failed',
+            error: errorMessage,
+            payload: {
+              ...task,
+              reconciliation: {
+                phase: 'failed',
+                retry_count: retryCount,
+                last_error: errorMessage
+              }
             }
-          }
-        });
-        console.error('xhalo-blog queue task failed', JSON.stringify({
-          taskId,
-          type: task.type,
-          error: errorMessage
-        }));
-        message.ack();
+          });
+          console.error('xhalo-blog queue task failed', JSON.stringify({
+            taskId,
+            type: task.type,
+            error: errorMessage
+          }));
+          message.ack();
+        }
       }
-    }
+    }));
   }
 };

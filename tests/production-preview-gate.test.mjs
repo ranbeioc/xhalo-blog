@@ -27,7 +27,7 @@ describe('Production preview gate', () => {
   it('keeps the visible CI workflow validation-only', () => {
     const workflow = fs.readFileSync(WORKFLOW_PATH, 'utf8');
 
-    assert.ok(workflow.includes('npm run build:admin'), 'check.yml must include npm run build:admin');
+    assert.ok(workflow.includes('npm run check:all'), 'check.yml must include npm run check:all');
     assert.ok(!workflow.includes('wrangler deploy'), 'check.yml must not include wrangler deploy');
     assert.ok(!workflow.includes('wrangler pages deploy'), 'check.yml must not include wrangler pages deploy');
   });

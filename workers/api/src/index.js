@@ -214,7 +214,7 @@ async function verifyGithubWebhookSignature(env, request, rawBody) {
   );
   const expected = `sha256=${Array.from(signature).map((value) => value.toString(16).padStart(2, '0')).join('')}`;
 
-  if (expected !== signatureHeader) {
+  if (!timingSafeEqual(expected, signatureHeader)) {
     throw new Error('GitHub webhook signature mismatch.');
   }
 }
@@ -231,7 +231,7 @@ async function verifyPreviewWebhookSecret(env, request) {
   }
 
   const secret = request.headers.get('x-preview-webhook-secret') || '';
-  if (secret !== env.PREVIEW_WEBHOOK_SECRET) {
+  if (!timingSafeEqual(secret, env.PREVIEW_WEBHOOK_SECRET)) {
     throw new Error('Preview deployment webhook secret mismatch.');
   }
 }
@@ -256,6 +256,18 @@ async function readJsonBody(request) {
   } catch {
     return { input: null, error: 'Invalid JSON request body.' };
   }
+}
+
+function timingSafeEqual(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const encoder = new TextEncoder();
+  const aBuf = encoder.encode(a);
+  const bBuf = encoder.encode(b);
+  if (aBuf.byteLength !== bBuf.byteLength) return false;
+  if (crypto.subtle && crypto.subtle.timingSafeEqual) return crypto.subtle.timingSafeEqual(aBuf, bBuf);
+  let result = 0;
+  for (let i = 0; i < aBuf.byteLength; i++) result |= aBuf[i] ^ bBuf[i];
+  return result === 0;
 }
 
 function validatePublishInput(input) {
@@ -297,12 +309,15 @@ function isProtectedAdminRoute(pathname) {
 async function handleRequest(request, env, requestStart) {
     try {
     const url = new URL(request.url);
+    const method = request.method;
 
     if (url.pathname === '/api/health') {
+      if (method !== 'GET') return createJsonResponse({ error: 'Method not allowed.' }, { status: 405 });
       return createJsonResponse({ ok: true, service: 'xhalo-blog-api', stage: '3-prototype', mode: 'scaffold' });
     }
 
     if (url.pathname === '/api/scaffold') {
+      if (method !== 'GET') return createJsonResponse({ error: 'Method not allowed.' }, { status: 405 });
       return createJsonResponse(getScaffoldMetadata());
     }
 
@@ -597,7 +612,8 @@ async function handleRequest(request, env, requestStart) {
         return createJsonResponse({ error: error.message || 'Invalid preview deployment webhook.' }, { status: 403 });
       }
 
-      const payload = await request.json();
+      const { input: payload, error: jsonError } = await readJsonBody(request);
+      if (jsonError) return createJsonResponse({ error: jsonError }, { status: 400 });
       const branchName = String(payload.branchName || '').trim() || null;
       const postSlug = String(payload.postSlug || '').trim() || null;
       const previewUrl = String(payload.previewUrl || '').trim() || null;
@@ -681,10 +697,12 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/readiness') {
+      if (method !== 'GET') return createJsonResponse({ error: 'Method not allowed.' }, { status: 405 });
       return createJsonResponse(buildProviderReadinessSnapshot(env));
     }
 
     if (url.pathname === '/api/posts') {
+      if (method !== 'GET') return createJsonResponse({ error: 'Method not allowed.' }, { status: 405 });
       const requestedLimit = Math.max(1, Math.min(Number(url.searchParams.get('limit')) || 20, 100));
       const requestedPage = Math.max(1, Number(url.searchParams.get('page')) || 1);
       const offset = (requestedPage - 1) * requestedLimit;
@@ -708,10 +726,15 @@ async function handleRequest(request, env, requestStart) {
         logWarn('posts_git_listing_failed', { error: err.message, status: err.status || null });
       }
 
-      const items = await selectRows(
-        env,
-        `SELECT id, slug, title, path, status, created_at, updated_at, published_at, github_branch, github_pr_url, preview_url, content FROM posts_index ORDER BY COALESCE(updated_at, created_at) DESC LIMIT ${requestedLimit} OFFSET ${offset}`
-      );
+      let items = null;
+      if (env.DB && typeof env.DB.prepare === 'function') {
+        try {
+          const result = await env.DB.prepare(
+            'SELECT id, slug, title, path, status, created_at, updated_at, published_at, github_branch, github_pr_url, preview_url, content FROM posts_index ORDER BY COALESCE(updated_at, created_at) DESC LIMIT ? OFFSET ?'
+          ).bind(requestedLimit, offset).all();
+          items = result.results || null;
+        } catch { items = null; }
+      }
 
       const d1Items = Array.isArray(items) && items.length > 0 ? items : null;
       const fallbackItems = createFallbackPosts();
@@ -1044,6 +1067,7 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/tasks') {
+      if (method !== 'GET') return createJsonResponse({ error: 'Method not allowed.' }, { status: 405 });
       const items = await selectRows(
         env,
         'SELECT id, type, status, payload, error, created_at, updated_at FROM tasks ORDER BY updated_at DESC LIMIT 10'
@@ -1155,6 +1179,7 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/audit-logs') {
+      if (method !== 'GET') return createJsonResponse({ error: 'Method not allowed.' }, { status: 405 });
       const items = await selectRows(
         env,
         'SELECT id, timestamp, action, actor, resource, resource_id, method, path, status_code, duration_ms, error FROM audit_logs ORDER BY timestamp DESC LIMIT 50'
@@ -1168,6 +1193,7 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/audit-logs/summary') {
+      if (method !== 'GET') return createJsonResponse({ error: 'Method not allowed.' }, { status: 405 });
       const rows = await selectRows(
         env,
         'SELECT action, status_code FROM audit_logs ORDER BY timestamp DESC LIMIT 500'
@@ -1193,6 +1219,7 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/blog/stats') {
+      if (method !== 'GET') return createJsonResponse({ error: 'Method not allowed.' }, { status: 405 });
       const cacheKey = getBlogStatsCacheKey(env);
       const cacheTtlMs = getBlogStatsCacheTtlMs(env);
       const cacheNow = Date.now();
@@ -1289,6 +1316,7 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/drafts/template') {
+      if (method !== 'GET') return createJsonResponse({ error: 'Method not allowed.' }, { status: 405 });
       return createJsonResponse({
         template: defaultDraftTemplate,
         note: 'Stage 3 draft metadata prototype. No real GitHub write happens here.'
@@ -1807,6 +1835,7 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/assets/r2-template') {
+      if (method !== 'GET') return createJsonResponse({ error: 'Method not allowed.' }, { status: 405 });
       return createJsonResponse({
         template: defaultR2UploadTemplate,
         note: 'Stage 3 R2 upload prototype. No real signed upload or bucket write happens here.'
@@ -1814,7 +1843,8 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/assets/r2-preview' && request.method === 'POST') {
-      const input = await request.json();
+      const { input, error: jsonError } = await readJsonBody(request);
+      if (jsonError) return createJsonResponse({ error: jsonError }, { status: 400 });
       const validationError = validateR2UploadInput(input.filename, input.contentType, input.scope, input.postSlug);
       if (validationError) {
         return createJsonResponse({ error: validationError }, { status: 400 });
@@ -1832,7 +1862,8 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/assets/r2-signed-upload' && request.method === 'POST') {
-      const input = await request.json();
+      const { input, error: jsonError } = await readJsonBody(request);
+      if (jsonError) return createJsonResponse({ error: jsonError }, { status: 400 });
       const validationError = validateR2UploadInput(input.filename, input.contentType, input.scope, input.postSlug);
       if (validationError) {
         return createJsonResponse({ error: validationError }, { status: 400 });
@@ -2027,7 +2058,8 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/assets/r2-upload' && request.method === 'POST') {
-      const input = await request.json();
+      const { input, error: jsonError } = await readJsonBody(request);
+      if (jsonError) return createJsonResponse({ error: jsonError }, { status: 400 });
       const validationError = validateR2UploadInput(input.filename, input.contentType, input.scope, input.postSlug);
       if (validationError) {
         return createJsonResponse({ error: validationError }, { status: 400 });
@@ -2121,7 +2153,8 @@ async function handleRequest(request, env, requestStart) {
     if (url.pathname === '/api/assets/r2-tasks' && request.method === 'POST') {
       if (!env.TASK_QUEUE) return createJsonResponse({ error: 'TASK_QUEUE is not bound' }, { status: 500 });
 
-      const input = await request.json();
+      const { input, error: jsonError } = await readJsonBody(request);
+      if (jsonError) return createJsonResponse({ error: jsonError }, { status: 400 });
       const prototype = buildR2UploadTaskPrototype(input, {
         bucketBinding: 'ASSETS',
         bucketName: 'xhalo-blog-assets',
@@ -2143,6 +2176,7 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/publish/notifications/template') {
+      if (method !== 'GET') return createJsonResponse({ error: 'Method not allowed.' }, { status: 405 });
       return createJsonResponse({
         template: defaultPublishNotificationTemplate,
         note: 'Stage 3 publish notification prototype. No real downstream notification is sent here.'
@@ -2150,7 +2184,8 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/publish/notifications/preview' && request.method === 'POST') {
-      const input = await request.json();
+      const { input, error: jsonError } = await readJsonBody(request);
+      if (jsonError) return createJsonResponse({ error: jsonError }, { status: 400 });
       const preview = buildPublishNotificationPreview(input, {
         queueBinding: 'TASK_QUEUE'
       });
@@ -2164,7 +2199,8 @@ async function handleRequest(request, env, requestStart) {
     if (url.pathname === '/api/publish/notifications/tasks' && request.method === 'POST') {
       if (!env.TASK_QUEUE) return createJsonResponse({ error: 'TASK_QUEUE is not bound' }, { status: 500 });
 
-      const input = await request.json();
+      const { input, error: jsonError } = await readJsonBody(request);
+      if (jsonError) return createJsonResponse({ error: jsonError }, { status: 400 });
       const prototype = buildPublishNotificationTaskPrototype(input, {
         queueBinding: 'TASK_QUEUE',
         stage: '3-prototype'
@@ -2184,6 +2220,7 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/moderation/template') {
+      if (method !== 'GET') return createJsonResponse({ error: 'Method not allowed.' }, { status: 405 });
       return createJsonResponse({
         template: defaultModerationTemplate,
         note: 'Stage 3 moderation prototype. No real comment provider write happens here.'
@@ -2191,7 +2228,8 @@ async function handleRequest(request, env, requestStart) {
     }
 
     if (url.pathname === '/api/moderation/preview' && request.method === 'POST') {
-      const input = await request.json();
+      const { input, error: jsonError } = await readJsonBody(request);
+      if (jsonError) return createJsonResponse({ error: jsonError }, { status: 400 });
       const preview = buildModerationPreview(input, {
         queueBinding: 'TASK_QUEUE'
       });
@@ -2205,7 +2243,8 @@ async function handleRequest(request, env, requestStart) {
     if (url.pathname === '/api/moderation/tasks' && request.method === 'POST') {
       if (!env.TASK_QUEUE) return createJsonResponse({ error: 'TASK_QUEUE is not bound' }, { status: 500 });
 
-      const input = await request.json();
+      const { input, error: jsonError } = await readJsonBody(request);
+      if (jsonError) return createJsonResponse({ error: jsonError }, { status: 400 });
       const prototype = buildModerationTaskPrototype(input, {
         queueBinding: 'TASK_QUEUE',
         stage: '3-prototype'

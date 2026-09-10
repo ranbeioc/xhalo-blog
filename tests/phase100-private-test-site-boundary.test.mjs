@@ -37,7 +37,7 @@ test('Phase 100 evidence keeps unrelated admin projects out of scope', () => {
 test('single validation workflow has no deploy command', () => {
   const workflow = read('.github/workflows/check.yml');
 
-  assert.match(workflow, /npm run build:test-pages/);
+  assert.match(workflow, /npm run check:all/);
   assert.doesNotMatch(workflow, /wrangler\s+deploy/i);
   assert.doesNotMatch(workflow, /wrangler\s+pages\s+deploy/i);
 });

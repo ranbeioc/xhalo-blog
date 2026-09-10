@@ -23,7 +23,15 @@ const copy = {
     note: 'Notes',
     topCategories: 'Top categories',
     topTags: 'Top tags',
-    noData: 'No data available'
+    noData: 'No data available',
+    sub_github_posts: 'GitHub source posts',
+    sub_published: 'Published posts',
+    sub_drafts: 'Draft posts',
+    sub_categories: 'Categories',
+    sub_tags: 'Tags',
+    sub_audit: 'Audit events',
+    unknown: 'unknown',
+    git_scan_warn: 'GitHub scan warning:'
   },
   'zh-CN': {
     title: '博客数据统计',
@@ -45,7 +53,15 @@ const copy = {
     note: '统计说明',
     topCategories: '热门分类',
     topTags: '热门标签',
-    noData: '暂无数据'
+    noData: '暂无数据',
+    sub_github_posts: 'GitHub 源文章',
+    sub_published: '已发布文章',
+    sub_drafts: '草稿文章',
+    sub_categories: '分类',
+    sub_tags: '标签',
+    sub_audit: '审计事件',
+    unknown: '未知',
+    git_scan_warn: 'GitHub 扫描警告:'
   },
   ko: {
     title: '블로그 데이터 통계',
@@ -67,7 +83,15 @@ const copy = {
     note: '통계 설명',
     topCategories: '상위 카테고리',
     topTags: '상위 태그',
-    noData: '데이터 없음'
+    noData: '데이터 없음',
+    sub_github_posts: 'GitHub 소스 게시물',
+    sub_published: '게시된 게시물',
+    sub_drafts: '초안 게시물',
+    sub_categories: '카테고리',
+    sub_tags: '태그',
+    sub_audit: '감사 이벤트',
+    unknown: '알 수 없음',
+    git_scan_warn: 'GitHub 스캔 경고:'
   },
   ja: {
     title: 'ブログデータ統計',
@@ -89,7 +113,15 @@ const copy = {
     note: '統計説明',
     topCategories: '上位カテゴリー',
     topTags: '上位タグ',
-    noData: 'データがありません'
+    noData: 'データがありません',
+    sub_github_posts: 'GitHub ソース記事',
+    sub_published: '公開済み記事',
+    sub_drafts: '下書き記事',
+    sub_categories: 'カテゴリー',
+    sub_tags: 'タグ',
+    sub_audit: '監査イベント',
+    unknown: '不明',
+    git_scan_warn: 'GitHub スキャン警告:'
   }
 };
 
@@ -115,24 +147,24 @@ export function renderBlogStats(container, stats) {
       <p class="lede">${escapeHtml(c('lede'))}</p>
 
       <div class="stats-grid">
-        ${metricCard(c('posts'), counts.posts ?? 0, 'GitHub source posts')}
-        ${metricCard(c('published'), counts.publishedPosts ?? 0, 'Published posts')}
-        ${metricCard(c('drafts'), counts.draftPosts ?? 0, 'Draft posts')}
-        ${metricCard(c('categories'), counts.categories ?? 0, 'Categories')}
-        ${metricCard(c('tags'), counts.tags ?? 0, 'Tags')}
-        ${metricCard(c('audit'), counts.auditEvents ?? 0, 'Audit events')}
+        ${metricCard(c('posts'), counts.posts ?? 0, c('sub_github_posts'))}
+        ${metricCard(c('published'), counts.publishedPosts ?? 0, c('sub_published'))}
+        ${metricCard(c('drafts'), counts.draftPosts ?? 0, c('sub_drafts'))}
+        ${metricCard(c('categories'), counts.categories ?? 0, c('sub_categories'))}
+        ${metricCard(c('tags'), counts.tags ?? 0, c('sub_tags'))}
+        ${metricCard(c('audit'), counts.auditEvents ?? 0, c('sub_audit'))}
       </div>
 
       <div class="dashboard-grid" style="margin-top: 20px;">
         <div class="card">
           <h3>${escapeHtml(c('basicInfo'))}</h3>
           <div class="meta-grid">
-            <div class="meta-row"><span>${escapeHtml(c('backend'))}</span><strong>${escapeHtml(stats?.backend || 'unknown')}</strong></div>
-            <div class="meta-row"><span>${escapeHtml(c('source'))}</span><strong>${escapeHtml(stats?.sourceOfTruth || 'unknown')}</strong></div>
+            <div class="meta-row"><span>${escapeHtml(c('backend'))}</span><strong>${escapeHtml(stats?.backend || c('unknown'))}</strong></div>
+            <div class="meta-row"><span>${escapeHtml(c('source'))}</span><strong>${escapeHtml(stats?.sourceOfTruth || c('unknown'))}</strong></div>
             <div class="meta-row"><span>${escapeHtml(c('target'))}</span><strong>${escapeHtml(stats?.target?.owner || '')}/${escapeHtml(stats?.target?.repo || '')}@${escapeHtml(stats?.target?.baseBranch || '')}</strong></div>
             <div class="meta-row"><span>${escapeHtml(c('generated'))}</span><strong>${escapeHtml(stats?.generatedAt || '')}</strong></div>
           </div>
-          ${stats?.gitPostsError ? `<div class="alert alert-warning" style="margin-top: 14px;">GitHub scan warning: ${escapeHtml(stats.gitPostsError)}</div>` : ''}
+          ${stats?.gitPostsError ? `<div class="alert alert-warning" style="margin-top: 14px;">${escapeHtml(c('git_scan_warn'))} ${escapeHtml(stats.gitPostsError)}</div>` : ''}
         </div>
 
         <div class="card">
