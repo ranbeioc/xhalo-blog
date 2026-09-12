@@ -16,42 +16,32 @@ This document describes the Cloudflare D1 migration strategy for xhalo-blog.
 
 ## New Environment Setup
 
-For a fresh D1 database, execute all migrations in order:
+For a fresh D1 database, execute all migrations in sequential order:
 
 ```bash
 npx wrangler d1 migrations apply <DB_NAME>
 ```
 
-This runs `0001_initial.sql` then `0002_add_posts_content.sql`. Since `0001_initial.sql` already includes the `content TEXT` column in the `CREATE TABLE` statement, `0002` will fail with `duplicate column name: content`. This is expected and safe — see "Handling Duplicate Column" below.
+This runs `0001_initial.sql` through `0006_create_admin_users.sql` sequentially:
+- `0001_initial.sql` creates baseline tables (`posts_index`, `site_settings`, `tasks`).
+- `0002_add_posts_content.sql` adds the `content TEXT` column to `posts_index`.
+- `0003_harden_posts_index_constraints.sql` adds the unique slug index and status/published_at performance indexes.
+- `0004_add_posts_index_preview_url.sql` adds the `preview_url TEXT` column.
+- `0005_create_audit_logs.sql` creates the full 14-column `audit_logs` table with performance indexes.
+- `0006_create_admin_users.sql` creates the `admin_users` table with role index.
+
+All migrations execute without conflicts on fresh databases.
 
 ## Existing Environment Upgrade
 
-If your D1 database was created with an older version of `0001_initial.sql` that did **not** include the `content` column:
+For existing databases that have already applied earlier migrations, Wrangler D1 tracks applied migration files in its internal `d1_migrations` table and will only execute unapplied migrations.
 
-1. Run the forward migration:
-   ```bash
-   npx wrangler d1 execute <DB_NAME> --file=workers/api/migrations/0002_add_posts_content.sql
-   ```
-
-2. Verify the column exists:
-   ```sql
-   PRAGMA table_info(posts_index);
-   ```
-   You should see `content` in the output.
-
-## Handling Duplicate Column
-
-If `0001_initial.sql` already includes `content TEXT` in the `CREATE TABLE` statement, running `0002_add_posts_content.sql` will produce:
-
-```
-Error: duplicate column name: content
-```
-
-This is **safe to ignore**. The column already exists and no data is lost. To confirm:
+To verify applied migrations:
 
 ```sql
 PRAGMA table_info(posts_index);
 ```
+You should see `content` and `preview_url` in the output.
 
 ## Unique Index Upgrade & Preflight Checks (0003)
 

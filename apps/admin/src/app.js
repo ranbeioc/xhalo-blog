@@ -49,6 +49,7 @@ const appState = {
   postsPage: 1,
   postsPageSize: 20,
   selectedPost: null,
+  activePanel: null,
   renderToken: 0
 };
 
@@ -66,6 +67,10 @@ function loadRouteModule(route) {
 
 function navigateTo(route) {
   if (!ROUTES.includes(route) || appState.currentRoute === route) return;
+  if (appState.activePanel && typeof appState.activePanel.isDirty === 'function' && appState.activePanel.isDirty()) {
+    const leave = window.confirm(t('unsavedChangesPrompt') || 'You have unsaved changes. Are you sure you want to leave this page?');
+    if (!leave) return;
+  }
   appState.currentRoute = route;
   window.location.hash = route;
   render();
@@ -156,6 +161,10 @@ async function renderContent() {
 
   const route = appState.currentRoute;
   const token = ++appState.renderToken;
+
+  if (route !== 'editor' && route !== 'menus' && route !== 'configuration') {
+    appState.activePanel = null;
+  }
 
   try {
     switch (route) {
@@ -280,7 +289,7 @@ async function renderEditorPanel(container) {
     loadRouteModule('editor'),
     ensureDashboardData().catch(() => null)
   ]);
-  module.renderEditor(container, {
+  appState.activePanel = module.renderEditor(container, {
     initialPost: appState.selectedPost
       ? {
           title: appState.selectedPost.title || '',
@@ -298,6 +307,7 @@ async function renderEditorPanel(container) {
 }
 
 async function renderMediaPanel(container) {
+  appState.activePanel = null;
   setLoading(container, t('loadingMedia'));
   const [module, dashboardData] = await Promise.all([
     loadRouteModule('media'),
@@ -314,9 +324,9 @@ async function renderMenusPanel(container) {
       fetchSiteMenu(),
       ensureDashboardData().catch(() => null)
     ]);
-    renderMenuManager(container, { initialMenuData: menuData, dashboardData });
+    appState.activePanel = renderMenuManager(container, { initialMenuData: menuData, dashboardData });
   } catch {
-    renderMenuManager(container, { initialMenuData: { menu: [] }, dashboardData: appState.dashboardData });
+    appState.activePanel = renderMenuManager(container, { initialMenuData: { menu: [] }, dashboardData: appState.dashboardData });
   }
 }
 
@@ -324,8 +334,9 @@ async function renderConfigurationPanel(container) {
   setLoading(container, t('loadingConfig'));
   try {
     const { fetchSiteConfig, renderSiteConfiguration } = await loadRouteModule('configuration');
-    renderSiteConfiguration(container, await fetchSiteConfig());
+    appState.activePanel = renderSiteConfiguration(container, await fetchSiteConfig());
   } catch (err) {
+    appState.activePanel = null;
     showPanelError(container, t('errorConfig'), err);
   }
 }
@@ -407,8 +418,25 @@ function preloadLikelyRoutes() {
 async function init() {
   appState.currentRoute = getRouteFromHash();
   window.addEventListener('hashchange', () => {
-    appState.currentRoute = getRouteFromHash();
+    const nextRoute = getRouteFromHash();
+    if (nextRoute === appState.currentRoute) return;
+    if (appState.activePanel && typeof appState.activePanel.isDirty === 'function' && appState.activePanel.isDirty()) {
+      const leave = window.confirm(t('unsavedChangesPrompt') || 'You have unsaved changes. Are you sure you want to leave this page?');
+      if (!leave) {
+        window.location.hash = appState.currentRoute;
+        return;
+      }
+    }
+    appState.currentRoute = nextRoute;
     render();
+  });
+
+  window.addEventListener('beforeunload', (event) => {
+    if (appState.activePanel && typeof appState.activePanel.isDirty === 'function' && appState.activePanel.isDirty()) {
+      event.preventDefault();
+      event.returnValue = '';
+      return '';
+    }
   });
 
   await initSession();

@@ -27,6 +27,16 @@ export function getAdminHeaders() {
 
 let turnstileWidgetId = null;
 
+export class ApiError extends Error {
+  constructor(message, options = {}) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = options.status || 0;
+    this.code = options.code || 'NETWORK_ERROR';
+    this.details = options.details || null;
+  }
+}
+
 export async function apiFetch(path, init = {}) {
   const headers = new Headers(init.headers || {});
   const secret = getAdminSecret();
@@ -45,27 +55,59 @@ export async function apiFetch(path, init = {}) {
     }
   }
 
-  const url = `${ADMIN_API_BASE_URL}${path}`;
-  const response = await fetch(url, {
-    ...init,
-    credentials: 'include',
-    headers
-  });
-
-  // Reset Turnstile widget if verification failed
-  if (response.status === 403 && typeof turnstile !== 'undefined' && turnstileWidgetId !== null) {
-    try {
-      const body = await response.clone().json();
-      if (body?.error?.includes('Turnstile')) {
-        turnstile.reset();
-        console.warn('Turnstile token rejected. Resetting widget.');
-      }
-    } catch (e) {
-      // Ignore
-    }
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    throw new ApiError('You are currently offline. Please check your network connection.', {
+      status: 0,
+      code: 'CLIENT_OFFLINE'
+    });
   }
 
-  return response;
+  const url = `${ADMIN_API_BASE_URL}${path}`;
+  const timeoutMs = init.timeoutMs || 30000;
+  let timeoutId = null;
+  let signal = init.signal;
+  if (!signal && typeof AbortController !== 'undefined') {
+    const controller = new AbortController();
+    timeoutId = setTimeout(() => controller.abort(new Error(`Request timed out after ${timeoutMs}ms`)), timeoutMs);
+    signal = controller.signal;
+  }
+
+  try {
+    const response = await fetch(url, {
+      ...init,
+      credentials: 'include',
+      headers,
+      signal
+    });
+
+    // Reset Turnstile widget if verification failed
+    if (response.status === 403 && typeof turnstile !== 'undefined' && turnstileWidgetId !== null) {
+      try {
+        const body = await response.clone().json();
+        if (body?.error?.includes('Turnstile')) {
+          turnstile.reset();
+          console.warn('Turnstile token rejected. Resetting widget.');
+        }
+      } catch (e) {
+        // Ignore
+      }
+    }
+
+    return response;
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    const isTimeout = err.name === 'AbortError' || String(err.message || '').includes('timed out');
+    throw new ApiError(
+      isTimeout ? `Request timed out after ${timeoutMs}ms.` : (err.message || 'Network request failed.'),
+      {
+        status: 0,
+        code: isTimeout ? 'REQUEST_TIMEOUT' : 'FETCH_ERROR',
+        details: err
+      }
+    );
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
 }
 
 export function setTurnstileWidgetId(id) {

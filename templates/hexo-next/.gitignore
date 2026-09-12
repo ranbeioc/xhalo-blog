@@ -1,0 +1,7 @@
+# Hexo build artifacts & dependencies
+.cache/
+.deploy_git/
+public/
+node_modules/
+db.json
+*.log

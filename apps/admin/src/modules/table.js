@@ -58,7 +58,7 @@ export function renderDataTable({
         <span>${escapeHtml(filterLabel || t('filter'))}</span>
         <select data-table-filter="${escapeHtml(id)}">${options}</select>
       </label>
-      <div class="table-count">${escapeHtml(t('tableCount', { count: filteredRows.length, page: countPage, totalPages: countTotalPages }))}</div>
+      <div class="table-count" aria-live="polite">${escapeHtml(t('tableCount', { count: filteredRows.length, page: countPage, totalPages: countTotalPages }))}</div>
     </div>
     <div class="table-container adaptive-table-container">
       <table class="data-table adaptive-table">
@@ -79,7 +79,8 @@ export function renderDataTable({
 
 export function bindDataTableControls(container, id, state, draw) {
   const search = container.querySelector(`[data-table-search="${id}"]`);
-  if (search) {
+  if (search && !search.dataset.bound) {
+    search.dataset.bound = 'true';
     search.addEventListener('input', (event) => {
       state.query = event.target.value;
       state.page = 1;
@@ -117,11 +118,23 @@ export function bindDataTableControls(container, id, state, draw) {
       updateEl('tbody');
       updateEl('.table-pagination');
       updateEl('.table-count');
+
+      // Re-bind pagination buttons after partial DOM update
+      container.querySelectorAll(`[data-table-page="${id}"]`).forEach((button) => {
+        button.onclick = () => {
+          state.page = Number(button.getAttribute('data-page')) || 1;
+          draw();
+        };
+      });
+
+      // Dispatch event so parent components can re-bind or react
+      container.dispatchEvent(new CustomEvent('table:updated', { detail: { id, state } }));
     });
   }
 
   const filter = container.querySelector(`[data-table-filter="${id}"]`);
-  if (filter) {
+  if (filter && !filter.dataset.bound) {
+    filter.dataset.bound = 'true';
     filter.addEventListener('change', (event) => {
       state.filter = event.target.value;
       state.page = 1;
@@ -130,9 +143,9 @@ export function bindDataTableControls(container, id, state, draw) {
   }
 
   container.querySelectorAll(`[data-table-page="${id}"]`).forEach((button) => {
-    button.addEventListener('click', () => {
+    button.onclick = () => {
       state.page = Number(button.getAttribute('data-page')) || 1;
       draw();
-    });
+    };
   });
 }

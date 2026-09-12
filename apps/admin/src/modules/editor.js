@@ -916,7 +916,21 @@ export function renderEditor(container, { initialPost, dashboardData }) {
     updateStatus();
   }
 
+  const originalPost = { ...post };
+
+  function isDirty() {
+    syncFromForm();
+    return (
+      (post.title || '') !== (originalPost.title || '') ||
+      (post.slug || '') !== (originalPost.slug || '') ||
+      (post.body || '') !== (originalPost.body || '') ||
+      (post.category || '') !== (originalPost.category || '') ||
+      (post.tags || '') !== (originalPost.tags || '')
+    );
+  }
+
   draw();
+  return { isDirty };
 }
 
 function normalizePost(post) {

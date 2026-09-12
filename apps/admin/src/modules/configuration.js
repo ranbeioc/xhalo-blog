@@ -429,7 +429,12 @@ export function renderSiteConfiguration(container, data) {
     });
   }
 
+  function isDirty() {
+    return configs.some((file) => file.editable && (edited[file.path] ?? '') !== (file.content || ''));
+  }
+
   draw();
+  return { isDirty };
 }
 
 function pickInitialConfigPath(configs) {

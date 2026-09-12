@@ -195,15 +195,22 @@ export function renderPostsList(container, { items, isFallback, page = 1, pageSi
 
     bindDataTableControls(container, 'posts', tableState, draw);
 
-    container.querySelectorAll('.load-post-btn').forEach((btn) => {
-      btn.addEventListener('click', (event) => {
-        const slug = event.target.getAttribute('data-slug');
-        const selected = items.find((post) => post.slug === slug);
-        if (selected && onSelectPost) onSelectPost(selected);
+    if (!container.dataset.postSelectBound) {
+      container.dataset.postSelectBound = 'true';
+      container.addEventListener('click', (event) => {
+        const btn = event.target.closest('.load-post-btn');
+        if (btn) {
+          const slug = btn.getAttribute('data-slug');
+          const selected = items.find((post) => post.slug === slug);
+          if (selected && onSelectPost) onSelectPost(selected);
+        }
       });
-    });
-    container.querySelector('#posts-prev-page')?.addEventListener('click', () => onPageChange?.(Math.max(1, page - 1)));
-    container.querySelector('#posts-next-page')?.addEventListener('click', () => onPageChange?.(page + 1));
+    }
+
+    const prevBtn = container.querySelector('#posts-prev-page');
+    if (prevBtn) prevBtn.onclick = () => onPageChange?.(Math.max(1, page - 1));
+    const nextBtn = container.querySelector('#posts-next-page');
+    if (nextBtn) nextBtn.onclick = () => onPageChange?.(page + 1);
   }
 
   draw();
