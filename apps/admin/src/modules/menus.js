@@ -697,7 +697,13 @@ export function renderMenuManager(container, { initialMenuData }) {
     container.querySelector('#btn-save-menu-test')?.addEventListener('click', saveMenuToTest);
   }
 
+  function isDirty() {
+    return JSON.stringify(menuItems) !== JSON.stringify(originalMenu) ||
+           JSON.stringify(socialLinks) !== JSON.stringify(originalSocialLinks);
+  }
+
   draw();
+  return { isDirty };
 }
 
 function slugify(value) {

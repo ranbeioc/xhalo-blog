@@ -92,46 +92,98 @@ export function parseYamlFrontmatter(text) {
 }
 
 export function generateUnifiedDiff(oldStr, newStr, filename = 'post.md') {
-  const oldLines = oldStr.replace(/\r\n/g, '\n').split('\n');
-  const newLines = newStr.replace(/\r\n/g, '\n').split('\n');
+  const normalizedOld = String(oldStr || '').replace(/\r\n/g, '\n');
+  const normalizedNew = String(newStr || '').replace(/\r\n/g, '\n');
 
-  let diffLines = [];
-  diffLines.push(`--- a/${filename}`);
-  diffLines.push(`+++ b/${filename}`);
+  if (normalizedOld === normalizedNew) {
+    const lines = normalizedOld ? normalizedOld.split('\n') : [];
+    const diffLines = [
+      `--- a/${filename}`,
+      `+++ b/${filename}`,
+      ...lines.map((l) => ` ${l}`)
+    ];
+    return {
+      diffText: diffLines.join('\n'),
+      addedLines: 0,
+      removedLines: 0,
+      frontmatterChanged: false,
+      bodyChanged: false
+    };
+  }
 
-  const n = oldLines.length;
-  const m = newLines.length;
-  const dp = Array.from({ length: n + 1 }, () => Array(m + 1).fill(0));
+  const oldLines = normalizedOld.split('\n');
+  const newLines = normalizedNew.split('\n');
 
-  for (let i = 1; i <= n; i++) {
-    for (let j = 1; j <= m; j++) {
-      if (oldLines[i - 1] === newLines[j - 1]) {
-        dp[i][j] = dp[i - 1][j - 1] + 1;
-      } else {
-        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+  // Find common prefix
+  let prefix = 0;
+  while (prefix < oldLines.length && prefix < newLines.length && oldLines[prefix] === newLines[prefix]) {
+    prefix++;
+  }
+
+  // Find common suffix
+  let suffix = 0;
+  while (
+    suffix < (oldLines.length - prefix) &&
+    suffix < (newLines.length - prefix) &&
+    oldLines[oldLines.length - 1 - suffix] === newLines[newLines.length - 1 - suffix]
+  ) {
+    suffix++;
+  }
+
+  const midOld = oldLines.slice(prefix, oldLines.length - suffix);
+  const midNew = newLines.slice(prefix, newLines.length - suffix);
+
+  const n = midOld.length;
+  const m = midNew.length;
+
+  let midResult = [];
+  // Guard against Worker CPU / memory exhaustion
+  if (n * m > 1_000_000) {
+    for (const line of midOld) {
+      midResult.push({ type: 'removed', line });
+    }
+    for (const line of midNew) {
+      midResult.push({ type: 'added', line });
+    }
+  } else {
+    const dp = Array.from({ length: n + 1 }, () => Array(m + 1).fill(0));
+    for (let i = 1; i <= n; i++) {
+      for (let j = 1; j <= m; j++) {
+        if (midOld[i - 1] === midNew[j - 1]) {
+          dp[i][j] = dp[i - 1][j - 1] + 1;
+        } else {
+          dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+        }
+      }
+    }
+
+    let i = n, j = m;
+    while (i > 0 || j > 0) {
+      if (i > 0 && j > 0 && midOld[i - 1] === midNew[j - 1]) {
+        midResult.unshift({ type: 'common', line: midOld[i - 1] });
+        i--;
+        j--;
+      } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+        midResult.unshift({ type: 'added', line: midNew[j - 1] });
+        j--;
+      } else if (i > 0 && (j === 0 || dp[i][j - 1] < dp[i - 1][j])) {
+        midResult.unshift({ type: 'removed', line: midOld[i - 1] });
+        i--;
       }
     }
   }
 
-  const result = [];
-  let i = n, j = m;
-  while (i > 0 || j > 0) {
-    if (i > 0 && j > 0 && oldLines[i - 1] === newLines[j - 1]) {
-      result.unshift({ type: 'common', line: oldLines[i - 1] });
-      i--;
-      j--;
-    } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
-      result.unshift({ type: 'added', line: newLines[j - 1] });
-      j--;
-    } else if (i > 0 && (j === 0 || dp[i][j - 1] < dp[i - 1][j])) {
-      result.unshift({ type: 'removed', line: oldLines[i - 1] });
-      i--;
-    }
-  }
-
+  const diffLines = [`--- a/${filename}`, `+++ b/${filename}`];
   let addedLines = 0;
   let removedLines = 0;
-  for (const item of result) {
+
+  // Append prefix common lines
+  for (let k = 0; k < prefix; k++) {
+    diffLines.push(` ${oldLines[k]}`);
+  }
+
+  // Append middle diff lines
+  for (const item of midResult) {
     if (item.type === 'added') {
       diffLines.push(`+${item.line}`);
       addedLines++;
@@ -141,6 +193,11 @@ export function generateUnifiedDiff(oldStr, newStr, filename = 'post.md') {
     } else {
       diffLines.push(` ${item.line}`);
     }
+  }
+
+  // Append suffix common lines
+  for (let k = oldLines.length - suffix; k < oldLines.length; k++) {
+    diffLines.push(` ${oldLines[k]}`);
   }
 
   let frontmatterChanged = false;

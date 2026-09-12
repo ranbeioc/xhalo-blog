@@ -70,7 +70,8 @@ const en = {
   operationSucceeded: 'Operation completed',
   operationFailed: 'Operation failed',
   unavailable: 'Unavailable',
-  ready: 'Ready'
+  ready: 'Ready',
+  unsavedChangesPrompt: 'You have unsaved changes. Are you sure you want to leave this page?'
 };
 
 export const dictionaries = {
@@ -137,7 +138,8 @@ export const dictionaries = {
     operationSucceeded: '操作已完成',
     operationFailed: '操作失败',
     unavailable: '不可用',
-    ready: '就绪'
+    ready: '就绪',
+    unsavedChangesPrompt: '您有未保存的修改，确定要离开当前页面吗？'
   },
   ko: {
     dashboard: '대시보드',
@@ -201,7 +203,8 @@ export const dictionaries = {
     operationSucceeded: '작업이 완료되었습니다',
     operationFailed: '작업 실패',
     unavailable: '사용할 수 없음',
-    ready: '준비됨'
+    ready: '준비됨',
+    unsavedChangesPrompt: '저장되지 않은 변경사항이 있습니다. 이 페이지를 나가시겠습니까?'
   },
   ja: {
     dashboard: 'ダッシュボード',
@@ -265,7 +268,8 @@ export const dictionaries = {
     operationSucceeded: '操作が完了しました',
     operationFailed: '操作に失敗しました',
     unavailable: '利用できません',
-    ready: '準備完了'
+    ready: '準備完了',
+    unsavedChangesPrompt: '未保存の変更があります。このページを離れてもよろしいですか？'
   }
 };
 
