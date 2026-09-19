@@ -18,7 +18,17 @@ import {
 } from '../lib/models.js';
 import { enqueueTask } from '../lib/routes-shared.js';
 
-export async function handleTaskRoutes(request, env, url, method, requestStart) {
+// A retried message is the stored row payload, which the queue consumer turns into a live GitHub
+// publish exactly when it is a draft_publish whose target is not 'd1' (see workers/queue/src/index.js).
+export function retryPerformsLiveWrite(taskRow, payload) {
+  const envelope = buildQueueTaskEnvelope(payload);
+  const isDraftPublish = envelope.type === 'draft_publish' || taskRow.type === 'draft_publish';
+  if (!isDraftPublish) return false;
+  const inner = envelope.payload?.payload ? envelope.payload.payload : (envelope.payload || {});
+  return inner.publish_target !== 'd1';
+}
+
+export async function handleTaskRoutes(request, env, url, method, requestStart, context = {}) {
   if (url.pathname === '/api/tasks') {
     if (method !== 'GET') return createJsonResponse({ error: 'Method not allowed.' }, { status: 405 });
     const items = await selectRows(
@@ -62,6 +72,22 @@ export async function handleTaskRoutes(request, env, url, method, requestStart) 
     }
 
     const payload = parseJsonSafe(task.payload) || {};
+    // Retrying must not bypass the LIVE_WRITES gate that /api/drafts/publish enforces.
+    if (retryPerformsLiveWrite(task, payload) && !context.isLiveWritesEnabled?.(env)) {
+      await insertAuditLog(env, {
+        action: 'task_retry_rejected',
+        ...extractRequestMeta(request),
+        resource: 'task',
+        resource_id: taskId,
+        status_code: 403,
+        duration_ms: Date.now() - requestStart,
+        error: 'Live writes are disabled.',
+        detail: { code: 'LIVE_WRITES_DISABLED', task_type: task.type, previous_status: task.status }
+      });
+      return context.rejectLiveWriteDisabled
+        ? context.rejectLiveWriteDisabled()
+        : createJsonResponse({ error: 'Live writes are disabled.', code: 'LIVE_WRITES_DISABLED', required_env: 'LIVE_WRITES_ENABLED=true' }, { status: 403 });
+    }
     payload.reconciliation = payload.reconciliation || {};
     const retryCount = (payload.reconciliation.retry_count || 0) + 1;
     payload.reconciliation.retry_count = retryCount;
