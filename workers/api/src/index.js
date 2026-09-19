@@ -69,6 +69,7 @@ import {
   summarizePostRecord
 } from './lib/models.js';
 import { guardTestDirectPublish, triggerDeployAfterCommit, enqueueTask } from './lib/routes-shared.js';
+import { changedDependencies, findLockfile } from './lib/package-deps.js';
 import { handleWebhookRoutes } from './routes/webhooks.js';
 import { handleTaskRoutes } from './routes/tasks.js';
 import { handleAssetRoutes } from './routes/assets.js';
@@ -724,6 +725,20 @@ async function handleRequest(request, env, requestStart) {
             }
           }
           const current = await getFileContentFromBranch(env, { branch: repository.baseBranch, filePath });
+          if (filePath === 'package.json') {
+            const dependencyChanges = changedDependencies(current.raw, content);
+            const lockfile = dependencyChanges.length > 0
+              ? await findLockfile((lockPath) => getFileContentFromBranch(env, { branch: repository.baseBranch, filePath: lockPath }))
+              : '';
+            if (lockfile) {
+              return createJsonResponse({
+                error: `package.json dependency changes need a matching ${lockfile}, which the admin cannot regenerate. Run npm install in the site repository and commit package.json together with ${lockfile}.`,
+                code: 'DEPENDENCY_CHANGE_REQUIRES_LOCKFILE',
+                lockfile,
+                dependencyChanges
+              }, { status: 409 });
+            }
+          }
           files.push({
             filePath,
             content: content.endsWith('\n') ? content : `${content}\n`,
