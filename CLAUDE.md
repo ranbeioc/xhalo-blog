@@ -10,7 +10,7 @@ This repository (`xhalo-blog`) is part of the xHalo product suite: ~16 repos dev
 4. **If the task could affect another repo**, check the global cross-repo registry at `C:\Users\ranbe\Documents\Github\xhalo-ai-workflow\docs\global-architecture\`. Treat it as a snapshot (last full refresh: 2026-07-06), not a live source.
 
 ## Known relationships for this repo
-Depended on by: `xhalo-blog-test` (release gate — validates this repo's Pages/Worker output before production; note its primary local clone is 248 commits stale, see that repo's own notes). Related: `hexo-blog` (separate public static content site, not owned by this repo).
+Depended on by: `xhalo-blog-test` (release gate — validates this repo's Pages/Worker output before production; its `source/admin/` is a snapshot of `apps/admin/src/` synced in 2026-06 and diverged since, so admin fixes here do not reach that site unless ported). Related: `hexo-blog` (separate public static content site, not owned by this repo).
 
 ## After the change
 Update this repo's `AGENT_SKILL.md` and the global registry above if ownership, deployment, or Cloudflare mapping changed.

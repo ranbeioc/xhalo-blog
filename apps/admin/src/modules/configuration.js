@@ -10,8 +10,7 @@ const PLUGIN_PACKAGES = {
   waline: '@waline/hexo-next',
   math: 'hexo-filter-mathjax',
   mermaid: 'hexo-filter-mermaid-diagrams',
-  lazyload: 'hexo-lazyload-image',
-  pjax: 'theme-next-pjax'
+  lazyload: 'hexo-lazyload-image'
 };
 
 const copy = {
@@ -25,18 +24,16 @@ const copy = {
     missing: 'Missing',
     saveFile: 'Save configuration file',
     saveAll: 'Save all modified files',
-    install: 'Add dependency to package.json',
+    install: 'How to add this dependency',
     installed: 'Dependency installed',
     configured: 'Configured in theme',
     available: 'Available',
     editConfig: 'Edit configuration',
     openConfig: 'Open configuration file',
-    packageMissing: 'package.json is not editable, so dependency changes cannot be prepared.',
-    invalidPackage: 'package.json is not valid JSON.',
     noChange: 'No modified configuration files were found.',
     saved: 'Configuration saved to the test site.',
     saveFailed: 'Configuration save failed',
-    installDone: 'Dependency added to package.json. Save package.json to commit the change.',
+    installManual: 'This plugin needs the npm package {pkg}. Dependency changes must be committed together with the lockfile, which the admin cannot generate, so the site build (npm ci) would fail. In the site repository run the command below, then commit package.json and the lockfile together.',
     configOnly: 'This option is controlled by the theme configuration file.',
     validationFailed: 'Configuration validation failed',
     working: 'Saving configuration...',
@@ -58,18 +55,16 @@ const copy = {
     missing: '缺失',
     saveFile: '保存配置文件',
     saveAll: '保存全部已修改文件',
-    install: '添加依赖到 package.json',
+    install: '如何添加此依赖',
     installed: '依赖已安装',
     configured: '主题配置已启用',
     available: '可配置',
     editConfig: '编辑配置',
     openConfig: '打开配置文件',
-    packageMissing: 'package.json 当前不可编辑，无法准备依赖变更。',
-    invalidPackage: 'package.json 不是有效 JSON。',
     noChange: '没有检测到已修改的配置文件。',
     saved: '配置已保存到测试站。',
     saveFailed: '配置保存失败',
-    installDone: '依赖已加入 package.json，请保存 package.json 以提交变更。',
+    installManual: '此插件需要 npm 包 {pkg}。依赖变更必须与 lockfile 一起提交，而后台无法生成 lockfile，直接改 package.json 会让站点构建（npm ci）失败。请在站点仓库中运行下面的命令，然后把 package.json 和 lockfile 一起提交。',
     configOnly: '此功能由主题配置文件控制，请直接编辑主题配置。',
     validationFailed: '配置校验失败',
     working: '正在保存配置...',
@@ -91,18 +86,16 @@ const copy = {
     missing: '없음',
     saveFile: '설정 파일 저장',
     saveAll: '수정된 파일 모두 저장',
-    install: 'package.json에 의존성 추가',
+    install: '이 의존성을 추가하는 방법',
     installed: '의존성 설치됨',
     configured: '테마 설정됨',
     available: '설정 가능',
     editConfig: '설정 편집',
     openConfig: '설정 파일 열기',
-    packageMissing: 'package.json을 편집할 수 없어 의존성 변경을 준비할 수 없습니다.',
-    invalidPackage: 'package.json이 올바른 JSON이 아닙니다.',
     noChange: '수정된 설정 파일이 없습니다.',
     saved: '설정을 테스트 사이트에 저장했습니다.',
     saveFailed: '설정 저장 실패',
-    installDone: '의존성이 package.json에 추가되었습니다. package.json을 저장해야 커밋됩니다.',
+    installManual: '이 플러그인에는 npm 패키지 {pkg}가 필요합니다. 의존성 변경은 lockfile과 함께 커밋해야 하는데 관리자 화면에서는 lockfile을 만들 수 없으므로, package.json만 수정하면 사이트 빌드(npm ci)가 실패합니다. 사이트 저장소에서 아래 명령을 실행한 뒤 package.json과 lockfile을 함께 커밋하세요.',
     configOnly: '이 기능은 테마 설정 파일에서 제어합니다.',
     validationFailed: '설정 검증 실패',
     working: '설정을 저장하는 중...',
@@ -124,18 +117,16 @@ const copy = {
     missing: 'なし',
     saveFile: '設定ファイルを保存',
     saveAll: '変更済みファイルをすべて保存',
-    install: 'package.json に依存関係を追加',
+    install: 'この依存関係を追加する方法',
     installed: '依存関係はインストール済み',
     configured: 'テーマで設定済み',
     available: '設定可能',
     editConfig: '設定を編集',
     openConfig: '設定ファイルを開く',
-    packageMissing: 'package.json を編集できないため、依存関係の変更を準備できません。',
-    invalidPackage: 'package.json は有効な JSON ではありません。',
     noChange: '変更された設定ファイルはありません。',
     saved: '設定をテストサイトに保存しました。',
     saveFailed: '設定の保存に失敗しました',
-    installDone: '依存関係を package.json に追加しました。package.json を保存するとコミットされます。',
+    installManual: 'このプラグインには npm パッケージ {pkg} が必要です。依存関係の変更は lockfile と一緒にコミットする必要がありますが、管理画面では lockfile を生成できないため、package.json だけを変更するとサイトのビルド（npm ci）が失敗します。サイトのリポジトリで下のコマンドを実行し、package.json と lockfile を一緒にコミットしてください。',
     configOnly: 'この機能はテーマ設定ファイルで制御します。',
     validationFailed: '設定の検証に失敗しました',
     working: '設定を保存しています...',
@@ -236,20 +227,15 @@ export function renderSiteConfiguration(container, data) {
       return;
     }
 
-    const pkg = packageConfig();
-    const pkgJson = packageJson();
-    if (!pkg?.editable) {
-      showToast(c('packageMissing'), 'warning');
-      return;
-    }
-    if (!pkgJson) {
-      showToast(c('invalidPackage'), 'error');
-      return;
-    }
-    pkgJson.dependencies = { ...(pkgJson.dependencies || {}), [detection.packageName]: pkgJson.dependencies?.[detection.packageName] || 'latest' };
-    edited[pkg.path] = `${JSON.stringify(pkgJson, null, 2)}\n`;
-    activePath = pkg.path;
-    showToast(c('installDone'), 'success');
+    // The admin cannot regenerate the site's lockfile, and the site builds with `npm ci`, so a dependency
+    // written into package.json here would break the build. Show the command to run in the repository instead.
+    const command = `npm install ${detection.packageName}`;
+    actionResultHtml = `
+      <div class="alert alert-info">
+        ${escapeHtml(c('installManual').replace('{pkg}', detection.packageName))}
+        <pre class="config-preview"><code>${escapeHtml(command)}</code></pre>
+      </div>
+    `;
     draw();
   }
 

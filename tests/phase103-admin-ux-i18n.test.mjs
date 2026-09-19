@@ -108,7 +108,7 @@ test('Admin configuration page uses tabs, correct NexT path, editable plugins, a
   assert.match(config, /config-editor-full/);
   assert.match(config, /themes\/next\/_config\.yml/);
   assert.match(config, /hexo-theme-next/);
-  assert.match(config, /Add dependency to package\.json/);
+  assert.match(config, /How to add this dependency/);
   assert.match(config, /Open configuration file/);
   assert.match(config, /validateConfigFiles/);
   assert.match(config, /btn-install-plugin/);
