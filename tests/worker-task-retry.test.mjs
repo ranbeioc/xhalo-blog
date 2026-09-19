@@ -172,3 +172,85 @@ test('POST /api/tasks/:taskId/retry successfully enqueues failed task and resets
   assert.equal(auditRow[4], 'task');
   assert.equal(auditRow[5], 'task-failed-1');
 });
+
+// Same shape as the draft_publish rows the queue consumer writes back on failure (checked against staging D1).
+function failedDraftPublishRow(publishTarget = 'github') {
+  const envelope = {
+    type: 'draft_publish',
+    stage: '4-release-candidate',
+    created_at: '2026-06-09T08:35:00.000Z',
+    idempotency_key: 'task-publish-1',
+    payload: {
+      type: 'draft_publish',
+      stage: '4-release-candidate',
+      created_at: '2026-06-09T08:35:00.000Z',
+      idempotency_key: 'task-publish-1',
+      publish_target: publishTarget,
+      preview: { branchName: 'draft/example', baseBranch: 'main', filePath: 'source/_posts/example.md', draft: { title: 'Example', slug: 'example' } }
+    }
+  };
+  return {
+    id: 'task-publish-1',
+    type: 'draft_publish',
+    status: 'failed',
+    payload: JSON.stringify({ ...envelope, reconciliation: { phase: 'failed', retry_count: 0, last_error: 'GitHub API 502' } }),
+    error: 'GitHub API 502',
+    created_at: '2026-06-09T08:35:00.000Z',
+    updated_at: '2026-06-09T08:36:00.000Z'
+  };
+}
+
+async function retryDraftPublish(row, extraEnv = {}) {
+  const sent = [];
+  const writes = [];
+  const db = {
+    prepare: (sql) => ({
+      bind: (...args) => {
+        writes.push({ sql, args });
+        return { first: async () => row, run: async () => ({ success: true }) };
+      }
+    })
+  };
+  const { response, json } = await requestJson(`/api/tasks/${row.id}/retry`, {
+    method: 'POST',
+    headers: { 'x-xhalo-admin-secret': adminSecret }
+  }, {
+    ADMIN_API_SHARED_SECRET: adminSecret,
+    TASK_QUEUE: { send: async (payload) => { sent.push(payload); } },
+    DB: db,
+    ...extraEnv
+  });
+  return { response, json, sent, writes };
+}
+
+test('POST /api/tasks/:taskId/retry refuses a GitHub draft_publish while LIVE_WRITES_ENABLED is off', async () => {
+  const { response, json, sent, writes } = await retryDraftPublish(failedDraftPublishRow());
+  assert.equal(response.status, 403);
+  assert.equal(json.code, 'LIVE_WRITES_DISABLED');
+  assert.equal(sent.length, 0);
+  assert.equal(writes.some((w) => w.sql.includes('UPDATE tasks')), false);
+  const audit = writes.find((w) => w.sql.includes('INSERT INTO audit_logs'));
+  assert.ok(audit);
+  assert.ok(audit.args.includes('task_retry_rejected'));
+});
+
+test('POST /api/tasks/:taskId/retry allows a GitHub draft_publish when LIVE_WRITES_ENABLED=true', async () => {
+  const { response, json, sent } = await retryDraftPublish(failedDraftPublishRow(), { LIVE_WRITES_ENABLED: 'true' });
+  assert.equal(response.status, 200);
+  assert.equal(json.retried, true);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].type, 'draft_publish');
+});
+
+test('POST /api/tasks/:taskId/retry still allows a D1-only draft_publish while live writes are off', async () => {
+  const { response, sent } = await retryDraftPublish(failedDraftPublishRow('d1'));
+  assert.equal(response.status, 200);
+  assert.equal(sent.length, 1);
+});
+
+test('retryPerformsLiveWrite treats a draft_publish row as live even if its payload lost the type', async () => {
+  const { retryPerformsLiveWrite } = await import('../workers/api/src/routes/tasks.js');
+  assert.equal(retryPerformsLiveWrite({ type: 'draft_publish' }, { slug: 'x' }), true);
+  assert.equal(retryPerformsLiveWrite({ type: 'draft_pr' }, { slug: 'x' }), false);
+  assert.equal(retryPerformsLiveWrite({ type: 'draft_preview' }, { type: 'draft_preview' }), false);
+});

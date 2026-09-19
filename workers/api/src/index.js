@@ -509,7 +509,7 @@ async function handleRequest(request, env, requestStart) {
     const postResponse = await handlePostRoutes(request, env, url, method, requestStart, context);
     if (postResponse) return postResponse;
 
-    const taskResponse = await handleTaskRoutes(request, env, url, method, requestStart);
+    const taskResponse = await handleTaskRoutes(request, env, url, method, requestStart, context);
     if (taskResponse) return taskResponse;
 
     const assetResponse = await handleAssetRoutes(request, env, url, method, requestStart, context);
