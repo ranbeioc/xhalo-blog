@@ -317,84 +317,153 @@ function buildTaskSummary(task) {
   }
 }
 
+function retryDelaySeconds(attempts) {
+  return Math.pow(2, attempts) * 10;
+}
+
+// Tasks that write the same draft branch must not run concurrently: GitHub's contents API
+// rejects the second of two simultaneous writes to one file. Other tasks keep running in parallel.
+function serializationKey(task, index) {
+  if (task.type !== 'draft_publish') return `message:${index}`;
+  const payload = task.payload?.payload ? task.payload.payload : (task.payload || {});
+  const branchName = payload.preview?.branchName;
+  return branchName ? `branch:${branchName}` : `message:${index}`;
+}
+
+async function settleFailedTask(message, env, task, taskId, retryCount, error) {
+  const attempts = message.attempts || 1;
+  if (isTransientError(error) && attempts < 3) {
+    console.error(JSON.stringify({
+      level: 'warn',
+      action: 'task_transient_retry',
+      task_id: taskId,
+      attempt: attempts,
+      error: error.message || String(error),
+      next_retry_delay_seconds: retryDelaySeconds(attempts)
+    }));
+    message.retry({ delaySeconds: retryDelaySeconds(attempts) });
+    return;
+  }
+
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  try {
+    await updateTaskStatus(env, taskId, {
+      status: 'failed',
+      error: errorMessage,
+      payload: {
+        ...task,
+        reconciliation: {
+          phase: 'failed',
+          retry_count: retryCount,
+          last_error: errorMessage
+        }
+      }
+    });
+  } catch (writeError) {
+    // The failure could not be recorded (e.g. D1 unavailable). Redeliver rather than acknowledge,
+    // so the task is not silently dropped while its row still says queued/processing.
+    console.error(JSON.stringify({
+      level: 'error',
+      action: 'task_failure_write_failed',
+      task_id: taskId,
+      attempt: attempts,
+      error: errorMessage,
+      write_error: writeError.message || String(writeError)
+    }));
+    message.retry({ delaySeconds: retryDelaySeconds(attempts) });
+    return;
+  }
+  console.error('xhalo-blog queue task failed', JSON.stringify({
+    taskId,
+    type: task.type,
+    error: errorMessage
+  }));
+  message.ack();
+}
+
+async function processMessage(message, task, env) {
+  const taskId = task.idempotency_key || task.payload?.idempotency_key || null;
+  const retryCount = Math.max((message.attempts || 1) - 1, 0);
+
+  let summary;
+  try {
+    await updateTaskStatus(env, taskId, {
+      status: 'processing',
+      payload: {
+        ...task,
+        reconciliation: {
+          phase: 'processing',
+          retry_count: retryCount
+        }
+      }
+    });
+
+    if (task.type === 'draft_publish') {
+      summary = await handleDraftPublishTask(task, env, taskId, retryCount);
+    } else {
+      summary = buildTaskSummary(task);
+    }
+
+    if (summary.outcome === 'unknown-task') {
+      console.warn('xhalo-blog queue unknown task type', JSON.stringify(summary));
+    } else {
+      console.log(`xhalo-blog queue ${task.type} task`, JSON.stringify(summary));
+    }
+  } catch (error) {
+    await settleFailedTask(message, env, task, taskId, retryCount, error);
+    return;
+  }
+
+  // The task's work has succeeded. A failed bookkeeping write must not turn it into a failed task;
+  // redeliver instead (draft publishing is idempotent: existing branch, file and PR are reused).
+  try {
+    await updateTaskStatus(env, taskId, {
+      status: 'completed',
+      payload: {
+        ...task,
+        reconciliation: {
+          phase: 'completed',
+          retry_count: retryCount,
+          summary
+        }
+      }
+    });
+  } catch (error) {
+    const attempts = message.attempts || 1;
+    console.error(JSON.stringify({
+      level: 'warn',
+      action: 'task_completion_write_failed',
+      task_id: taskId,
+      attempt: attempts,
+      error: error.message || String(error)
+    }));
+    message.retry({ delaySeconds: retryDelaySeconds(attempts) });
+    return;
+  }
+  message.ack();
+}
+
 export default {
   async queue(batch, env, ctx) {
-    await Promise.allSettled(batch.messages.map(async (message) => {
+    const groups = new Map();
+    batch.messages.forEach((message, index) => {
       const task = buildQueueTaskEnvelope(message.body);
-      const taskId = task.idempotency_key || task.payload?.idempotency_key || null;
-      const retryCount = Math.max((message.attempts || 1) - 1, 0);
+      const key = serializationKey(task, index);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push({ message, task });
+    });
 
-      try {
-        await updateTaskStatus(env, taskId, {
-          status: 'processing',
-          payload: {
-            ...task,
-            reconciliation: {
-              phase: 'processing',
-              retry_count: retryCount
-            }
-          }
-        });
-
-        let summary;
-        if (task.type === 'draft_publish') {
-          summary = await handleDraftPublishTask(task, env, taskId, retryCount);
-        } else {
-          summary = buildTaskSummary(task);
-        }
-
-        if (summary.outcome === 'unknown-task') {
-          console.warn('xhalo-blog queue unknown task type', JSON.stringify(summary));
-        } else {
-          console.log(`xhalo-blog queue ${task.type} task`, JSON.stringify(summary));
-        }
-
-        await updateTaskStatus(env, taskId, {
-          status: 'completed',
-          payload: {
-            ...task,
-            reconciliation: {
-              phase: 'completed',
-              retry_count: retryCount,
-              summary
-            }
-          }
-        });
-
-        message.ack();
-      } catch (error) {
-        const transient = isTransientError(error);
-        const attempts = message.attempts || 1;
-        if (transient && attempts < 3) {
+    await Promise.allSettled([...groups.values()].map(async (entries) => {
+      for (const { message, task } of entries) {
+        try {
+          await processMessage(message, task, env);
+        } catch (error) {
           console.error(JSON.stringify({
-            level: 'warn',
-            action: 'task_transient_retry',
-            task_id: taskId,
-            attempt: attempts,
-            error: error.message || String(error),
-            next_retry_delay_seconds: Math.pow(2, attempts) * 10
+            level: 'error',
+            action: 'task_unexpected_error',
+            error: error.message || String(error)
           }));
-          message.retry({ delaySeconds: Math.pow(2, attempts) * 10 });
-        } else {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          await updateTaskStatus(env, taskId, {
-            status: 'failed',
-            error: errorMessage,
-            payload: {
-              ...task,
-              reconciliation: {
-                phase: 'failed',
-                retry_count: retryCount,
-                last_error: errorMessage
-              }
-            }
-          });
-          console.error('xhalo-blog queue task failed', JSON.stringify({
-            taskId,
-            type: task.type,
-            error: errorMessage
-          }));
-          message.ack();
+          message.retry({ delaySeconds: retryDelaySeconds(message.attempts || 1) });
         }
       }
     }));
